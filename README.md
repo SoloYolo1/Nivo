@@ -30,3 +30,8 @@ What is in the app (Nivo 2.0)
 - Plan: goal ring, projection chart, SIP needed to hit your goal, plan checklist.
 - History: all prices (edit or delete), investments, backup, restore, CSV.
 - Plus button: add a price or an investment. Gear: theme and refresh.
+
+Automatic prices (new)
+- The installed app now fetches Al Meezan's Fund Prices itself each time you open it, every 10 minutes while open, and when you tap Refresh. It uses free public relays (allorigins, corsproxy, codetabs) because the website does not allow direct access from apps.
+- The GitHub price check (update.yml) is now only needed for the phone notification.
+- The Claude page cannot reach the website, so there it reads your Al Meezan price email through Gmail.

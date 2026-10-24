@@ -31,6 +31,10 @@
   {
    "date": "2026-10-22",
    "nav": 26.6
+  },
+  {
+   "date": "2026-10-23",
+   "nav": 26.4174
   }
  ],
  "buys": [
@@ -39,5 +43,39 @@
    "units": 7360.42,
    "sent": 200000
   }
- ]
+ ],
+ "peers": {
+  "asof": "23 Oct",
+  "items": [
+   {
+    "n": "Money Market",
+    "v": 10.06
+   },
+   {
+    "n": "Conservative FoF",
+    "v": 0.28
+   },
+   {
+    "n": "Moderate FoF",
+    "v": -2.99
+   },
+   {
+    "n": "Balanced (you)",
+    "v": -4.77,
+    "me": true
+   },
+   {
+    "n": "Aggressive FoF",
+    "v": -5.48
+   },
+   {
+    "n": "Gold",
+    "v": -6.56
+   },
+   {
+    "n": "Equity",
+    "v": -10.21
+   }
+  ]
+ }
 }
