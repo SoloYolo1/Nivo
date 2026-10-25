@@ -35,3 +35,7 @@ Automatic prices (new)
 - The installed app now fetches Al Meezan's Fund Prices itself each time you open it, every 10 minutes while open, and when you tap Refresh. It uses free public relays (allorigins, corsproxy, codetabs) because the website does not allow direct access from apps.
 - The GitHub price check (update.yml) is now only needed for the phone notification.
 - The Claude page cannot reach the website, so there it reads your Al Meezan price email through Gmail.
+
+Splash and icon (Nivo 2.1)
+- The app opens with an animated Nivo splash screen, then the Summary page animates in.
+- New icon: a rounded "n" on an indigo gradient. To get it on your phone, upload the new files (including splash.png), edit apk.yml, uninstall the old app, run Build APK, install.
