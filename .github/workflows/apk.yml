@@ -38,7 +38,8 @@ jobs:
           mkdir -p $R/mipmap-anydpi-v26
           printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/ic_launcher_background"/>\n  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n' > $R/mipmap-anydpi-v26/ic_launcher.xml
           cp $R/mipmap-anydpi-v26/ic_launcher.xml $R/mipmap-anydpi-v26/ic_launcher_round.xml
-          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#0f1020</color>\n</resources>\n' > $R/values/ic_launcher_background.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#4547dc</color>\n</resources>\n' > $R/values/ic_launcher_background.xml
+          find $R -name splash.png -exec cp splash.png {} \;
       - name: Status bar color
         run: |
           R=android/app/src/main/res
