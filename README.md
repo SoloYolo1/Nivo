@@ -39,3 +39,9 @@ Automatic prices (new)
 Splash and icon (Nivo 2.1)
 - The app opens with an animated Nivo splash screen, then the Summary page animates in.
 - New icon: a rounded "n" on an indigo gradient. To get it on your phone, upload the new files (including splash.png), edit apk.yml, uninstall the old app, run Build APK, install.
+
+Nivo 2.2
+- New illustrated icon: a snow-capped peak at dusk with a rising sun. Rendered in every size, plus the Android adaptive icon and the startup image (splash.png).
+- Tab switching no longer slides the page sideways, which caused the horizontal-swipe glitch and the dock jumping.
+- New content: This week, Holdings and Dealing window (Summary); NAV vs your cost (Trends); Milestones and Scenarios (Goals); Contributed, Estimated fees and Timeline (Activity).
+- Motion: cards reveal as you scroll, numbers count up, buttons ripple, the dock shrinks while scrolling down, the title fades as you scroll.
