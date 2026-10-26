@@ -45,3 +45,10 @@ Nivo 2.2
 - Tab switching no longer slides the page sideways, which caused the horizontal-swipe glitch and the dock jumping.
 - New content: This week, Holdings and Dealing window (Summary); NAV vs your cost (Trends); Milestones and Scenarios (Goals); Contributed, Estimated fees and Timeline (Activity).
 - Motion: cards reveal as you scroll, numbers count up, buttons ripple, the dock shrinks while scrolling down, the title fades as you scroll.
+
+
+Nivo 2.3 — refreshed brand and launch experience
+- Updated the app mark to a premium wealth-growth symbol using the dashboard's midnight-indigo palette and warm gold growth line.
+- Refreshed browser, PWA, Apple touch, and Android launcher icons to match.
+- Reworked the intro splash with a branded tagline, supporting line, subtle orbit detail, and a slower progress animation (about 3.4 seconds).
+- The Android launch image now uses the same brand and messaging.
