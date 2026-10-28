@@ -13,6 +13,8 @@ All files are in one flat folder (plus the small `runners` folder) so they uploa
 - Tap any day (This week, Timeline, Price history, Best or Worst day) to open a detail sheet with that day's NAV, your value, units and change, and an Edit shortcut.
 - Look: an indigo gradient hero with a gold price, layered cards with edge highlights and real shadows in both themes, gradient icon chips and a soft colour wash behind the app that drifts and parallaxes as you scroll.
 - Swipe left or right anywhere on a page to move between Portfolio, Insights, Plan and History. Pull down stretches the page while it checks for prices.
+- First launch: a three-step setup (your name, your fund, what you hold). If Nivo already has your data (for example after updating the app), the setup is pre-filled with it and offers "Keep what I have"; your price history is never cleared.
+- The + button opens a small menu with the actions that fit the page you are on. Swipe a price row left to delete it; every delete has an Undo. The value stays pinned in the top bar when you scroll past the hero. A gold confetti burst marks crossing break-even or reaching a milestone.
 - Motion: live loaders on refresh (progress bar, spinner, shimmer, check mark), page-title and dock transitions, value flash on a new price, animated toasts.
 
 ## A. Put it online
