@@ -12,20 +12,40 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - name: Web folder
         run: |
-          mkdir www
-          cp index.html data.json manifest.webmanifest icon.svg icon-192.png icon-512.png apple-touch-icon.png www/
+          OWNER=$(echo "${{ github.repository_owner }}" | tr A-Z a-z)
+          echo "PAGE=https://$OWNER.github.io/${{ github.event.repository.name }}/" >> $GITHUB_ENV
+          mkdir -p www/runners
+          cp index.html data.json manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png apple-touch-icon.png www/
+          sed "s#__PAGE_URL__#https://$OWNER.github.io/${{ github.event.repository.name }}/#" runners/background.js > www/runners/background.js
       - name: Android project
         run: |
-          OWNER=$(echo "${{ github.repository_owner }}" | tr A-Z a-z)
           npm init -y
-          npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/status-bar@6
+          npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/status-bar@7 @capacitor/local-notifications@7 @capacitor/background-runner@latest-7 @aparajita/capacitor-biometric-auth@9
           npx cap init "Nivo" com.mywealth.app --web-dir www
-          PAGE="https://$OWNER.github.io/${{ github.event.repository.name }}/" node -e "const fs=require('fs'),f='capacitor.config.json',c=JSON.parse(fs.readFileSync(f));c.server={url:process.env.PAGE,androidScheme:'https'};c.backgroundColor='#131318';fs.writeFileSync(f,JSON.stringify(c,null,2))"
+          node -e "
+            const fs=require('fs'),f='capacitor.config.json',c=JSON.parse(fs.readFileSync(f));
+            c.server={url:process.env.PAGE,androidScheme:'https'};
+            c.backgroundColor='#0f111d';
+            c.plugins={
+              BackgroundRunner:{label:'com.mywealth.app.nav',src:'runners/background.js',event:'checkNav',repeat:true,interval:15,autoStart:true},
+              LocalNotifications:{smallIcon:'ic_stat_nivo',iconColor:'#8f9cff'}
+            };
+            fs.writeFileSync(f,JSON.stringify(c,null,2))"
+          cat capacitor.config.json
           npx cap add android
           npx cap sync android
+      - name: Plugin wiring
+        run: |
+          # background-runner needs its native library folder on the flatDir path
+          sed -i "s#dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'#dirs '../capacitor-cordova-android-plugins/src/main/libs', '../../node_modules/@capacitor/background-runner/android/src/main/libs', 'libs'#" android/app/build.gradle
+          grep -n "background-runner" android/app/build.gradle
+          # permissions: notifications (Android 13+), biometrics, background work
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <uses-permission android:name="android.permission.USE_FINGERPRINT" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />#' $M
+          grep -n "uses-permission" $M
       - name: App icon
         run: |
           R=android/app/src/main/res
@@ -34,20 +54,20 @@ jobs:
             cp ic_$a.png $R/mipmap-$d/ic_launcher.png
             cp ic_$a.png $R/mipmap-$d/ic_launcher_round.png
             cp fg_$f.png $R/mipmap-$d/ic_launcher_foreground.png
+            mkdir -p $R/drawable-$d && cp stat_$(( a / 2 )).png $R/drawable-$d/ic_stat_nivo.png
           done
           mkdir -p $R/mipmap-anydpi-v26
           printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/ic_launcher_background"/>\n  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n' > $R/mipmap-anydpi-v26/ic_launcher.xml
           cp $R/mipmap-anydpi-v26/ic_launcher.xml $R/mipmap-anydpi-v26/ic_launcher_round.xml
-          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#2a2470</color>\n</resources>\n' > $R/values/ic_launcher_background.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#171a35</color>\n</resources>\n' > $R/values/ic_launcher_background.xml
           find $R -name splash.png -exec cp splash.png {} \;
       - name: Status bar color
         run: |
           R=android/app/src/main/res
           mkdir -p $R/values-night
-          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#f2f2f7</color>\n  <color name="sb_nav">#f2f2f7</color>\n  <bool name="sb_light">true</bool>\n</resources>\n' > $R/values/sb.xml
-          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#131318</color>\n  <color name="sb_nav">#131318</color>\n  <bool name="sb_light">false</bool>\n</resources>\n' > $R/values-night/sb.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#f3f4fa</color>\n  <color name="sb_nav">#f3f4fa</color>\n  <bool name="sb_light">true</bool>\n</resources>\n' > $R/values/sb.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#0f111d</color>\n  <color name="sb_nav">#0f111d</color>\n  <bool name="sb_light">false</bool>\n</resources>\n' > $R/values-night/sb.xml
           sed -i 's#</style>#    <item name="android:statusBarColor">@color/sb_bg</item>\n    <item name="android:navigationBarColor">@color/sb_nav</item>\n    <item name="android:windowLightStatusBar">@bool/sb_light</item>\n    <item name="android:windowLightNavigationBar">@bool/sb_light</item>\n</style>#' $R/values/styles.xml
-          head -40 $R/values/styles.xml
       - name: Build
         run: |
           cd android
