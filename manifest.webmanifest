@@ -3,8 +3,8 @@
  "short_name": "Nivo",
  "start_url": ".",
  "display": "standalone",
- "background_color": "#131318",
- "theme_color": "#131318",
+ "background_color": "#0f111d",
+ "theme_color": "#0f111d",
  "icons": [
   {
    "src": "icon-192.png",

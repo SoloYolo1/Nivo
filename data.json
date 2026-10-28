@@ -53,11 +53,11 @@
    },
    {
     "n": "Conservative FoF",
-    "v": 0.28
+    "v": 0.03
    },
    {
     "n": "Moderate FoF",
-    "v": -2.99
+    "v": -3.51
    },
    {
     "n": "Balanced (you)",
@@ -66,11 +66,11 @@
    },
    {
     "n": "Aggressive FoF",
-    "v": -5.48
+    "v": -6.2
    },
    {
     "n": "Gold",
-    "v": -6.56
+    "v": -7.02
    },
    {
     "n": "Equity",
