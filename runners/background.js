@@ -1,8 +1,10 @@
 // Nivo background price check (runs inside the installed Android app via @capacitor/background-runner).
 // Every ~15 minutes while the app is in the background it looks for a new Meezan Balanced Fund NAV.
+// It asks Al Meezan's site and the GitHub page (data.json) at the same time and keeps whichever is newer.
 // If the NAV date is newer than the last one it saw, it sends a phone notification.
 // The page URL below is filled in by the Build APK workflow.
 var PAGE = '__PAGE_URL__';
+if (PAGE.indexOf('http') !== 0) PAGE = 'https://soloyolo1.github.io/Nivo/';
 var SITE = 'https://www.almeezangroup.com/';
 var MO = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
 
@@ -41,11 +43,16 @@ function fromPage() {
   });
 }
 
+function settle(p) { return p.then(function (v) { return v; }, function () { return null; }); }
+
 function kvGet(k) { try { var r = CapacitorKV.get(k); return r && r.value ? JSON.parse(r.value) : null; } catch (e) { return null; } }
 function kvSet(k, v) { try { CapacitorKV.set(k, JSON.stringify(v)); } catch (e) {} }
 
 addEventListener('checkNav', function (resolve, reject) {
-  fromSite().catch(function () { return fromPage(); }).then(function (p) {
+  Promise.all([settle(fromSite()), settle(fromPage())]).then(function (r) {
+    var p = r[0];
+    if (r[1] && (!p || r[1].date > p.date)) p = r[1];
+    if (!p) throw new Error('no source');
     var seen = kvGet('lastNav');
     if (!seen) { kvSet('lastNav', p); return resolve({ first: true }); }
     if (p.date <= seen.date) return resolve({ same: true });
@@ -56,7 +63,7 @@ addEventListener('checkNav', function (resolve, reject) {
     if (units) body += '. Your holding is now Rs ' + fmt(units * p.nav) + ', ' + (ch >= 0 ? '+' : '−') + 'Rs ' + fmt(Math.abs(units * (p.nav - seen.nav))) + ' today.';
     kvSet('lastNav', p);
     try {
-      CapacitorNotifications.schedule([{ id: Math.floor(Date.now() / 1000) % 2000000000, title: 'New NAV is in', body: body, autoCancel: true }]);
+      CapacitorNotifications.schedule([{ id: Math.floor(Date.now() / 1000) % 2000000000, title: 'New NAV is in', body: body, autoCancel: true, channelId: 'nav', smallIcon: 'ic_stat_nivo' }]);
     } catch (e) {}
     resolve({ notified: true });
   }).catch(function (e) { resolve({ error: String(e && e.message || e) }); });
