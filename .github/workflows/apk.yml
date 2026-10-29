@@ -8,27 +8,34 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-      - name: Web folder
+      - name: Build and test the app
+        run: |
+          npm install --no-audit --no-fund
+          npm run check
+          npm test
+          npm run build
+      - name: Web folder (the app is bundled inside the APK, so it opens instantly and works offline)
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr A-Z a-z)
-          echo "PAGE=https://$OWNER.github.io/${{ github.event.repository.name }}/" >> $GITHUB_ENV
-          mkdir -p www/runners
-          cp index.html data.json manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png apple-touch-icon.png www/
-          sed "s#__PAGE_URL__#https://$OWNER.github.io/${{ github.event.repository.name }}/#" runners/background.js > www/runners/background.js
+          rm -rf www && cp -r dist www
+          sed -i "s#__PAGE_URL__#https://$OWNER.github.io/${{ github.event.repository.name }}/#" www/runners/background.js
+          grep -n "var PAGE" www/runners/background.js
       - name: Android project
         run: |
-          npm init -y
-          npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/status-bar@7 @capacitor/local-notifications@7 @capacitor/background-runner@latest-7 @aparajita/capacitor-biometric-auth@9
-          npx cap init "Nivo" com.mywealth.app --web-dir www
+          npm i --no-save --no-audit --no-fund @capacitor/app@7 @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/status-bar@7 @capacitor/local-notifications@7 @capacitor/background-runner@latest-7 @aparajita/capacitor-biometric-auth@9
+          # Write the config ourselves: `cap init` makes capacitor.config.ts (not .json) when TypeScript
+          # is installed, and the CLI prefers a .ts config over .json, so remove any stray one first.
+          rm -f capacitor.config.ts capacitor.config.js
           node -e "
-            const fs=require('fs'),f='capacitor.config.json',c=JSON.parse(fs.readFileSync(f));
-            c.server={url:process.env.PAGE,androidScheme:'https'};
-            c.backgroundColor='#0f111d';
+            const fs=require('fs'),f='capacitor.config.json';
+            const c={appId:'com.mywealth.app',appName:'Nivo',webDir:'www'};
+            c.server={androidScheme:'https'};
+            c.backgroundColor='#141729';
             c.plugins={
               BackgroundRunner:{label:'com.mywealth.app.nav',src:'runners/background.js',event:'checkNav',repeat:true,interval:15,autoStart:true},
               LocalNotifications:{smallIcon:'ic_stat_nivo',iconColor:'#8f9cff'}
@@ -44,29 +51,101 @@ jobs:
           grep -n "background-runner" android/app/build.gradle
           # permissions: notifications (Android 13+), biometrics, background work
           M=android/app/src/main/AndroidManifest.xml
-          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <uses-permission android:name="android.permission.USE_FINGERPRINT" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />#' $M
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <uses-permission android:name="android.permission.USE_FINGERPRINT" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />#' $M
           grep -n "uses-permission" $M
+      - name: Battery plugin (lets Nivo ask Android not to pause its background price check)
+        run: |
+          J=android/app/src/main/java/com/mywealth/app
+          mkdir -p $J
+          cat > $J/NivoPowerPlugin.java <<'JAVA'
+          package com.mywealth.app;
+
+          import android.content.Context;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.PowerManager;
+          import android.provider.Settings;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "NivoPower")
+          public class NivoPowerPlugin extends Plugin {
+              private boolean ignoring() {
+                  if (Build.VERSION.SDK_INT < 23) return true;
+                  PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                  return pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+              }
+
+              @PluginMethod
+              public void status(PluginCall call) {
+                  JSObject r = new JSObject();
+                  r.put("ignoring", ignoring());
+                  call.resolve(r);
+              }
+
+              @PluginMethod
+              public void request(PluginCall call) {
+                  if (!ignoring()) {
+                      try {
+                          Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                          i.setData(Uri.parse("package:" + getContext().getPackageName()));
+                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          getContext().startActivity(i);
+                      } catch (Exception e) {
+                          try {
+                              Intent i = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                              getContext().startActivity(i);
+                          } catch (Exception ignored) { }
+                      }
+                  }
+                  JSObject r = new JSObject();
+                  r.put("ignoring", ignoring());
+                  call.resolve(r);
+              }
+          }
+          JAVA
+          cat > $J/MainActivity.java <<'JAVA'
+          package com.mywealth.app;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(NivoPowerPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          JAVA
+          sed -i 's/^          //' $J/NivoPowerPlugin.java $J/MainActivity.java
+          head -3 $J/MainActivity.java
       - name: App icon
         run: |
           R=android/app/src/main/res
           for p in mdpi:48:108 hdpi:72:162 xhdpi:96:216 xxhdpi:144:324 xxxhdpi:192:432; do
             IFS=: read d a f <<< "$p"
-            cp ic_$a.png $R/mipmap-$d/ic_launcher.png
-            cp ic_$a.png $R/mipmap-$d/ic_launcher_round.png
-            cp fg_$f.png $R/mipmap-$d/ic_launcher_foreground.png
-            mkdir -p $R/drawable-$d && cp stat_$(( a / 2 )).png $R/drawable-$d/ic_stat_nivo.png
+            cp android-assets/ic_$a.png $R/mipmap-$d/ic_launcher.png
+            cp android-assets/ic_$a.png $R/mipmap-$d/ic_launcher_round.png
+            cp android-assets/fg_$f.png $R/mipmap-$d/ic_launcher_foreground.png
+            mkdir -p $R/drawable-$d && cp android-assets/stat_$(( a / 2 )).png $R/drawable-$d/ic_stat_nivo.png
           done
           mkdir -p $R/mipmap-anydpi-v26
           printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/ic_launcher_background"/>\n  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n' > $R/mipmap-anydpi-v26/ic_launcher.xml
           cp $R/mipmap-anydpi-v26/ic_launcher.xml $R/mipmap-anydpi-v26/ic_launcher_round.xml
           printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#171a35</color>\n</resources>\n' > $R/values/ic_launcher_background.xml
-          find $R -name splash.png -exec cp splash.png {} \;
+          find $R -name splash.png -exec cp android-assets/splash.png {} \;
       - name: Status bar color
         run: |
           R=android/app/src/main/res
           mkdir -p $R/values-night
           printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#f3f4fa</color>\n  <color name="sb_nav">#f3f4fa</color>\n  <bool name="sb_light">true</bool>\n</resources>\n' > $R/values/sb.xml
-          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#0f111d</color>\n  <color name="sb_nav">#0f111d</color>\n  <bool name="sb_light">false</bool>\n</resources>\n' > $R/values-night/sb.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="sb_bg">#141729</color>\n  <color name="sb_nav">#141729</color>\n  <bool name="sb_light">false</bool>\n</resources>\n' > $R/values-night/sb.xml
           sed -i 's#</style>#    <item name="android:statusBarColor">@color/sb_bg</item>\n    <item name="android:navigationBarColor">@color/sb_nav</item>\n    <item name="android:windowLightStatusBar">@bool/sb_light</item>\n    <item name="android:windowLightNavigationBar">@bool/sb_light</item>\n</style>#' $R/values/styles.xml
       - name: Build
         run: |
