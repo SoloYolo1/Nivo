@@ -1,7 +1,7 @@
 // The fund card: the nivo logo, your holding, how you stand on what you put in, and the chart edge to edge.
 import { useCallback, useMemo, useState } from 'react';
 import { Wordmark } from './Wordmark';
-import { CountUp } from './ui';
+import { Roll } from './ui';
 import { AreaChart } from './AreaChart';
 import { Icon } from './Icon';
 import { RANGES, rangeRows, type Row } from '../lib/fund';
@@ -33,7 +33,7 @@ export function FundHero({ f, range, onRange }: { f: Fund; range: number; onRang
         </div>
       </div>
       <div className="hl">{sx ? dd(sx.date) + ' · NAV ' + sx.nav.toFixed(4) : 'Your holding'}</div>
-      <div className="big"><span>Rs</span>{sx ? n0(sx.val) : <CountUp id="fund-hero" value={L.val} format={fmt} />}</div>
+      <div className="big"><span>Rs</span>{sx ? n0(sx.val) : <Roll id="fund-hero" value={L.val} format={fmt} />}</div>
       {sx
         ? <div className="chg-row"><span className={'dl ' + cl(sx.chg)}><Icon name={sx.chg >= 0 ? 'up' : 'down'} size={12} stroke={3} />Rs {n0(Math.abs(sx.chg))}</span><span className="when">that day</span></div>
         : <div className="hero-sub"><b className={net >= 0 ? 'g' : 'r'}>{(net >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(net))}</b> on Rs {n0(f.sent)} put in · <b>{(pct >= 0 ? '+' : '−') + Math.abs(pct).toFixed(2)}%</b><span className="hero-sub2">{(rg >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(rg))} {word}</span></div>}

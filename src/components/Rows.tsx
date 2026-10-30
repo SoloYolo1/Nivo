@@ -1,4 +1,5 @@
 // Account rows used on Home and Accounts: icon, name, one useful line, a small trend and the value.
+import { useEffect, useState } from 'react';
 import { Icon, KIND_ICON } from './Icon';
 import { useColors } from './theme';
 import { KINDS, businessStats, snapshotOn, staleDays, worthOf, type Account } from '../lib/accounts';
@@ -6,6 +7,7 @@ import type { Fund } from '../state/derived';
 import { openSheet, push } from '../state/store';
 import { amountsHidden, dd, n0, sg } from '../lib/format';
 import { SwipeRow, type SwipeAction } from './Swipe';
+import { openAccount } from '../lib/morph';
 import { editRoute } from '../screens/AccountDetail';
 
 /** A tiny trend line; flat when there is only one value. */
@@ -59,6 +61,21 @@ export function swipeFor(a: Account): { left: SwipeAction; right: SwipeAction } 
   };
 }
 
+/** Last value each row showed, so a row that changed can flash once. */
+const rowSeen = new Map<string, number>();
+function useFlash(id: string, v: number): '' | 'up' | 'dn' {
+  const [f, setF] = useState<'' | 'up' | 'dn'>('');
+  useEffect(() => {
+    const prev = rowSeen.get(id);
+    rowSeen.set(id, v);
+    if (prev == null || prev === v) return;
+    setF(v > prev ? 'up' : 'dn');
+    const t = window.setTimeout(() => setF(''), 1500);
+    return () => clearTimeout(t);
+  }, [id, v]);
+  return f;
+}
+
 export function AccountRow({ a, today, hint = false }: { a: Account; today: string; hint?: boolean }) {
   const C = useColors();
   const s = snapshotOn(a);
@@ -70,9 +87,10 @@ export function AccountRow({ a, today, hint = false }: { a: Account; today: stri
   const vals = a.history.slice(-8).map((h) => worthOf(a, h));
   const good = diff == null ? true : diff >= 0;
   const sw = swipeFor(a);
+  const flash = useFlash(a.id, s ? worthOf(a, s) : 0);
   return (
     <SwipeRow left={sw.left} right={sw.right} hint={hint}>
-    <button type="button" className="acc" onClick={() => push({ name: 'account', id: a.id })}>
+    <button type="button" className={'acc' + (flash ? ' flash ' + flash : '')} data-acc={a.id} onClick={(e) => openAccount(a.id, e.currentTarget)}>
       <span className="l"><span className={'ai ' + g}>{ini || <Icon name={KIND_ICON[a.kind]} size={18} />}</span><span><b>{a.name}</b><small className={note.tone}>{note.text}</small></span></span>
       {a.kind !== 'loan' && vals.length > 1 && <MiniSpark values={vals} color={good ? C.up : C.dn} />}
       <span className="r"><b>{a.kind === 'loan' ? '−' : ''}{n0(Math.abs(s ? s.value : 0))}</b>{diff != null && diff !== 0 && <small className={good ? 'up' : 'dn'}>{a.kind === 'loan' ? (diff > 0 ? n0(diff) + ' paid' : '+' + n0(-diff) + ' owed') : sg(diff)}</small>}</span>

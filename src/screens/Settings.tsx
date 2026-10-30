@@ -78,9 +78,9 @@ function Menu() {
       <div className="set-grp">
         {canSelfUpdate() && <Item icon="sync" tone="t-gold" title="Updates" value={u.s === 'available' || u.s === 'ready' ? 'New version' : b ? b.versionName : ''} onClick={() => openSettings('updates')} />}
         <Item icon="shield" tone="t-indigo" title="Phone features" value={isNative() ? 'Check' : 'Website'} onClick={() => openSettings('phone')} />
-        <Item icon="info" tone="t-mute" title="About Nivo" value={b ? b.versionName : '4.4'} onClick={() => openSettings('about')} />
+        <Item icon="info" tone="t-mute" title="About Nivo" value={b ? b.versionName : '4.5'} onClick={() => openSettings('about')} />
       </div>
-      <div className="f" style={{ marginTop: 18 }}>Nivo {b ? b.versionName : '4.4'} · data stays on your device</div>
+      <div className="f" style={{ marginTop: 18 }}>Nivo {b ? b.versionName : '4.5'} · data stays on your device</div>
     </section>
   );
 }
@@ -214,7 +214,7 @@ function Updates() {
 function About() {
   const b = useBuild();
   const rows: Array<[string, string]> = [
-    ['Version', b ? b.versionName + (b.versionCode ? ' (build ' + b.versionCode + ')' : '') : '4.4'],
+    ['Version', b ? b.versionName + (b.versionCode ? ' (build ' + b.versionCode + ')' : '') : '4.5'],
     ...(b?.built ? [['Built', b.built.slice(0, 10)] as [string, string]] : []),
     ...(b?.device ? [['Phone', b.device]] as Array<[string, string]> : []),
     ['Your data', 'Stays on this phone. Nivo has no account and no server.'],

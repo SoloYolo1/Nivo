@@ -45,9 +45,13 @@ export interface State {
   masked: boolean;
   /** Colour theme (see lib/palettes). */
   palette: string;
+  /** The screen beneath is drawn while a back gesture is in progress. */
+  peek: boolean;
+  /** The + button's shortcuts are open. */
+  fan: boolean;
 }
 
-function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending' | 'masked' | 'palette'> {
+function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending' | 'masked' | 'palette' | 'peek' | 'fan'> {
   const deleted = loadArray<string>(KEYS.deleted);
   const overrides = loadArray<string>(KEYS.overrides);
   const m: Record<string, Nav> = {};
@@ -86,6 +90,7 @@ let state: State = {
   newSince: '', alerts: { perm: 'unknown', on: false, power: null },
   pending: null,
   palette: String(load<string>(KEYS.palette, 'midnight') || 'midnight'),
+  peek: false, fan: false,
   masked: (() => { const m = !!load<boolean>(KEYS.hideOnLaunch, false); setAmountsHidden(m); return m; })(),
 };
 
@@ -120,7 +125,7 @@ export const celebrate = () => setState((s) => ({ confetti: s.confetti + 1 }));
 const TAB_ORDER: Tab[] = ['home', 'accounts', 'insights', 'plan'];
 export function goTab(tab: Tab): void {
   const from = TAB_ORDER.indexOf(state.tab), to = TAB_ORDER.indexOf(tab);
-  setState({ tab, stack: [], dir: from === to ? '' : to > from ? 'r' : 'l', sheet: '' });
+  setState({ tab, stack: [], dir: from === to ? '' : to > from ? 'r' : 'l', sheet: '', fan: false });
   scrollTop();
 }
 export function swipeTab(delta: 1 | -1): void {
@@ -128,7 +133,7 @@ export function swipeTab(delta: 1 | -1): void {
   const i = TAB_ORDER.indexOf(state.tab) + delta;
   if (i >= 0 && i < TAB_ORDER.length) goTab(TAB_ORDER[i]);
 }
-export function push(r: Route): void { setState((s) => ({ stack: [...s.stack, r], dir: 'r', sheet: '' })); scrollTop(); }
+export function push(r: Route): void { setState((s) => ({ stack: [...s.stack, r], dir: 'r', sheet: '', fan: false })); scrollTop(); }
 export function replaceTop(r: Route): void { setState((s) => ({ stack: [...s.stack.slice(0, -1), r], dir: '' })); }
 export function pop(): boolean {
   if (!state.stack.length) return false;

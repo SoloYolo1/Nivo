@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Wordmark } from '../components/Wordmark';
 import { AccountRow, FundRow } from '../components/Rows';
-import { Card, CountUp } from '../components/ui';
+import { Card, Roll } from '../components/ui';
 import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useFund, useTotals } from '../state/derived';
@@ -208,7 +208,7 @@ function NetWorthHero() {
         <span>{sx ? (sx.label === 'Today' ? 'Today' : longish(sx.date)) : 'Net worth'}</span>
         <button type="button" className={'nw-eye' + (masked ? ' on' : '')} aria-pressed={masked} aria-label={masked ? 'Show amounts' : 'Hide amounts'} onClick={() => setMasked(!masked)}><Icon name={masked ? 'eyeoff' : 'eye'} size={18} /></button>
       </div>
-      <div className="big"><span>Rs</span>{sx ? n0(sx.value) : <CountUp id="net-worth" value={t.netWorth} format={fmt} />}</div>
+      <div className="big"><span>Rs</span>{sx ? n0(sx.value) : <Roll id="net-worth" value={t.netWorth} format={fmt} />}</div>
       <div className="chg-row">
         {Math.abs(shown) >= 1
           ? <span className={'dl ' + cl(shown)}><Icon name={shown >= 0 ? 'up' : 'down'} size={12} stroke={3} />{compact(Math.abs(shown))}{pct != null && Math.abs(pct) >= 0.05 ? ' · ' + Math.abs(pct).toFixed(1) + '%' : ''}</span>

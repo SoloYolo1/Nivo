@@ -876,3 +876,59 @@ h2 .hi{box-shadow:none}
 .pal-sw>svg{position:relative;width:26px;height:26px;padding:5px;border-radius:50%;background:#f3d99b;box-sizing:border-box}
 .pal b{font-size:14px;font-weight:700}
 .pal small{font-size:11.5px;color:var(--mu)}
+
+/* ==========================================================================
+   4.5 motion: back that follows the finger, draggable sheets, rolling numbers, the + fan, leather
+   ========================================================================== */
+/* back gesture: the page slides with the finger, the screen beneath waits under a soft shadow */
+.under{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;transform:translateX(-24vw);--dim:.32}
+.under>.w{padding-top:var(--sat,env(safe-area-inset-top,0px))}
+.under-dim{position:absolute;inset:0;background:#000;opacity:var(--dim);pointer-events:none}
+.bk-drag .w.main{background:var(--bg);box-shadow:-18px 0 40px rgba(0,0,0,.28);min-height:100vh;will-change:transform}
+.bk-drag .w.main .pgw{animation:none!important}
+.mh-v .mh-n{font:inherit;color:inherit;letter-spacing:inherit;margin:0;vertical-align:baseline}
+
+/* rolling numbers: each digit is a column that turns to its value */
+.roll{display:inline-flex!important;align-items:baseline;font-variant-numeric:tabular-nums;transition:color .45s}
+.roll .rd{position:relative;display:inline-block;overflow:hidden;line-height:1.08;height:1.08em;vertical-align:baseline}
+.roll .rg{visibility:hidden;display:block;line-height:1.08}
+.roll .rs{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;transition:transform .9s cubic-bezier(.16,1,.3,1)}
+.roll .rs>span{display:block;height:1.08em;line-height:1.08;text-align:center}
+.roll .rc{display:inline-block;line-height:1.08}
+.hero .roll.up{color:#a6ecc6!important}
+.hero .roll.dn{color:#ffb3ac!important}
+.roll.up{color:var(--up)!important}.roll.dn{color:var(--dn)!important}
+@media (prefers-reduced-motion:reduce){.roll .rs{transition:none}}
+
+/* a row whose value just changed glows once */
+.acc.flash{animation:rowflash 1.5s ease-out}
+.acc.flash.up{--fl:var(--up)}.acc.flash.dn{--fl:var(--dn)}
+.acc.flash .r b{animation:valflash 1.5s ease-out}
+@keyframes rowflash{0%{background:color-mix(in srgb,var(--fl) 16%,transparent)}100%{background:transparent}}
+@keyframes valflash{0%,35%{color:var(--fl)}}
+
+/* row ⇄ account screen */
+::view-transition-group(*){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
+::view-transition-old(root){animation:vt-out .2s ease-out both}
+::view-transition-new(root){animation:vt-in .34s .06s ease-out both}
+::view-transition-old(m-card),::view-transition-new(m-card){height:100%;overflow:hidden;border-radius:20px}
+::view-transition-old(m-name),::view-transition-new(m-name),::view-transition-old(m-val),::view-transition-new(m-val){height:100%;width:auto;object-fit:none;object-position:left center}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0}}
+.morphing #dock{view-transition-name:dock}
+
+/* the + fan */
+.fan-ov{position:fixed;inset:0;z-index:13;background:rgba(5,6,15,.38);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s}
+.fan-ov.on{opacity:1;pointer-events:auto}
+.fan{position:fixed;left:50%;bottom:calc(var(--sab,env(safe-area-inset-bottom,0px)) + 104px);width:0;height:0;z-index:14;pointer-events:none}
+.fan button{--a0:calc(-160deg + (140deg / (var(--n) - 1)) * var(--i));position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:6px;width:78px;margin:-30px 0 0 -39px;border:0;background:none;color:#fff;font:inherit;opacity:0;transform:rotate(var(--a0)) translateX(0) rotate(calc(-1 * var(--a0))) scale(.4);transition:transform .32s cubic-bezier(.3,1.5,.5,1),opacity .2s;transition-delay:calc(var(--i) * 30ms)}
+.fan.on button{opacity:1;pointer-events:auto;transform:rotate(var(--a0)) translateX(104px) rotate(calc(-1 * var(--a0))) scale(1)}
+.fan button>span{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#f3d99b,#d9a84e);color:#1b1d3a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.fan button>b{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.fan button:active>span{transform:scale(.92)}
+.dock .fab{transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.dock .fab.open>svg{transform:rotate(45deg);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+#dock{z-index:15}
+
+/* leather themes: a fine grain on the Net worth card and a soft sheen across it */
+:root[data-palette="oxblood"] .hero,:root[data-palette="racing"] .hero,:root[data-palette="cognac"] .hero{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),linear-gradient(115deg,rgba(255,255,255,0) 28%,rgba(255,255,255,.07) 44%,rgba(255,255,255,0) 60%),var(--hero-bg)}

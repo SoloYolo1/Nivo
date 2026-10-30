@@ -1,8 +1,10 @@
 // One place that decides what "back" means, for the Android back button and the browser's.
 // Order: the lock screen's own steps, the onboarding steps, an open sheet, the screen stack,
 // then Home, and only from Home does the app go to the background.
-import { closeSheet, getState, goTab, pop } from '../state/store';
+import { closeSheet, getState, goTab, pop, setState } from '../state/store';
 import { call, haptic, isNative } from './native';
+import { dragCancel, dragCommit, dragStart, dragTo, isDragging } from './backdrag';
+import { closeAccount } from './morph';
 
 /** A screen with internal steps (lock, onboarding) registers a handler: `can` says whether a press would do
  *  something there, `go` does it. */
@@ -14,7 +16,10 @@ export function goBack(): boolean {
   const s = getState();
   if (s.splash) return false;
   for (const h of [backHooks.lock, backHooks.onboarding]) if (h && h.can()) { h.go(); return true; }
+  if (s.fan) { setState({ fan: false }); return true; }
   if (s.sheet) { closeSheet(); return true; }
+  if (isDragging()) { dragCommit(); return true; }
+  if (closeAccount()) return true;
   if (pop()) return true;
   if (s.tab !== 'home') { goTab('home'); return true; }
   return false;
@@ -35,10 +40,16 @@ export function canGoBack(): boolean {
  * (it is only called when the activity does not handle back itself).
  */
 export function installNativeBack(): Promise<{ remove?: () => void } | null> {
-  (window as Window & { nivoBack?: () => 'handled' | 'exit' }).nivoBack = () => {
-    if (goBack()) { haptic('select'); return 'handled'; }
+  const w = window as Window & { nivoBack?: () => 'handled' | 'exit'; nivoBackStart?: (edge: number) => void; nivoBackProgress?: (p: number) => void; nivoBackCancel?: () => void };
+  w.nivoBack = () => {
+    const dragged = isDragging();
+    if (goBack()) { if (!dragged) haptic('select'); return 'handled'; }
     return 'exit';
   };
+  // Android 14+ predictive back: the page follows the gesture (see lib/backdrag)
+  w.nivoBackStart = () => { dragStart(); };
+  w.nivoBackProgress = (p: number) => { dragTo(p); };
+  w.nivoBackCancel = () => { dragCancel(); };
   return call<{ remove?: () => void }>('App', 'addListener', 'backButton', () => {
     haptic('select');
     if (!goBack()) void call('App', 'minimizeApp');

@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import androidx.activity.BackEventCompat;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -73,7 +74,24 @@ public class MainActivity extends BridgeActivity {
         }
 
         // ---------- back ----------
+        // Android 14+ (predictive back): while the back gesture is in progress the page follows it and shows
+        // the screen underneath; letting go commits (handleOnBackPressed), sliding back cancels.
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackStarted(BackEventCompat e) {
+                js("window.nivoBackStart&&window.nivoBackStart(" + (e.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? 1 : 0) + ")");
+            }
+
+            @Override
+            public void handleOnBackProgressed(BackEventCompat e) {
+                js("window.nivoBackProgress&&window.nivoBackProgress(" + e.getProgress() + ")");
+            }
+
+            @Override
+            public void handleOnBackCancelled() {
+                js("window.nivoBackCancel&&window.nivoBackCancel()");
+            }
+
             @Override
             public void handleOnBackPressed() {
                 WebView w = bridge != null ? bridge.getWebView() : null;
@@ -90,6 +108,11 @@ public class MainActivity extends BridgeActivity {
                 );
             }
         });
+    }
+
+    private void js(String code) {
+        WebView w = bridge != null ? bridge.getWebView() : null;
+        if (w != null) w.evaluateJavascript(code, null);
     }
 
     @Override

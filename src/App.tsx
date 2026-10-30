@@ -20,7 +20,7 @@ import { Notifications } from './screens/Notifications';
 import { addInbox, unread, useInbox } from './lib/inbox';
 import { useFund, useTotals } from './state/derived';
 import {
-  celebrate, closeSheet, getState, goTab, openSettings, openSheet, pop, push, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
+  celebrate, closeSheet, getState, goTab, openEntry, openSettings, openSheet, pop, push, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
 } from './state/store';
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
 import { KINDS, monthChange, staleAccounts } from './lib/accounts';
@@ -29,7 +29,8 @@ import { MILESTONES } from './lib/fund';
 import { big, dd, greeting, iso, unmasked } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
 import { haptic, isNative } from './lib/native';
-import { installNativeBack, installWebBack } from './lib/back';
+import { goBack, installNativeBack, installWebBack } from './lib/back';
+import { dragCancel, dragStart, dragTo } from './lib/backdrag';
 import { checkForUpdate, loadBuild } from './lib/update';
 import { ensureChannel, permission, setSummaryReminder } from './lib/notify';
 import { monthSummary } from './lib/summary';
@@ -57,9 +58,10 @@ function routeTitle(r: Route): string {
   }
 }
 
-function Header() {
+function Header({ stack: over }: { stack?: Route[] }) {
   const tab = useStore((s) => s.tab);
-  const stack = useStore((s) => s.stack);
+  const stackS = useStore((s) => s.stack);
+  const stack = over || stackS;
   const name = useStore((s) => s.name);
   const accounts = useStore((s) => s.accounts);
   const f = useFund();
@@ -67,7 +69,7 @@ function Header() {
   const goalAmt = useStore((s) => s.goal.amount);
   const buys = useStore((s) => s.buys);
   // a fresh line under the greeting each time Home is opened
-  const onHome = tab === 'home' && !stack.length;
+  const onHome = tab === 'home' && !stack.length && !over;
   const [quip, setQuip] = useState('');
   useEffect(() => {
     if (!onHome) return;
@@ -93,8 +95,8 @@ function Header() {
     return (
       <header className="phdr phdr-sm">
         <div className="dhdr">
-          <button type="button" className="ib" aria-label="Back" onClick={pop}><Icon name="chevl" size={24} /></button>
-          <div className="t"><b>{routeTitle(top)}</b>{sub && <small>{sub}</small>}</div>
+          <button type="button" className="ib" aria-label="Back" onClick={() => { goBack(); }}><Icon name="chevl" size={24} /></button>
+          <div className="t"><b style={top.name === 'account' && !over ? ({ viewTransitionName: 'm-name' } as React.CSSProperties) : undefined}>{routeTitle(top)}</b>{sub && <small>{sub}</small>}</div>
         </div>
       </header>
     );
@@ -127,9 +129,10 @@ function BellButton() {
   );
 }
 
-function Screen() {
+function Screen({ stack: over }: { stack?: Route[] }) {
   const tab = useStore((s) => s.tab);
-  const stack = useStore((s) => s.stack);
+  const stackS = useStore((s) => s.stack);
+  const stack = over || stackS;
   const dir = useStore((s) => s.dir);
   const top = stack[stack.length - 1];
   let el: React.ReactNode;
@@ -175,15 +178,56 @@ function Dock() {
   );
   const top = stack[stack.length - 1];
   const editing = !!top && top.name.startsWith('edit');
+  const fan = useStore((s) => s.fan);
   return (
     <nav className={'dock' + (editing ? ' away' : '')} id="dock" aria-label="Main" aria-hidden={editing || undefined}>
       <i className="sel" ref={sel} />
       {TABS.slice(0, 2).map(btn)}
-      <button type="button" className={'fab' + (sheet === 'add' ? ' open' : '')} aria-label="Add" onClick={() => (sheet === 'add' ? closeSheet() : openSheet('add'))}><Icon name="plus" size={24} /></button>
+      <button type="button" className={'fab' + (sheet === 'add' || fan ? ' open' : '')} aria-label={fan ? 'Close shortcuts' : 'Add'} aria-expanded={fan} onClick={() => { if (sheet) { closeSheet(); return; } haptic('medium'); setState({ fan: !fan }); }}><Icon name="plus" size={24} /></button>
       {TABS.slice(2).map(btn)}
     </nav>
   );
 }
+/** The screen you would go back to, drawn under the page while a back gesture is in progress. */
+function UnderPage() {
+  const stack = useStore((s) => s.stack);
+  const below = stack.slice(0, -1);
+  return (
+    <div className="under" aria-hidden="true">
+      <div className="w"><Header stack={below} /><Screen stack={below} /></div>
+      <i className="under-dim" />
+    </div>
+  );
+}
+
+/** The + button's shortcuts: they spring out above it in an arc. */
+function Fan() {
+  const fan = useStore((s) => s.fan);
+  const accounts = useStore((s) => s.accounts);
+  const close = () => setState({ fan: false });
+  const pick = (fn: () => void) => () => { close(); haptic('select'); window.setTimeout(fn, 120); };
+  const stale = staleAccounts(accounts, iso());
+  const target = stale[0] || accounts[0];
+  const items: Array<{ icon: string; label: string; fn: () => void }> = [
+    { icon: 'qadd', label: 'Account', fn: () => openSheet('add') },
+    ...(target ? [{ icon: 'qedit', label: 'Balance', fn: () => openSheet('update', target.id) }] : []),
+    { icon: 'tag', label: 'Price', fn: () => openEntry('nav', { date: iso() }) },
+    { icon: 'coinplus', label: 'Invest', fn: () => openEntry('inv', { date: iso() }) },
+  ];
+  return (
+    <>
+      <div className={'fan-ov' + (fan ? ' on' : '')} onClick={close} aria-hidden="true" />
+      <div className={'fan' + (fan ? ' on' : '')} role="menu" aria-hidden={!fan}>
+        {items.map((it, i) => (
+          <button key={it.label} type="button" role="menuitem" tabIndex={fan ? 0 : -1} style={{ ['--i' as string]: i, ['--n' as string]: items.length } as React.CSSProperties} onClick={pick(it.fn)}>
+            <span><Icon name={it.icon} size={21} /></span><b>{it.label}</b>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function resetToTab(t: Tab) { setState({ tab: t, stack: [], dir: 'l' }); window.scrollTo(0, 0); }
 
 export function App() {
@@ -336,7 +380,7 @@ export function App() {
   // (release refreshes), and the page eases back. Horizontal drags (rows, the chart) never start it.
   useEffect(() => {
     const PULL = 80, RING = 88;
-    let py: number | null = null, px = 0, pd = 0, armed = false, sx: number | null = null, sy = 0, st0 = 0, swipeOk = false;
+    let py: number | null = null, px = 0, pd = 0, armed = false, sx: number | null = null, sy = 0, st0 = 0, swipeOk = false, dragging = false;
     const ptr = document.getElementById('ptr');
     const ring = ptr?.querySelector('.ptr-ring circle') as SVGCircleElement | null;
     const blocked = () => { const s = getState(); return !!s.sheet || lockFlow.isOpen() || s.onboarding || s.splash; };
@@ -354,6 +398,12 @@ export function App() {
       swipeOk = !blocked() && !tgt.closest?.('#ch,.lc,.ac,input,textarea,.seg,.pz,.hm,.pr,.dock,.sheet,#lock,.sw-row,.chips,.tiles');
     };
     const move = (e: TouchEvent) => {
+      // on a screen opened from a tab, dragging right pulls it away and shows the one beneath
+      if (swipeOk && sx != null && getState().stack.length) {
+        const t0 = e.touches[0], ddx = t0.clientX - sx, ddy = t0.clientY - sy;
+        if (!dragging && ddx > 14 && ddx > Math.abs(ddy) * 1.6) dragging = dragStart();
+        if (dragging) { dragTo(ddx / innerWidth); return; }
+      }
       if (py == null) return;
       const t = e.touches[0], dy = t.clientY - py, dx = t.clientX - px;
       if (pd < 12 && Math.abs(dx) > Math.abs(dy)) { py = null; reset(); return; }
@@ -377,6 +427,12 @@ export function App() {
         if (armed) { haptic('medium'); void refreshAll(false); }
         py = null; armed = false;
       }
+      if (dragging) {
+        const tt = e.changedTouches[0], dx = tt.clientX - (sx || 0), v = dx / Math.max(1, Date.now() - st0);
+        if (dx > innerWidth * 0.32 || (v > 0.55 && dx > 40)) goBack(); else dragCancel();
+        dragging = false; sx = null;
+        return;
+      }
       if (swipeOk && sx != null) {
         const tt = e.changedTouches[0], dx = tt.clientX - sx, dy = tt.clientY - sy;
         if (Math.abs(dx) > 72 && Math.abs(dy) < 48 && Date.now() - st0 < 600) {
@@ -386,7 +442,7 @@ export function App() {
       }
       sx = null;
     };
-    const cancel = () => { if (py != null) { reset(); py = null; } sx = null; };
+    const cancel = () => { if (py != null) { reset(); py = null; } if (dragging) { dragging = false; dragCancel(); } sx = null; };
     addEventListener('touchstart', start, { passive: true });
     addEventListener('touchmove', move, { passive: true });
     addEventListener('touchend', end, { passive: true });
@@ -426,6 +482,7 @@ export function App() {
 
   // While something covers the page (start-up, lock, onboarding, a sheet), the page underneath must not scroll.
   const sheetOpen = useStore((s) => !!s.sheet);
+  const peek = useStore((s) => s.peek);
   const lockOpen = useLockOpen();
   useEffect(() => {
     const r = document.documentElement;
@@ -442,12 +499,14 @@ export function App() {
         <svg className="ptr-ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" /></svg>
         <Icon name={ptrDone ? 'check' : 'refresh'} size={16} stroke={2.4} />
       </div>
-      <div className="w" ref={wRef}>
+      {peek && <UnderPage />}
+      <div className="w main" ref={wRef}>
         <Header />
         <Screen />
         <div className="f">Price moves only. Not financial advice.</div>
       </div>
       <Dock />
+      <Fan />
       <Sheets />
       <ToastView />
       <Confetti />

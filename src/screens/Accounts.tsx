@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { AccountRow, FundRow, swipeFor } from '../components/Rows';
 import { SwipeRow } from '../components/Swipe';
+import { Roll } from '../components/ui';
 import { KEYS, load, save } from '../lib/storage';
 import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, useStore } from '../state/store';
@@ -63,7 +64,7 @@ export function Accounts() {
       <div className="cd hero acct-hero">
         <div className="hh"><Wordmark className="cw" /><span className="hd">{stale ? stale + (stale === 1 ? ' needs updating' : ' need updating') : count + (count === 1 ? ' account' : ' accounts')}</span></div>
         <div className="hl">{t.owed > 0 ? 'Own Rs ' + compact(t.assets).replace('Rs ', '') + ' · owe Rs ' + compact(t.owed).replace('Rs ', '') : 'Everything you own'}</div>
-        <div className="big mid"><span>Rs</span>{n0(t.netWorth)}</div>
+        <div className="big mid"><span>Rs</span><Roll id="acct-nw" value={t.netWorth} format={n0} /></div>
         {groups.length > 0 && <>
           <div className="alloc2" aria-hidden="true">{groups.map((g) => <i key={g} style={{ flex: t.groups[g], background: DOT[g] }} />)}</div>
           <div className="legend4">{groups.map((g) => <span key={g}><b>{share(g)}%</b>{SHORT[g]}</span>)}</div>

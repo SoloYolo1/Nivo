@@ -1,5 +1,5 @@
 // Small shared building blocks that keep the 3.x class names, so the original styles apply unchanged.
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 
 export function H2({ icon, children, more }: { icon: IconName; children: ReactNode; more?: ReactNode }) {
@@ -83,6 +83,47 @@ export function Ring({ pct, size = 96, stroke = 9, color = 'var(--gold)', track,
           style={{ strokeDasharray: C.toFixed(2), strokeDashoffset: (C * (1 - Math.max(p, 1.5) / 100)).toFixed(2), ['--c' as string]: C.toFixed(2) } as React.CSSProperties} />}
       </svg>
       {children != null && <span className="ring-in">{children}</span>}
+    </span>
+  );
+}
+
+/** Last value each rolling number showed. */
+const rolled = new Map<string, number>();
+const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+/**
+ * A number that rolls like an odometer: only the digits that change turn to their new value, right to
+ * left, and the number is briefly tinted green or red. The first time it appears it rolls up from zero.
+ */
+export function Roll({ id, value, format, className = '' }: { id: string; value: number; format: (v: number) => string; className?: string }) {
+  const text = format(value);
+  const seen = rolled.has(id);
+  const [ready, setReady] = useState(seen);
+  const [tint, setTint] = useState<'' | 'up' | 'dn'>('');
+  useEffect(() => {
+    if (!ready) { const r = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true))); return () => cancelAnimationFrame(r); }
+    const prev = rolled.get(id);
+    rolled.set(id, value);
+    if (prev == null || prev === value) return;
+    setTint(value > prev ? 'up' : 'dn');
+    const t = window.setTimeout(() => setTint(''), 1400);
+    return () => clearTimeout(t);
+  }, [id, value, ready]);
+  const chars = text.split('');
+  const n = chars.length;
+  return (
+    <span className={'cu roll' + (tint ? ' ' + tint : '') + (className ? ' ' + className : '')} aria-label={text} role="text">
+      {chars.map((c, i) => {
+        const fromRight = n - i;
+        if (!/\d/.test(c)) return <span key={'c' + fromRight + c} className="rc" aria-hidden="true">{c}</span>;
+        const d = ready ? +c : 0;
+        return (
+          <span key={'d' + fromRight} className="rd" aria-hidden="true">
+            <span className="rs" style={{ transform: 'translateY(' + -d * 10 + '%)', transitionDelay: (fromRight * 28) + 'ms' }}>{DIGITS.map((x) => <span key={x}>{x}</span>)}</span>
+            <span className="rg">{c}</span>
+          </span>
+        );
+      })}
     </span>
   );
 }

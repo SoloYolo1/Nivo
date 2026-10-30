@@ -4,6 +4,15 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.5
+
+- **Accounts grow into their screen**: tapping an account turns its row into the summary card (name into the title, balance into the big number) and shrinks back into the row on the way back.
+- **Back follows your finger**: Android 14's back gesture, or dragging a screen to the right, slides the page away and shows the screen beneath; let go to go back or slide back to stay.
+- **Sheets you can drag**: pull any sheet down from its handle, title or (once scrolled to the top) its content; flick to close.
+- **Rolling numbers**: the big totals roll digit by digit to a new value and flash green or red; a row whose balance changed glows once.
+- **The + button fans out** into Account, Balance, Price and Invest.
+- A fine leather grain on the Net worth card in Oxblood, Racing green and Cognac.
+
 ## What is new in 4.4
 
 - **Hide amounts.** The eye on the Net worth card turns every rupee figure into dots (percentages stay). Settings › Privacy and lock can start Nivo with amounts hidden. Notifications sent to the phone are not affected.

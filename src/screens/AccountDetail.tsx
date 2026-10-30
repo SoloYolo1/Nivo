@@ -35,9 +35,9 @@ export function AccountDetail({ id }: { id: string }) {
   const pts = a.history.map((h) => ({ date: h.date, label: dd(h.date), value: Math.abs(worthOf(a, h)) }));
   return (
     <section className="pg">
-      <div className="cd hero mini">
+      <div className="cd hero mini" style={{ viewTransitionName: 'm-card' } as React.CSSProperties}>
         <HeroHead icon={KIND_ICON[a.kind]} label={a.kind === 'business' ? 'Net position' : isLoan ? 'You owe' : a.kind === 'bank' ? (a.acctType === 'current' ? 'Current account' : a.acctType === 'term' ? 'Term deposit' : 'Savings account') : KINDS[a.kind].label} chip={pct != null && pct + '% of your assets'} />
-        <div className="mh-v"><span>Rs</span>{n0(Math.abs(s ? s.value : 0))}</div>
+        <div className="mh-v"><span>Rs</span><span className="mh-n" style={{ viewTransitionName: 'm-val' } as React.CSSProperties}>{n0(Math.abs(s ? s.value : 0))}</span></div>
         {diff != null && prev
           ? <span className={'dl ' + cl(diff)}>{(diff >= 0 ? '▲ ' : '▼ ') + 'Rs ' + n0(Math.abs(diff)) + ' since ' + dd(prev.date)}</span>
           : <span className="dl">Updated {s ? dd(s.date) : 'never'}</span>}
