@@ -190,9 +190,9 @@ h2 .h2t{flex:0 0 auto;max-width:100%}
    The 3.x visual language: restrained colour. Indigo section titles, muted labels,
    gold kept for money moments (price, the + button, primary actions, chips).
    ========================================================================== */
-:root{--up:#1f9d45;--up2:#34b85a;--dn:#e0342a;--dn2:#f0645c;--cdg:linear-gradient(180deg,#fff,#fbfbfe)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#30d158;--up2:#5fe07f;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}}
-:root[data-theme="dark"]{--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#30d158;--up2:#5fe07f;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}
+:root{--up:#138a52;--up2:#25a467;--dn:#e0342a;--dn2:#f0645c;--cdg:linear-gradient(180deg,#fff,#fbfbfe)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#4cc38a;--up2:#7fd8ab;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}}
+:root[data-theme="dark"]{--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#4cc38a;--up2:#7fd8ab;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}
 
 /* headers */
 .hdr small,.dhdr .t small{color:var(--mu);font-weight:500}
@@ -213,14 +213,14 @@ h2 .hi{background:linear-gradient(135deg,#7f8cf0,#4f5cc9);color:#fff;box-shadow:
 .hero .hx small{color:rgba(255,255,255,.65)}
 .hero .hx div{background:rgba(255,255,255,.09);box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 6px 14px rgba(0,0,0,.22)}
 .hero .ht i{background:rgba(255,255,255,.16);color:#fff}
-.hero .dl.up{background:rgba(48,209,88,.18);color:#b6f7c8}.hero .dl.dn{background:rgba(255,105,97,.2);color:#ffc1bc}
+.hero .dl.up{background:rgba(76,195,138,.18);color:#bdeed5}.hero .dl.dn{background:rgba(255,105,97,.2);color:#ffc1bc}
 .hero .seg{background:rgba(255,255,255,.09)}.hero .seg i{background:rgba(143,156,255,.35)}
 
 /* pattern tiles: each its own colour, as in 3.x */
 #st .cd .ic,#as .cd .ic{background:linear-gradient(135deg,#7f8cf0,#4f5cc9);color:#fff}
 #st .cd:nth-child(3) .ic{background:linear-gradient(135deg,#ffb340,#e8780a)}
 #st .cd:nth-child(4) .ic{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#171a35}
-#st .cd:nth-child(5) .ic{background:linear-gradient(135deg,#5fe07f,#1f9d45)}
+#st .cd:nth-child(5) .ic{background:linear-gradient(135deg,#7fd8ab,#138a52)}
 #st .cd:nth-child(6) .ic{background:linear-gradient(135deg,#ff8f88,#e0342a)}
 .dy small{color:var(--mu)}
 
@@ -722,3 +722,9 @@ h2 .hi{box-shadow:none}
 .dock button svg{stroke-width:2.1}
 .dock .sel{background:color-mix(in srgb,var(--gold) 20%,transparent)}
 .dock .fab{box-shadow:0 4px 12px color-mix(in srgb,var(--gold) 40%,transparent),0 0 0 4px var(--dock-bg)}
+
+/* Closed sheets wait just below the screen. Their upward shadow used to bleed into the bottom
+   of the screen (stacked six deep), darkening the lower half of the dock. Shadow and visibility
+   only while a sheet is open; it hides again once the slide-down finishes. */
+.sheet{box-shadow:none;visibility:hidden;transition:transform .35s cubic-bezier(.3,1,.4,1),visibility 0s linear .35s,box-shadow 0s linear .35s}
+.sheet.on{visibility:visible;box-shadow:inset 0 1px 0 var(--hl),0 -24px 60px rgba(0,0,0,.35);transition:transform .35s cubic-bezier(.3,1,.4,1),visibility 0s,box-shadow 0s}
