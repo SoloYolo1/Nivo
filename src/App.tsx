@@ -6,7 +6,7 @@ import { LockScreen, lockFlow, useLockOpen } from './components/Lock';
 import { Onboarding, needsOnboarding } from './components/Onboarding';
 import { Splash } from './components/Splash';
 import { useReveal } from './components/reveal';
-import { applyTheme } from './components/theme';
+import { applyTheme, setPalette } from './components/theme';
 import { Home } from './screens/Home';
 import { Accounts, subtitle } from './screens/Accounts';
 import { AccountDetail } from './screens/AccountDetail';
@@ -199,7 +199,7 @@ export function App() {
 
   // ---------- start-up ----------
   useEffect(() => {
-    applyTheme(getState().theme);
+    setPalette(getState().palette, getState().theme);
     const mq = matchMedia('(prefers-color-scheme: dark)');
     const onScheme = () => applyTheme(getState().theme);
     mq.addEventListener?.('change', onScheme);

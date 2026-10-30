@@ -31,6 +31,7 @@ export const KEYS = {
   summary: 'nv_summary',
   swipeHint: 'nv_swipe_hint',
   goalHit: 'nv_goal_hit',
+  palette: 'nv_palette',
 } as const;
 
 /** Read a JSON value, falling back when it is missing or unreadable. */

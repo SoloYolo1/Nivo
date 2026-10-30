@@ -14,6 +14,7 @@ Built with **TypeScript and React**, bundled with **esbuild**, packaged for Andr
 - **Monthly summary**: early each month, "October in review" lands in notifications, with the change and the account that moved it most. Money put in is not counted.
 - **Goals as rings** on Plan, with milestone rings and a celebration when you reach your goal.
 - Skeleton placeholders while phone features are checked, a sheen while prices are being checked, and empty states on Accounts and Insights.
+- **Colour themes** in Settings › Appearance: Midnight, Oxblood (maroon leather), Racing green, Plum, Cognac, Petrol and Onyx, each in light and dark, with gold kept as the accent.
 - Softer jade green; hidden sheets no longer shade the bottom of the screen.
 
 ## What is new in 4.3

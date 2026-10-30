@@ -43,9 +43,11 @@ export interface State {
   pending: Legacy | null;
   /** Amounts drawn as dots (the eye on the Net worth card). */
   masked: boolean;
+  /** Colour theme (see lib/palettes). */
+  palette: string;
 }
 
-function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending' | 'masked'> {
+function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending' | 'masked' | 'palette'> {
   const deleted = loadArray<string>(KEYS.deleted);
   const overrides = loadArray<string>(KEYS.overrides);
   const m: Record<string, Nav> = {};
@@ -83,6 +85,7 @@ let state: State = {
   booted: false, splash: true, locked: false, onboarding: false,
   newSince: '', alerts: { perm: 'unknown', on: false, power: null },
   pending: null,
+  palette: String(load<string>(KEYS.palette, 'midnight') || 'midnight'),
   masked: (() => { const m = !!load<boolean>(KEYS.hideOnLaunch, false); setAmountsHidden(m); return m; })(),
 };
 
@@ -238,6 +241,7 @@ export function toggleCheck(i: number): void {
 }
 export function setName(name: string): void { const n = name.slice(0, 24); save(KEYS.name, n); setState({ name: n.trim() }); }
 export function setTheme(theme: Theme): void { save(KEYS.theme, theme); setState({ theme }); }
+export function setPaletteId(palette: string): void { save(KEYS.palette, palette); setState({ palette }); }
 export function setSpend(spend: number): void { save(KEYS.spend, spend); setState({ spend }); }
 export function setNisab(nisab: number | null): void { if (nisab) save(KEYS.nisab, nisab); else remove(KEYS.nisab); setState({ nisab }); }
 

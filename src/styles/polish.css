@@ -859,3 +859,20 @@ h2 .hi{box-shadow:none}
 .pad button.fn{box-shadow:none;border:0;background:transparent}
 .pad button.fn svg{display:block;margin-right:2px}
 .pad button.fn:active{background:var(--tr)}
+
+/* ==========================================================================
+   Colour themes (lib/palettes): tokens are set on the page by theme.ts; these are the few
+   places that used fixed navy colours.
+   ========================================================================== */
+:root[data-palette] .hero{background:var(--hero-bg)}
+:root[data-palette] .hero .seg i{background:rgba(255,255,255,.2)}
+:root[data-palette] .splash{background:var(--bg)}
+.pal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.pal{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;border-radius:18px;border:0;background:var(--cdg);box-shadow:0 0 0 1px var(--bd);color:var(--tx);font:inherit;text-align:left;transition:box-shadow .2s,transform .15s}
+.pal:active{transform:scale(.98)}
+.pal.on{box-shadow:0 0 0 2px var(--gold)}
+.pal-sw{position:relative;display:grid;place-items:center;width:100%;height:58px;border-radius:12px;margin-bottom:8px;color:#1b1d3a;overflow:hidden}
+.pal-sw>i{position:absolute;right:10px;bottom:10px;width:22px;height:6px;border-radius:3px;background:linear-gradient(90deg,#f3d99b,#d9a84e)}
+.pal-sw>svg{position:relative;width:26px;height:26px;padding:5px;border-radius:50%;background:#f3d99b;box-sizing:border-box}
+.pal b{font-size:14px;font-weight:700}
+.pal small{font-size:11.5px;color:var(--mu)}

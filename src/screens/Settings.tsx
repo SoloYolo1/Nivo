@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon';
 import { Seg, Switch } from '../components/ui';
-import { applyTheme } from '../components/theme';
+import { applyTheme, setPalette } from '../components/theme';
+import { PALETTES, heroGradient, paletteOf } from '../lib/palettes';
+import { haptic } from '../lib/native';
 import { lockFlow } from '../components/Lock';
 import { PhoneFeatures } from '../components/PhoneFeatures';
 import { UpdatePanel } from '../components/Update';
@@ -10,7 +12,7 @@ import { refreshAlerts } from '../components/Sheets';
 import { RefreshButton } from './Fund';
 import { BackupCard } from './Backup';
 import { enableAlerts } from './Home';
-import { getState, openSettings, openSheet, push, setMasked, setName, setState, setTheme, toast, useStore, type SettingsPage, type Theme } from '../state/store';
+import { getState, openSettings, openSheet, push, setMasked, setName, setPaletteId, setState, setTheme, toast, useStore, type SettingsPage, type Theme } from '../state/store';
 import { syncBackground } from '../state/refresh';
 import { dd } from '../lib/format';
 import { isNative } from '../lib/native';
@@ -42,6 +44,7 @@ function Item({ icon, tone, title, value, onClick }: { icon: IconName; tone: str
 function Menu() {
   const name = useStore((s) => s.name);
   const theme = useStore((s) => s.theme);
+  const palette = useStore((s) => s.palette);
   const alerts = useStore((s) => s.alerts);
   const lc = useStore((s) => s.lastCheck);
   const b = useBuild();
@@ -60,7 +63,7 @@ function Menu() {
 
       <div className="cap">General</div>
       <div className="set-grp">
-        <Item icon="sun" tone="t-gold" title="Appearance" value={theme === 'system' ? 'System' : theme === 'light' ? 'Light' : 'Dark'} onClick={() => openSettings('appearance')} />
+        <Item icon="sun" tone="t-gold" title="Appearance" value={paletteOf(palette).name + ' · ' + (theme === 'system' ? 'System' : theme === 'light' ? 'Light' : 'Dark')} onClick={() => openSettings('appearance')} />
         <Item icon="bell" tone="t-red" title="Notifications" value={notif} onClick={() => openSettings('notifications')} />
         <Item icon="lock" tone="t-indigo" title="Privacy and lock" value={lock ? (lock.bio ? 'PIN and fingerprint' : 'PIN') : masked ? 'Amounts hidden' : 'Off'} onClick={() => openSettings('security')} />
       </div>
@@ -96,12 +99,24 @@ function Profile() {
 
 function Appearance() {
   const theme = useStore((s) => s.theme);
+  const palette = useStore((s) => s.palette);
   return (
     <section className="pg form">
-      <div className="lab"><span>Theme</span>
-        <Seg label="Theme" style={{ margin: 0 }} value={theme} onChange={(t: Theme) => { setTheme(t); applyTheme(t); }} items={[{ v: 'system', label: 'System' }, { v: 'light', label: 'Light' }, { v: 'dark', label: 'Dark' }]} />
+      <div className="lab"><span>Mode</span>
+        <Seg label="Mode" style={{ margin: 0 }} value={theme} onChange={(t: Theme) => { setTheme(t); applyTheme(t); }} items={[{ v: 'system', label: 'System' }, { v: 'light', label: 'Light' }, { v: 'dark', label: 'Dark' }]} />
       </div>
       <div className="hint">System follows your phone’s dark mode setting.</div>
+      <div className="lab" style={{ marginTop: 18 }}><span>Colour</span></div>
+      <div className="pal-grid" role="radiogroup" aria-label="Colour theme">
+        {PALETTES.map((p) => (
+          <button key={p.id} type="button" role="radio" aria-checked={palette === p.id} className={'pal' + (palette === p.id ? ' on' : '')}
+            onClick={() => { if (palette === p.id) return; haptic('select'); setPaletteId(p.id); setPalette(p.id, theme); }}>
+            <span className="pal-sw" style={{ background: heroGradient(p) }}><i />{palette === p.id && <Icon name="check" size={16} stroke={3} />}</span>
+            <b>{p.name}</b><small>{p.note}</small>
+          </button>
+        ))}
+      </div>
+      <div className="hint">Works in light and dark mode. Gold stays the accent in every colour.</div>
     </section>
   );
 }
