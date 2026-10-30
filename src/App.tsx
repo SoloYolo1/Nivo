@@ -23,7 +23,8 @@ import {
   celebrate, closeSheet, getState, goTab, openSettings, openSheet, pop, push, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
 } from './state/store';
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
-import { KINDS, staleAccounts } from './lib/accounts';
+import { KINDS, monthChange, staleAccounts } from './lib/accounts';
+import { pickQuip } from './lib/quips';
 import { MILESTONES } from './lib/fund';
 import { big, dd, greeting, iso, unmasked } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
@@ -62,6 +63,26 @@ function Header() {
   const name = useStore((s) => s.name);
   const accounts = useStore((s) => s.accounts);
   const f = useFund();
+  const t = useTotals();
+  const goalAmt = useStore((s) => s.goal.amount);
+  const buys = useStore((s) => s.buys);
+  // a fresh line under the greeting each time Home is opened
+  const onHome = tab === 'home' && !stack.length;
+  const [quip, setQuip] = useState('');
+  useEffect(() => {
+    if (!onHome) return;
+    const now = new Date(), today = iso(now);
+    const m = monthChange(accounts, f.points, today, buys.map((x) => ({ date: x.date, amount: x.sent })));
+    setQuip(pickQuip({
+      hour: now.getHours(), day: now.getDay(), name,
+      fundToday: f.last && f.prev ? f.last.chg : null,
+      stale: staleAccounts(accounts, today).length,
+      goalPct: goalAmt > 0 ? (Math.max(0, t.netWorth) / goalAmt) * 100 : 0,
+      monthUp: Math.abs(m.change) < 1 ? null : m.change > 0,
+    }));
+    // only when Home is opened, not every time a number changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onHome]);
   const top = stack[stack.length - 1];
   if (top) {
     let sub: React.ReactNode = '';
@@ -91,6 +112,7 @@ function Header() {
         <BellButton />
         <button type="button" className="hdr-ib" aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={21} /></button>
       </div>
+      {tab === 'home' && quip && <p key={quip} className="quip">{quip}</p>}
     </header>
   );
 }

@@ -849,3 +849,8 @@ h2 .hi{box-shadow:none}
 /* The page's top stays one colour while scrolling (no strip, no moving glow), and the fund's
    Overview / Analysis / History tabs scroll with the page instead of sticking under a bar that is gone. */
 .subnav{position:static;top:auto;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0;margin:0 0 14px}
+/* the short line under the greeting on Home */
+.hdr.phdr{flex-wrap:wrap}
+.hdr .quip{order:3;flex:0 0 100%;margin:6px 0 0;font-size:13.5px;font-weight:500;color:var(--gold-mute,var(--mu));letter-spacing:-.05px;line-height:1.35;animation:quipin .5s .15s var(--ease,ease) both}
+@keyframes quipin{from{opacity:0;transform:translateY(4px)}}
+@media (prefers-reduced-motion:reduce){.hdr .quip{animation:none}}
