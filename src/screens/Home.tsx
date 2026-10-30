@@ -144,7 +144,9 @@ export async function enableAlerts(): Promise<void> {
 function MigrateCard() {
   const pending = useStore((s) => s.pending);
   const navs = useStore((s) => s.navs);
-  if (!canBridge() || load<number>(KEYS.migrated, 0) || load<boolean>(KEYS.migrateHide, false)) return null;
+  // hidden at once on "Not now" (saving the choice alone did not redraw Home)
+  const [hidden, setHidden] = useState(() => load<boolean>(KEYS.migrateHide, false));
+  if (!canBridge() || hidden || load<number>(KEYS.migrated, 0)) return null;
   return (
     <div className="cd mig">
       <span className="tic"><Icon name="clock" size={18} /></span>
@@ -153,7 +155,7 @@ function MigrateCard() {
         <p>{pending ? 'Choose whether to add it to Nivo 4.' : 'Your old prices and purchases from Nivo 3 can come along. ' + (navs.length > 20 ? 'Anything already here stays.' : 'Right now Nivo only has the last few days.')}</p>
         <div className="acts">
           <button type="button" className="btn gold" onClick={() => openSheet('import')}>{pending ? 'Review' : 'Bring it over'}</button>
-          <button type="button" className="btn ghost" onClick={() => { save(KEYS.migrateHide, true); setState({ pending: null }); }}>Not now</button>
+          <button type="button" className="btn ghost" onClick={() => { save(KEYS.migrateHide, true); setHidden(true); setState({ pending: null }); }}>Not now</button>
         </div>
       </div>
     </div>
