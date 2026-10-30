@@ -846,6 +846,6 @@ h2 .hi{box-shadow:none}
 .ins-cta>svg:last-child{color:var(--mu);flex:none}
 .ins-cta:active{transform:scale(.99)}
 
-/* No title bar on scroll: only a soft strip behind the status bar, so the clock never sits on content */
-.sbar{position:fixed;top:0;left:0;right:0;height:calc(var(--sat,env(safe-area-inset-top,0px)) + 14px);background:linear-gradient(180deg,var(--bg) 0,var(--bg) calc(100% - 14px),color-mix(in srgb,var(--bg) 0%,transparent) 100%);opacity:0;transition:opacity .2s;z-index:9;pointer-events:none}
-.sbar.on{opacity:1}
+/* The page's top stays one colour while scrolling (no strip, no moving glow), and the fund's
+   Overview / Analysis / History tabs scroll with the page instead of sticking under a bar that is gone. */
+.subnav{position:static;top:auto;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0;margin:0 0 14px}

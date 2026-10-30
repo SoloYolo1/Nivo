@@ -292,17 +292,14 @@ export function App() {
   // ---------- scroll effects without re-rendering ----------
   useEffect(() => {
     let tick = false, lastY = 0;
-    const nb = document.getElementById('nb'), dock = document.getElementById('dock');
-    const bg = document.querySelector('.bgfx') as HTMLElement | null;
+    const dock = document.getElementById('dock');
     const onScroll = () => {
       if (tick) return; tick = true;
       requestAnimationFrame(() => {
         if (window.scrollX) window.scrollTo(0, window.scrollY);
         const y = window.scrollY;
         const hdr = document.querySelector('.hdr') as HTMLElement | null;
-        nb?.classList.toggle('on', y > 8);
         hdr?.style.setProperty('--sy', String(Math.min(y, 140)));
-        if (bg) bg.style.transform = 'translateY(' + -y * 0.06 + 'px)';
         const dy = y - lastY;
         if (dy > 6 && y > 160) dock?.classList.add('min'); else if (dy < -6 || y < 120) dock?.classList.remove('min');
         lastY = y; tick = false;
@@ -418,8 +415,6 @@ export function App() {
   return (
     <>
       <div className="bgfx" aria-hidden="true"><i /><i /></div>
-      {/* behind the clock and battery once the page scrolls under them; no title or price */}
-      <div className="sbar" id="nb" aria-hidden="true" />
       <div className={'pbar' + (busy ? ' on' : '')} aria-hidden="true"><i /></div>
       <div className={'ptr' + (busy ? ' busy' : '') + (ptrDone ? ' done' : '')} id="ptr" aria-hidden="true">
         <svg className="ptr-ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" /></svg>
