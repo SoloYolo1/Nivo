@@ -1,8 +1,9 @@
 // One account in detail: bank, business, or any other asset or loan.
-import { Icon } from '../components/Icon';
+import { Icon, KIND_ICON } from '../components/Icon';
 import { Card, Switch } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
-import { Bars, LineChart } from '../components/Charts';
+import { Bars } from '../components/Charts';
+import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
 import { deleteAccount, openSheet, pop, push, removeSnapshot, upsertAccount, useStore } from '../state/store';
@@ -31,12 +32,12 @@ export function AccountDetail({ id }: { id: string }) {
   const pct = t.assets > 0 && w > 0 ? Math.round((w / t.assets) * 100) : null;
   const isLoan = a.kind === 'loan';
   const biz = a.kind === 'business' ? businessStats(a) : null;
-  const pts = a.history.map((h) => ({ label: dd(h.date), value: worthOf(a, h) }));
+  const pts = a.history.map((h) => ({ date: h.date, label: dd(h.date), value: Math.abs(worthOf(a, h)) }));
   return (
     <section className="pg">
       <div className="cd hero mini">
-        <HeroHead label={a.kind === 'business' ? 'Net position' : isLoan ? 'You owe' : a.kind === 'bank' ? (a.acctType === 'current' ? 'Current account' : a.acctType === 'term' ? 'Term deposit' : 'Savings account') : KINDS[a.kind].label} chip={pct != null && pct + '% of your assets'} />
-        <div className="mh-v"><span>PKR</span>{n0(Math.abs(s ? s.value : 0))}</div>
+        <HeroHead icon={KIND_ICON[a.kind]} label={a.kind === 'business' ? 'Net position' : isLoan ? 'You owe' : a.kind === 'bank' ? (a.acctType === 'current' ? 'Current account' : a.acctType === 'term' ? 'Term deposit' : 'Savings account') : KINDS[a.kind].label} chip={pct != null && pct + '% of your assets'} />
+        <div className="mh-v"><span>Rs</span>{n0(Math.abs(s ? s.value : 0))}</div>
         {diff != null && prev
           ? <span className={'dl ' + cl(diff)}>{(diff >= 0 ? '▲ ' : '▼ ') + 'Rs ' + n0(Math.abs(diff)) + ' since ' + dd(prev.date)}</span>
           : <span className="dl">Updated {s ? dd(s.date) : 'never'}</span>}
@@ -96,7 +97,7 @@ export function AccountDetail({ id }: { id: string }) {
 
       {pts.length >= 2 && (
         <Card icon="trend" title={isLoan ? 'What you owe over time' : a.kind === 'business' ? 'Net position over time' : 'Balance over time'} more="From your updates">
-          <LineChart points={pts.slice(-12)} color={isLoan ? C.dn : '#8f9cff'} ariaLabel="Balance over time" />
+          <AreaChart points={pts.slice(-12)} height={150} color={isLoan ? C.dn : C.a} ariaLabel="Balance over time" tip={(p) => p.label + ' · Rs ' + n0(p.value)} />
         </Card>
       )}
 

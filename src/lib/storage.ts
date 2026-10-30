@@ -24,6 +24,8 @@ export const KEYS = {
   spend: 'nv_spend',
   nisab: 'nv_nisab',
   nwMilestone: 'nv_nw_ms',
+  migrated: 'nv_migrated',
+  migrateHide: 'nv_mig_hide',
 } as const;
 
 /** Read a JSON value, falling back when it is missing or unreadable. */

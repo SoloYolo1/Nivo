@@ -1,0 +1,490 @@
+/* ==========================================================================
+   Nivo 4.1 polish layer. Loaded last, so these rules settle every surface.
+   Colours stay as they were; this is depth, edges, motion and spacing.
+   ========================================================================== */
+
+/* ---------- surfaces: no hairline borders (they showed as a light line along the bottom of every card) ---------- */
+:root{
+  --sh:0 0 0 1px rgba(40,50,110,.055),0 1px 2px rgba(20,20,50,.05),0 10px 28px rgba(20,20,50,.075);
+  --sh-lift:0 0 0 1px rgba(40,50,110,.06),0 2px 6px rgba(20,20,50,.06),0 18px 40px rgba(20,20,50,.12);
+  --hero-sh:inset 0 1px 0 rgba(255,255,255,.16),0 16px 36px rgba(28,32,120,.30),0 2px 8px rgba(20,20,70,.18);
+  --press:scale(.97);
+  --ease:cubic-bezier(.2,.9,.3,1);
+  --spring:cubic-bezier(.3,1.35,.5,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sh:inset 0 1px 0 rgba(255,255,255,.055),0 1px 2px rgba(0,0,0,.25),0 12px 30px rgba(0,0,0,.28);
+  --sh-lift:inset 0 1px 0 rgba(255,255,255,.07),0 2px 6px rgba(0,0,0,.3),0 20px 44px rgba(0,0,0,.4);
+  --hero-sh:inset 0 1px 0 rgba(255,255,255,.13),0 20px 44px rgba(0,0,0,.42),0 2px 8px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --sh:inset 0 1px 0 rgba(255,255,255,.055),0 1px 2px rgba(0,0,0,.25),0 12px 30px rgba(0,0,0,.28);
+  --sh-lift:inset 0 1px 0 rgba(255,255,255,.07),0 2px 6px rgba(0,0,0,.3),0 20px 44px rgba(0,0,0,.4);
+  --hero-sh:inset 0 1px 0 rgba(255,255,255,.13),0 20px 44px rgba(0,0,0,.42),0 2px 8px rgba(0,0,0,.3);
+}
+.cd,.qa button,.tile,.grp,.grp2,.sheet .grp,.dy div,.ob-mig,.pad button,.rb,.fm button,.dock{border:0}
+.cd,.qa button,.tile,.grp,.grp2,.sheet .grp,.dy div,.ob-mig,.pad button,.rb{box-shadow:var(--sh)}
+.hero{border:0;box-shadow:var(--hero-sh)!important;background-clip:border-box}
+.hero.mini{box-shadow:var(--hero-sh)!important}
+.dock{box-shadow:inset 0 1px 0 var(--hl),0 18px 44px rgba(0,0,0,.34),0 3px 10px rgba(0,0,0,.16)}
+
+/* every list ends cleanly: no separator under the last row, whatever element follows */
+.cd>.rw:last-child,.cd>.ln:last-child,.cd>.acc:last-of-type,.grp>.rw:last-child,.grp2>.tg:last-child,.cd>.perf:last-child{border-bottom:0}
+
+/* ---------- touch feedback: the ripple stays inside what you pressed ---------- */
+.btn,.rb,.seg button,.pz button,.x,.dock button,.pl,.acc,.tile,.qa button,.ob-mig,.linkrow,.dash,.chips button,.ib,.wd,.lk-f,.ob-skip,.hm i,.pad button{position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.acc,.tile,.qa button,.ob-mig,.linkrow,.dash,.chips button,.wd,.cd.tap,#st .cd.tap,.rw.tap,.hr2.tap,.pl{transition:transform .18s var(--ease),opacity .18s,background .2s}
+.acc:active,.linkrow:active,.rw.tap:active,.hr2.tap:active,.pl:active{opacity:1;transform:none;background:var(--tr)}
+.acc{border-radius:12px;margin:0 -8px;padding-left:8px;padding-right:8px;width:calc(100% + 16px)}
+.tile:active,.qa button:active,.ob-mig:active,.dash:active,.wd:active,#st .cd.tap:active,#qs .cd:active,#hold:active{transform:var(--press);opacity:1}
+.rip{animation:rip .6s cubic-bezier(.2,.7,.3,1) forwards;opacity:.16}
+
+/* ---------- charts ---------- */
+.ac{touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:crosshair;margin:4px -4px 0}
+.ac svg{display:block;width:100%;height:auto;overflow:visible}
+.ac-reveal{transform-origin:0 0;animation:acr 1.15s cubic-bezier(.32,.72,.2,1) both}
+@keyframes acr{from{transform:scaleX(0)}}
+.ac-end{animation:fadein .45s 1s both}
+.ac-pulse{transform-box:fill-box;transform-origin:center;animation:acp 2.6s 1.5s ease-out infinite;opacity:0}
+@keyframes acp{0%{transform:scale(1);opacity:.5}70%,100%{transform:scale(3.2);opacity:0}}
+.ac-tip{animation:fadein .12s both}
+.ac-base{animation:fadein .6s .7s both}
+.hero .seg{margin:16px 0 4px}
+
+/* ---------- hero cards ---------- */
+.hero .story{margin-top:10px}
+.hero .alloc{margin:14px 0 0}
+.hero .alloc+.hx{margin-top:10px}
+.hero .hx div{box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+
+/* ---------- headers ---------- */
+.hdr{padding:12px 2px 14px}
+.hdr .hw{width:58px;margin:2px 0 10px}
+.hdr b{font-size:38px;letter-spacing:-1.5px}
+.phdr-sm{position:relative}
+.dhdr .t b{font-size:23px;letter-spacing:-.6px}
+.subnav{margin:0 0 14px}
+
+/* ---------- section captions ---------- */
+.cap{margin:22px 4px 10px;font-size:11px;letter-spacing:.9px}
+.pg>.cap:first-child{margin-top:4px}
+
+/* ---------- cards ---------- */
+.cd{border-radius:22px}
+.cd.list{padding:6px 14px}
+h2{margin-bottom:14px}
+.g{gap:10px}
+.g .cd{padding:14px 15px}
+
+/* ---------- quick actions ---------- */
+.qa{gap:9px;margin:0 0 14px}
+.qa button{border-radius:20px;padding:13px 4px 11px}
+
+/* ---------- prompts and nudges share one shape ---------- */
+.cd.newc,.cd.np,.cd.pwc,.cd.nudge,.cd.mig{background-origin:border-box}
+
+/* ---------- sheets ---------- */
+.sheet{max-height:min(88vh,88dvh);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-shadow:inset 0 1px 0 var(--hl),0 -24px 60px rgba(0,0,0,.35)}
+.sheet .gr{width:40px;height:5px;background:var(--mu2);opacity:.35;margin:2px auto 14px}
+.sh-h{margin-bottom:16px}
+.ov{background:rgba(5,6,15,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.sheet .frm input,.sheet .tx{background:var(--cdg);box-shadow:var(--sh)}
+.frm input:focus,.tx:focus,.in:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--a-soft)}
+
+/* ---------- form inputs: same height and feel everywhere ---------- */
+.frm input,.tx,.in{transition:border-color .2s,box-shadow .2s}
+input[type=date]{-webkit-appearance:none;appearance:none}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;filter:invert(.5)}
+
+/* ---------- empty states ---------- */
+.empty{padding:22px 12px}
+
+/* ---------- onboarding: always fits the screen, no scrolling ---------- */
+#onb{height:100vh;height:100dvh;padding:calc(env(safe-area-inset-top,0px) + clamp(12px,2.6vh,24px)) 22px calc(env(safe-area-inset-bottom,0px) + clamp(12px,2.4vh,22px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;scrollbar-width:none}
+#onb::-webkit-scrollbar{display:none}
+.ob-dots{margin:clamp(12px,3vh,26px) 0 clamp(12px,2.6vh,22px)}
+.ob-step{flex:0 1 auto}
+.ob-ic{width:clamp(52px,8vh,72px);height:clamp(52px,8vh,72px);border-radius:clamp(16px,2.5vh,22px);margin-bottom:clamp(12px,2.4vh,20px)}
+.ob-ic svg{width:clamp(22px,3.4vh,30px);height:clamp(22px,3.4vh,30px)}
+.ob-step h1{font-size:clamp(24px,3.9vh,30px);margin-bottom:clamp(6px,1.2vh,10px)}
+.ob-step p{font-size:clamp(13.5px,1.95vh,15px);margin-bottom:clamp(12px,2.6vh,22px)}
+.ob-f{gap:clamp(8px,1.5vh,12px)}
+.ob-f input{min-height:clamp(46px,6.3vh,52px);border:1px solid transparent}
+.ob-mig{margin-top:clamp(10px,2vh,18px);padding:clamp(10px,1.7vh,14px) 14px}
+.ob-act{padding-top:clamp(12px,2.4vh,24px)}
+.ob-act .btn{min-height:clamp(48px,6.6vh,54px)}
+.ob-fund{border:1px solid color-mix(in srgb,var(--a) 45%,transparent);box-shadow:var(--sh)}
+
+/* ---------- lock screen: fits short phones too ---------- */
+#lock{height:100vh;height:100dvh;overflow-y:auto;scrollbar-width:none;padding:calc(env(safe-area-inset-top,0px) + 16px) 20px calc(env(safe-area-inset-bottom,0px) + 16px)}
+#lock::-webkit-scrollbar{display:none}
+.pad button{box-shadow:var(--sh)}
+@media (max-height:640px){.pad{grid-template-columns:repeat(3,58px);gap:9px}.pad button{width:58px;height:58px;font-size:22px}.lk-logo{width:76px}.dots{margin:12px 0 14px}.lk-t{margin-top:8px;font-size:19px}.lk-bio{margin-top:14px;min-height:46px}}
+
+/* ---------- toast above the dock ---------- */
+.toast{box-shadow:0 10px 30px rgba(0,0,0,.25)}
+
+/* ---------- page entrance ---------- */
+.pgw.r{animation:inR .4s var(--ease) both}.pgw.l{animation:inL .4s var(--ease) both}
+
+/* ---------- fund screen tabs: a solid strip under the top bar, nothing peeks through ---------- */
+.subnav{top:calc(env(safe-area-inset-top,0px) + 50px);margin:0 -16px 14px;padding:8px 16px 10px;background:linear-gradient(var(--bg) 78%,color-mix(in srgb,var(--bg) 0%,transparent))}
+.subnav .seg{background:var(--tr);-webkit-backdrop-filter:none;backdrop-filter:none}
+:root .nb{border-bottom-color:transparent}
+.nb.on{box-shadow:0 1px 0 var(--bd)}
+
+/* ---------- small buttons in rows never wrap ---------- */
+.rw .btn,.tg .btn{white-space:nowrap;flex:none}
+.more-row{justify-content:center;gap:4px;color:var(--a);font-weight:700;margin-top:4px}
+.more-row span{gap:0}
+
+/* ---------- entry and update forms ---------- */
+.sheet .form{gap:14px}
+.sumbox b{font-size:18px}
+#onb{background:radial-gradient(110% 55% at 100% 0%,color-mix(in srgb,var(--a) 16%,transparent),transparent 62%),radial-gradient(90% 40% at 0% 100%,color-mix(in srgb,var(--gold) 9%,transparent),transparent 60%),var(--bg)}
+#lock{background:radial-gradient(100% 50% at 50% 0%,color-mix(in srgb,var(--a) 14%,transparent),transparent 65%),var(--bg)}
+
+/* ---------- narrow phones (360px): nothing spills out of its tile ---------- */
+.hx div{min-width:0}
+.hx small,.hx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h2{flex-wrap:nowrap;min-width:0}
+h2>.hi{flex:none}
+h2 .more{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:8px}
+@media (max-width:374px){
+  .w{padding-left:14px;padding-right:14px}
+  .hdr b{font-size:34px}
+  .big{font-size:38px;letter-spacing:-1.6px}
+  .hero{padding:15px 14px 10px}
+  .hx{gap:6px}.hx div{padding:8px 9px}.hx b{font-size:13.5px}.hx small{font-size:10px}
+  .qa{gap:7px}.qa button{font-size:11px}
+  .donut{gap:12px}.donut svg{width:96px;height:96px}
+  .cd{padding:16px}
+  h2 .more{font-size:11.5px}
+}
+
+/* ---------- the dock's shadow suits each theme (no grey band in light mode) ---------- */
+.dock{box-shadow:inset 0 1px 0 var(--hl),0 0 0 1px rgba(40,50,110,.06),0 12px 30px rgba(20,20,50,.14),0 2px 6px rgba(20,20,50,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dock{box-shadow:inset 0 1px 0 var(--hl),0 18px 44px rgba(0,0,0,.42),0 3px 10px rgba(0,0,0,.2)}}
+:root[data-theme="dark"] .dock{box-shadow:inset 0 1px 0 var(--hl),0 18px 44px rgba(0,0,0,.42),0 3px 10px rgba(0,0,0,.2)}
+.subnav{background:var(--nav);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);padding:6px 16px 10px}
+.subnav .seg{background:color-mix(in srgb,var(--tx) 7%,transparent)}
+#st .cd .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ell{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the dock steps aside while you fill in a form */
+.dock{transition:transform .5s cubic-bezier(.3,1,.4,1),opacity .3s}
+.dock.away{transform:translateX(-50%) translateY(150%)!important;opacity:0;pointer-events:none}
+h2 .h2t{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h2 .more{flex:0 100 auto}
+.hx small em{font-style:normal;opacity:.7;margin-left:5px;font-weight:700}
+h2 .h2t{flex:0 0 auto;max-width:100%}
+@media (max-width:374px){.hx small em{display:none}}
+
+/* ---------- the app background from 3.x: deep navy with two soft glows that drift and parallax ---------- */
+.bgfx i{width:70vw;height:70vw;border-radius:50%;background:var(--a);filter:blur(80px);opacity:.22;top:-28vw;right:-24vw;left:auto;animation:blob 20s ease-in-out infinite alternate;will-change:transform}
+.bgfx i+i{background:var(--gold);width:50vw;height:50vw;left:-18vw;right:auto;top:46vh;opacity:.12;animation-duration:26s;animation-delay:-8s}
+:root[data-theme="light"] .bgfx i,:root:not([data-theme="dark"]) .bgfx i{opacity:.14}:root[data-theme="light"] .bgfx i+i,:root:not([data-theme="dark"]) .bgfx i+i{opacity:.09}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bgfx i{opacity:.22}:root:not([data-theme="light"]) .bgfx i+i{opacity:.12}}
+:root[data-theme="dark"] .bgfx i{opacity:.22}:root[data-theme="dark"] .bgfx i+i{opacity:.12}
+
+/* ==========================================================================
+   The 3.x visual language: restrained colour. Indigo section titles, muted labels,
+   gold kept for money moments (price, the + button, primary actions, chips).
+   ========================================================================== */
+:root{--up:#1f9d45;--up2:#34b85a;--dn:#e0342a;--dn2:#f0645c;--cdg:linear-gradient(180deg,#fff,#fbfbfe)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#30d158;--up2:#5fe07f;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}}
+:root[data-theme="dark"]{--cd:#181b36;--cd2:#1d2142;--cdg:linear-gradient(180deg,#1d2140,#171a35);--bd:rgba(255,255,255,.075);--up:#30d158;--up2:#5fe07f;--dn:#ff6961;--dn2:#ff8f88;--thumb:#2a2f5c}
+
+/* headers */
+.hdr small,.dhdr .t small{color:var(--mu);font-weight:500}
+.nb{color:var(--tx)}
+
+/* section titles: indigo with a gradient icon chip */
+h2{color:var(--a)}
+h2 .hi{background:linear-gradient(135deg,#7f8cf0,#4f5cc9);color:#fff;box-shadow:0 4px 10px rgba(74,88,208,.3)}
+.sheet h3{color:var(--mu);font-weight:600;text-transform:none;letter-spacing:.2px;font-size:12.5px}
+.cap{color:var(--mu2)}
+
+/* hero cards: the 3.x indigo gradient, white type with soft secondary labels */
+.hero{background:linear-gradient(155deg,#3b48b8 0%,#262d78 38%,#171b45 70%,#111428 100%)}
+.hero:before{background:radial-gradient(circle at 82% 12%,rgba(143,156,255,.45),transparent 40%),radial-gradient(circle at 70% 30%,rgba(255,231,163,.14),transparent 30%),radial-gradient(circle at 8% 96%,rgba(255,255,255,.08),transparent 40%)}
+.hero .l,.hero .k,.hero .story{color:rgba(255,255,255,.72)}
+.hero .story b{color:#fff}
+.hero .big>span:first-child,.mh-v>span:first-child{color:rgba(255,255,255,.6)}
+.hero .hx small{color:rgba(255,255,255,.65)}
+.hero .hx div{background:rgba(255,255,255,.09);box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 6px 14px rgba(0,0,0,.22)}
+.hero .ht i{background:rgba(255,255,255,.16);color:#fff}
+.hero .dl.up{background:rgba(48,209,88,.18);color:#b6f7c8}.hero .dl.dn{background:rgba(255,105,97,.2);color:#ffc1bc}
+.hero .seg{background:rgba(255,255,255,.09)}.hero .seg i{background:rgba(143,156,255,.35)}
+
+/* pattern tiles: each its own colour, as in 3.x */
+#st .cd .ic,#as .cd .ic{background:linear-gradient(135deg,#7f8cf0,#4f5cc9);color:#fff}
+#st .cd:nth-child(3) .ic{background:linear-gradient(135deg,#ffb340,#e8780a)}
+#st .cd:nth-child(4) .ic{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#171a35}
+#st .cd:nth-child(5) .ic{background:linear-gradient(135deg,#5fe07f,#1f9d45)}
+#st .cd:nth-child(6) .ic{background:linear-gradient(135deg,#ff8f88,#e0342a)}
+.dy small{color:var(--mu)}
+
+/* account icons and list details */
+.ai.investments{background:color-mix(in srgb,var(--up) 14%,transparent);color:var(--up)}
+
+/* ---------- the nivo logo sits on the main card; page titles stand on their own ---------- */
+.hdr{padding:18px 2px 16px;align-items:center}
+.hdr b{font-size:34px;line-height:1.08;letter-spacing:-1.2px;margin-top:0}
+.hdr small{margin-top:4px}
+.hero .hh{margin-bottom:10px}
+.hero .hh .cw{width:60px;height:auto;display:block;color:#fff;margin:3px 0 2px;filter:drop-shadow(0 4px 14px rgba(20,24,90,.45))}
+.hero .hl{font-size:14px;font-weight:700;color:#fff;margin:0 0 2px;letter-spacing:-.1px}
+.hero .hl span{font-weight:500;color:rgba(255,255,255,.72)}
+.hero .hl+.l{margin-top:1px}
+.hero.mini .hh{margin-bottom:8px}
+
+/* quick actions keep the square 3.x tiles; the refresh icon spins while checking */
+.qa i.spin svg{animation:sp .8s linear infinite}
+
+/* quick actions: just the coloured square icon and its label, no tile around it */
+.qa{gap:6px;margin:6px 0 16px}
+.qa button{background:none!important;box-shadow:none!important;border:0;padding:4px 0;gap:8px;font-size:12px;font-weight:600;color:var(--tx);overflow:visible;border-radius:16px}
+.qa button:active{transform:none}
+.qa i{width:54px;height:54px;border-radius:17px;transition:transform .2s var(--spring)}
+.qa i svg{width:22px;height:22px}
+.qa button:active i{transform:scale(.9)}
+.qa .rip{display:none}
+
+/* quick actions, final: one calm family. Soft indigo squircles with crisp line icons;
+   only the first (the main action) is filled. No rainbow, no glow. */
+.qa i,.qa button:nth-child(n) i{width:56px;height:56px;border-radius:18px;background:color-mix(in srgb,var(--a) 13%,var(--cd))!important;color:var(--a)!important;box-shadow:inset 0 1px 0 var(--hl),0 1px 2px rgba(0,0,0,.08)!important}
+.qa button:nth-child(1) i{background:var(--a)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 16px color-mix(in srgb,var(--a) 32%,transparent)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qa button:nth-child(1) i{background:#5b69d6!important}}
+:root[data-theme="dark"] .qa button:nth-child(1) i{background:#5b69d6!important}
+.qa i svg{width:26px;height:26px;stroke-width:1.85}
+.qa button{color:var(--mu);font-weight:600;font-size:12px}
+.qa button:nth-child(1){color:var(--tx)}
+.qa button,.qa button:nth-child(1){color:var(--tx)}
+
+/* ==========================================================================
+   Redesign (from the proposal canvas)
+   ========================================================================== */
+
+/* page header: quiet line above a large title, actions on the right */
+.hdr{align-items:center;padding:16px 4px 16px}
+.hdr small{display:block;margin:0 0 3px;font-size:13px;font-weight:500;color:var(--mu)}
+.hdr b{font-size:30px;letter-spacing:-1px;line-height:1.05}
+.hdr-acts{display:flex;align-items:center;gap:10px}
+.hdr .ava{width:44px;height:44px}
+.hdr-add{width:44px;height:44px;border-radius:14px;border:0;background:var(--a-soft);color:var(--a);display:grid;place-items:center;position:relative;overflow:hidden}
+.hdr-add svg{stroke-width:2.2}
+
+/* the hero card, shared */
+.hero{border-radius:26px}
+.hero .hh .cw{width:56px}
+.hero .hl{margin-top:12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.72)}
+.hero .big{margin:2px 0 4px;font-size:44px;letter-spacing:-2px}
+.hero .big>span:first-child{font-size:16px;vertical-align:10px}
+.hero .dl{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:12.5px}
+.hero .dl svg{flex:none}
+
+/* Home: range pills in the card head, chart edge to edge, a quiet footer */
+.rp{display:flex;gap:2px;padding:3px;border-radius:99px;background:rgba(255,255,255,.1)}
+.rp button{border:0;background:none;color:rgba(255,255,255,.65);font:600 11.5px var(--f);padding:5px 9px;border-radius:99px;min-height:26px;transition:background .25s,color .25s}
+.rp button.on{background:rgba(255,255,255,.92);color:#1b2160;font-weight:700}
+.hero.nw{padding:18px 18px 0}
+.chg-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+.chg-row .when{font-size:12.5px;color:rgba(255,255,255,.6)}
+.ac.bleed{margin:6px -18px 0}
+.nw-foot{display:flex;align-items:center;gap:0;width:calc(100% + 36px);margin:0 -18px;padding:12px 16px 14px 18px;border:0;border-top:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.12);color:#fff;font:inherit;text-align:left;position:relative;overflow:hidden}
+.nw-foot span{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.nw-foot span+span{padding-left:12px;border-left:1px solid rgba(255,255,255,.08)}
+.nw-foot small{font-size:11px;font-weight:600;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nw-foot b{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.nw-foot>svg{color:rgba(255,255,255,.5);flex:none;margin-left:6px}
+
+/* Home: today's price strip */
+.cd.navstrip{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;color:var(--tx);font:inherit;text-align:left;position:relative;overflow:hidden;cursor:pointer}
+.navstrip .ns-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.navstrip b{font-size:13.5px;font-weight:700}.navstrip small{font-size:12px;color:var(--mu)}
+.navstrip>svg{color:var(--mu);flex:none}
+.pulse-dot{width:9px;height:9px;border-radius:50%;background:var(--up);box-shadow:0 0 0 5px color-mix(in srgb,var(--up) 18%,transparent);flex:none}
+.pulse-dot.new{background:var(--gold);box-shadow:0 0 0 5px color-mix(in srgb,var(--gold) 22%,transparent);animation:pulse 1.8s infinite}
+
+/* section caption with a link */
+.cap{display:flex;justify-content:space-between;align-items:baseline}
+.cap-link{border:0;background:none;color:var(--a);font:600 12.5px var(--f);letter-spacing:0;text-transform:none;padding:4px 2px}
+
+/* account rows: trend line and a useful note */
+.acc .l{flex:1}
+.acc .msp{width:56px;height:22px;flex:none;margin:0 2px}
+span.msp{display:inline-block}
+.acc small.warn{color:var(--org)}
+.acc small.up{color:var(--up)}
+.acc .r small.up{color:var(--up)}.acc .r small.dn{color:var(--dn)}
+.acc .ai{width:38px;height:38px;border-radius:12px}
+
+/* fund screen: underlined section tabs */
+.subnav{padding:0 16px;margin:0 -16px 14px}
+.tabs{position:relative;display:flex;gap:24px;padding:0 6px;border-bottom:1px solid var(--bd)}
+.tabs button{position:relative;border:0;background:none;padding:10px 0 11px;font:600 14px var(--f);color:var(--mu2);overflow:visible}
+.tabs button.on{color:var(--tx);font-weight:700}
+.tabs button.on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--a);animation:tabin .3s var(--ease)}
+@keyframes tabin{from{transform:scaleX(.3);opacity:0}}
+.tabs>i{display:none}
+.tabs .rip{display:none}
+
+/* hero sub line */
+.hero-sub{font-size:13px;color:rgba(255,255,255,.72);line-height:1.45;margin-top:2px}
+.hero-sub b{color:#fff}.hero-sub b.g{color:#b6f7c8}.hero-sub b.r{color:#ffc1bc}
+.hero-sub2{display:block;font-size:12px;color:rgba(255,255,255,.55)}
+
+/* three small figures */
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.g3 .cd{margin:0;padding:12px;border-radius:18px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.g3 small{font-size:11.5px;font-weight:600;color:var(--mu)}
+.g3 b{font-size:18px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g3 span{font-size:11px;color:var(--mu)}
+
+/* break-even bar */
+.be-bar{height:10px;border-radius:6px;background:var(--tr);overflow:hidden}
+.be-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--a),color-mix(in srgb,var(--a) 55%,#fff));transform-origin:left;animation:fillx 1s .3s cubic-bezier(.3,1,.4,1) both}
+.be-l{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--mu)}
+
+/* last 10 days */
+.d10{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;align-items:stretch}
+.d10c{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;color:var(--mu);font:inherit;overflow:visible}
+.d10t,.d10b{height:46px;width:100%;display:flex;justify-content:center}
+.d10t{align-items:flex-end;border-bottom:1px solid var(--bd)}.d10b{align-items:flex-start}
+.d10c i{display:block;width:72%;max-width:22px;border-radius:5px;opacity:.5;animation:grow .6s cubic-bezier(.3,1.2,.5,1) both}
+.d10c i.u{transform-origin:bottom}.d10c i.d{transform-origin:top}
+.d10c.last i{opacity:1}
+.d10c small{margin-top:4px;font-size:10px}.d10c.last small{color:var(--tx);font-weight:700}
+.d10c .rip{display:none}
+
+/* two actions side by side */
+.two-act{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 4px}
+.two-act .btn{min-height:50px;font-size:14.5px}
+
+/* accounts */
+.big.mid{font-size:36px;letter-spacing:-1.4px}
+.alloc2{display:flex;gap:3px;height:8px;margin-top:14px;border-radius:5px;overflow:hidden}
+.alloc2 i{display:block;height:100%;transform-origin:left;animation:fillx .9s .25s cubic-bezier(.3,1,.4,1) both}
+.legend4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:9px;font-size:11px;color:rgba(255,255,255,.72)}
+.legend4 b{display:block;color:#fff;font-size:13px}
+.gdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.cap b.dn{color:var(--dn)}
+.cd.loan{display:flex;flex-direction:column;gap:9px;width:100%;padding:14px;text-align:left;color:var(--tx);font:inherit;position:relative;overflow:hidden;cursor:pointer}
+.loan-t{display:flex;justify-content:space-between;font-size:14px}
+.loan-t .num{font-variant-numeric:tabular-nums}
+.loan-bar{display:block;height:8px;border-radius:5px;background:var(--tr);overflow:hidden}
+.loan-bar i{display:block;height:100%;border-radius:5px;background:var(--up);transform-origin:left;animation:fillx .9s .25s cubic-bezier(.3,1,.4,1) both}
+.cd.loan small{font-size:11.5px;color:var(--mu)}
+
+/* insights */
+.story-line{margin:16px 0 0;font-size:21px;font-weight:700;line-height:1.32;letter-spacing:-.4px;color:#fff}
+.story-line .pos{color:#b6f7c8}.story-line .neg{color:#ffc1bc}.story-line .who{color:#f3d99b}
+.story-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.story-chips span{font-size:12px;font-weight:600;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.85)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.cd.tile2{margin:0;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile2 small{font-size:12.5px;font-weight:600;color:var(--mu)}
+.tile2 .gauge{width:100%;height:auto;display:block}
+.gauge-v{animation:gauge 1.2s .25s cubic-bezier(.3,1,.4,1) both}
+@keyframes gauge{from{stroke-dasharray:0 100}}
+.tile2 .t2s{font-size:12px;color:var(--mu);line-height:1.4}
+.tile2 .zk{font-size:24px;font-weight:800;letter-spacing:-.8px;color:var(--gold);font-variant-numeric:tabular-nums;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile2 .t2l{margin-top:auto;align-self:flex-start;border:0;background:none;padding:6px 0 0;color:var(--a);font:700 12.5px var(--f)}
+.work-bar{display:flex;gap:3px;height:12px;border-radius:7px;overflow:hidden}
+.work-bar i{display:block;height:100%;transform-origin:left;animation:fillx .9s .25s cubic-bezier(.3,1,.4,1) both}
+.work-bar i:first-child{background:var(--up)}.work-bar i+i{background:color-mix(in srgb,var(--tx) 18%,transparent)}
+.hint b{color:var(--tx)}
+
+/* amount-first entry with a keypad */
+.entry{display:flex;flex-direction:column;gap:12px}
+.entry-switch{align-self:flex-start;margin:-10px 0 0;border:0;background:none;padding:4px 0;color:var(--a);font:600 13px var(--f)}
+.amt{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--tx);font:inherit;padding:4px 0 0;border-radius:18px}
+.amt small{font-size:12.5px;font-weight:600;color:var(--mu)}
+.amt-v{display:flex;align-items:center;gap:8px;min-height:58px}
+.amt-v em{font-style:normal;font-size:20px;font-weight:600;color:var(--mu2);align-self:center}
+.amt-v b{font-size:46px;font-weight:800;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1}
+.amt-v b.ph{color:var(--mu2)}
+.caret{width:2px;height:40px;background:var(--gold);border-radius:1px;opacity:0}
+.amt.on .caret{opacity:1;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (max-width:374px){.amt-v b{font-size:38px}}
+.chips2{display:flex;justify-content:center;gap:8px}
+.chips2 button{min-height:34px;padding:0 13px;border-radius:99px;border:0;background:var(--a-soft);color:var(--a);font:600 12.5px var(--f);position:relative;overflow:hidden}
+.fld{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:11px 14px;border-radius:16px;border:1.5px solid transparent;background:var(--cdg);box-shadow:var(--sh);color:var(--tx);font:inherit;text-align:left;min-width:0}
+.fld small{font-size:11.5px;font-weight:600;color:var(--mu)}
+.fld b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fld b.ph{color:var(--mu2);font-weight:600}
+.fld.on{border-color:var(--a)}
+.fld input{border:0;background:none;padding:0;margin:0;width:100%;color:var(--tx);font:700 16px var(--f);outline:0;min-height:22px}
+.fld.static{box-shadow:none;background:var(--tr)}
+.note-g{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:16px;background:var(--gold-soft);font-size:12.5px;line-height:1.45;color:var(--tx)}
+.note-g svg{color:var(--gold);flex:none;margin-top:1px}
+.entry .err{min-height:0}.entry .err:empty{display:none}
+.keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.keypad button{height:50px;border:0;border-radius:14px;background:none;color:var(--tx);font:600 24px var(--f);display:grid;place-items:center;position:relative;overflow:hidden}
+.keypad button:active{background:var(--tr)}
+.keypad button[aria-label=Delete]{color:var(--a)}
+@media (max-height:700px){.keypad button{height:42px;font-size:21px}.amt-v{min-height:48px}.amt-v b{font-size:38px}}
+
+/* forms everywhere (editors, update sheet, settings): the same soft fields as the entry sheet */
+.in,.frm input,.tx{border:1.5px solid transparent;border-radius:16px;background:var(--cdg);box-shadow:var(--sh)}
+.in:focus,.frm input:focus,.tx:focus{border-color:var(--a);box-shadow:var(--sh),0 0 0 3px var(--a-soft)}
+.lab{font-size:12px;color:var(--mu);gap:8px}
+.chips button{border:0;border-radius:12px;background:var(--cdg);box-shadow:var(--sh)}
+.chips button.on{background:var(--a-soft);color:var(--a);box-shadow:inset 0 0 0 1.5px var(--a)}
+.form .seg,.sheet .seg{background:var(--tr)}
+.grp2{border-radius:18px}
+/* mini summary cards on detail screens: same type scale as the main cards */
+.hero.mini .hl{margin-top:12px}
+.hero.mini .mh-v{font-size:34px;letter-spacing:-1.3px;margin:2px 0 8px}
+.hero.mini .mh-v>span:first-child{font-size:15px;vertical-align:8px;color:rgba(255,255,255,.55)}
+@media (max-width:374px){.acc .msp{display:none}}
+/* the entry sheet fits without scrolling on shorter phones */
+.keypad button{height:clamp(40px,5.8vh,50px)}
+.amt-v{min-height:clamp(44px,6.6vh,58px)}
+.amt-v b{font-size:clamp(34px,5.4vh,46px)}
+.entry{gap:clamp(8px,1.4vh,12px)}
+.note-g{padding:9px 12px}
+@media (max-height:680px){.chips2{display:none}.keypad{gap:2px}.keypad button{height:38px}.sheet .sh-h{margin-bottom:8px}}
+
+/* ==========================================================================
+   4.2 polish: the quick-action tray is a card like every other card, each action has its own colour,
+   and the dock reads as a solid surface.
+   ========================================================================== */
+
+/* Home: Add, Update, Prices and Insights sit in one card that matches the cards below it */
+.qa.qa-box{padding:14px 6px 12px;margin:0 0 12px;border-radius:22px;background:var(--cdg);background-origin:border-box;box-shadow:var(--sh)}
+.qa.qa-box button{color:var(--tx);font-size:12px;font-weight:600;gap:9px}
+/* one square per action, tinted in its own colour (the same language as the account icons) */
+.qa.qa-box i,.qa.qa-box button:nth-child(n) i{width:54px;height:54px;border-radius:17px;box-shadow:inset 0 1px 0 var(--hl)!important;transition:transform .2s var(--spring),filter .2s}
+.qa.qa-box button:nth-child(1) i,:root[data-theme="dark"] .qa.qa-box button:nth-child(1) i{background:linear-gradient(135deg,var(--gold2),var(--gold))!important;color:#171a35!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 16px color-mix(in srgb,var(--gold) 35%,transparent)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qa.qa-box button:nth-child(1) i{background:linear-gradient(135deg,var(--gold2),var(--gold))!important;color:#171a35!important}}
+.qa.qa-box button:nth-child(2) i{background:color-mix(in srgb,var(--a) 15%,transparent)!important;color:var(--a)!important}
+.qa.qa-box button:nth-child(3) i{background:color-mix(in srgb,var(--up) 15%,transparent)!important;color:var(--up)!important}
+.qa.qa-box button:nth-child(4) i{background:color-mix(in srgb,var(--org) 15%,transparent)!important;color:var(--org)!important}
+.qa.qa-box button:active i{transform:scale(.9);filter:brightness(1.08)}
+.qa.qa-box i svg{width:24px;height:24px;stroke-width:2}
+.qa.qa-box button:nth-child(1) i svg{stroke-width:2.4}
+
+/* the dock: solid enough to read over any card, raised a little higher, still slides and bounces */
+.dock{bottom:calc(env(safe-area-inset-bottom,0px) + 18px);padding:6px;background:var(--cd);background:color-mix(in srgb,var(--cd) 96%,transparent);-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);box-shadow:inset 0 1px 0 var(--hl),0 0 0 1px var(--bd),0 16px 40px rgba(20,24,80,.22),0 4px 12px rgba(20,24,80,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dock{background:color-mix(in srgb,#20244a 96%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 0 0 1px rgba(255,255,255,.07),0 18px 44px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.3)}}
+:root[data-theme="dark"] .dock{background:color-mix(in srgb,#20244a 96%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 0 0 1px rgba(255,255,255,.07),0 18px 44px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.3)}
+.dock button{font-size:10.5px;color:var(--mu);transition:color .25s}
+.dock button.on{color:var(--a)}
+.dock .sel{background:color-mix(in srgb,var(--a) 18%,transparent)}
+/* while scrolling down the dock tucks in a little but never fades */
+.dock.min{transform:translateX(-50%) translateY(10px) scale(.92);opacity:1}
+.dock .fab{box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 22px rgba(217,168,78,.4),0 0 0 4px color-mix(in srgb,var(--cd) 94%,transparent)}
+/* toast and the add menu sit above the raised dock */
+.toast,.fm{bottom:calc(env(safe-area-inset-bottom,0px) + 100px)}
+
+/* ---------- no phantom scroll ----------
+   body and #root were 100vh tall while :root adds the safe-area padding, so on a phone the page was always a
+   little taller than the screen and could scroll a few pixels without anything moving. They now fill the
+   screen minus the insets. And while a full-screen overlay (start-up, lock, onboarding, a sheet) is open,
+   the page underneath cannot scroll at all. */
+body,#root{min-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+@supports (height:100dvh){body,#root{min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}}
+html[data-overlay]{overflow:hidden;overscroll-behavior:none}
+#splash,#lock,#onb{overscroll-behavior:contain}

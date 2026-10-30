@@ -8,10 +8,15 @@ export function Sheet({ open, onClose, title, children, id }: { open: boolean; o
   // keep the content while the sheet slides away, then unmount it
   const [keep, setKeep] = useState(open);
   useEffect(() => {
-    if (open) { setKeep(true); ref.current?.scrollTo(0, 0); return undefined; }
+    if (open) {
+      setKeep(true); ref.current?.scrollTo(0, 0);
+      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+      addEventListener('keydown', onKey);
+      return () => removeEventListener('keydown', onKey);
+    }
     const t = setTimeout(() => setKeep(false), 380);
     return () => clearTimeout(t);
-  }, [open]);
+  }, [open, onClose]);
   const start = (e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     drag.current = { y0: e.touches[0].clientY, dy: 0 };

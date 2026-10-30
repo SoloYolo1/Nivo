@@ -34,7 +34,7 @@ export function Confetti() {
     const cols = ['#ffe7a3', '#d9a84e', '#8e9bff', '#5a68c4', '#ffffff'];
     const P = Array.from({ length: 110 }, (_, i) => ({ x: W / 2, y: H * 0.42, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 13 - 4, r: Math.random() * 5 + 3, c: cols[i % cols.length], a: Math.random() * 6, s: Math.random() * 0.3 - 0.15 }));
     const t0 = performance.now();
-    haptic([10, 30, 10]);
+    haptic('success');
     let raf = 0;
     const f = (t: number) => {
       const k = (t - t0) / 1500;

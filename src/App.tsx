@@ -2,9 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './components/Icon';
 import { Sheets, refreshAlerts } from './components/Sheets';
 import { ToastView, Confetti } from './components/Overlays';
-import { LockScreen, lockFlow } from './components/Lock';
+import { LockScreen, lockFlow, useLockOpen } from './components/Lock';
 import { Onboarding, needsOnboarding } from './components/Onboarding';
 import { Splash } from './components/Splash';
+import { useReveal } from './components/reveal';
 import { applyTheme } from './components/theme';
 import { Home } from './screens/Home';
 import { Accounts, subtitle } from './screens/Accounts';
@@ -16,16 +17,18 @@ import { Plan } from './screens/Plan';
 import { Activity } from './screens/Activity';
 import { useFund, useTotals } from './state/derived';
 import {
-  celebrate, closeSheet, getState, goTab, openSheet, pop, resetHome, setState, swipeTab, toast, useStore, type Route, type Tab,
+  celebrate, closeSheet, getState, goTab, openSheet, pop, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
 } from './state/store';
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
 import { KINDS } from './lib/accounts';
 import { MILESTONES } from './lib/fund';
 import { big, dd, greeting, iso, n0 } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
-import { call, haptic, isNative } from './lib/native';
+import { haptic, isNative } from './lib/native';
+import { installNativeBack, installWebBack } from './lib/back';
 import { ensureChannel, permission } from './lib/notify';
 import { getLock, lockDelay } from './lib/lock';
+import { takeFromAddress } from './lib/legacy';
 
 const TABS: Array<{ id: Tab; icon: string; label: string }> = [
   { id: 'home', icon: 'home', label: 'Home' }, { id: 'accounts', icon: 'wallet', label: 'Accounts' },
@@ -51,11 +54,10 @@ function Header() {
   const name = useStore((s) => s.name);
   const accounts = useStore((s) => s.accounts);
   const f = useFund();
-  const t = useTotals();
   const top = stack[stack.length - 1];
   if (top) {
     let sub: React.ReactNode = '';
-    if (top.name === 'fund' && f.last) sub = 'Live NAV · ' + dd(f.last.date);
+    if (top.name === 'fund' && f.last) sub = <>NAV {f.last.nav.toFixed(4)} · {dd(f.last.date)} · <span className="up">live</span></>;
     if (top.name === 'account') { const a = accounts.find((x) => x.id === top.id); if (a) sub = subtitle(a, iso()); }
     if (top.name === 'activity') sub = 'Everything you have logged';
     return (
@@ -69,13 +71,16 @@ function Header() {
   }
   const hr = new Date().getHours();
   const sub = tab === 'home'
-    ? (name ? greeting(hr) + ', ' + name + ' · ' : greeting(hr) + ' · ') + new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
-    : tab === 'accounts' ? (() => { const c = accounts.length + (f.last ? 1 : 0); return c + (c === 1 ? ' account' : ' accounts') + ' · Rs ' + n0(t.netWorth) + ' in total'; })()
-    : tab === 'insights' ? 'How all your money is doing' : 'Where your money is headed';
+    ? greeting(hr) + (name ? ', ' + name : '')
+    : tab === 'accounts' ? (() => { const c = accounts.length + (f.last ? 1 : 0); return c + (c === 1 ? ' account' : ' accounts'); })()
+    : tab === 'insights' ? new Date().toLocaleDateString('en-GB', { month: 'long' }) + ' so far' : 'Where your money is headed';
   return (
     <header className="hdr phdr">
-      <div><b key={tab} className="tsw">{TITLE[tab]}</b><small>{sub}</small></div>
-      <button type="button" className="ava" aria-label="Settings" onClick={() => openSheet('settings')}>{name ? name[0].toUpperCase() : <Icon name="sliders" size={20} />}</button>
+      <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
+      <div className="hdr-acts">
+        {tab === 'accounts' && <button type="button" className="hdr-add" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
+        <button type="button" className="ava" aria-label="Settings" onClick={() => openSheet('settings')}>{name ? name[0].toUpperCase() : <Icon name="sliders" size={20} />}</button>
+      </div>
     </header>
   );
 }
@@ -98,7 +103,9 @@ function Screen() {
   } else {
     el = tab === 'home' ? <Home /> : tab === 'accounts' ? <Accounts /> : tab === 'insights' ? <Insights /> : <Plan />;
   }
-  return <div key={key} className={'pgw ' + dir}>{el}</div>;
+  const ref = useRef<HTMLDivElement>(null);
+  useReveal(ref, top ? JSON.stringify(top) : tab);
+  return <div key={key} ref={ref} className={'pgw ' + dir}>{el}</div>;
 }
 
 function Dock() {
@@ -111,16 +118,21 @@ function Dock() {
     const place = () => { const b = refs.current[tab], e = sel.current; if (b && e) { e.style.width = b.offsetWidth + 'px'; e.style.transform = 'translateX(' + b.offsetLeft + 'px)'; } };
     place();
     addEventListener('resize', place);
+    // the labels change width once Inter has loaded, so the pill is placed again then
+    const fonts = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
+    if (fonts) void fonts.ready.then(place);
     return () => removeEventListener('resize', place);
   }, [tab]);
   const btn = (t: (typeof TABS)[number]) => (
     <button key={t.id} type="button" ref={(r) => { refs.current[t.id] = r; }} className={tab === t.id ? 'on' : ''} aria-current={tab === t.id && !stack.length ? 'page' : undefined}
-      onClick={() => { if (tab === t.id && stack.length) resetToTab(t.id); else goTab(t.id); }}>
+      onClick={() => { if (tab === t.id) { if (stack.length) resetToTab(t.id); else window.scrollTo({ top: 0, behavior: 'smooth' }); } else goTab(t.id); }}>
       <Icon name={t.icon} size={22} /><span>{t.label}</span>
     </button>
   );
+  const top = stack[stack.length - 1];
+  const editing = !!top && top.name.startsWith('edit');
   return (
-    <nav className="dock" id="dock" aria-label="Main">
+    <nav className={'dock' + (editing ? ' away' : '')} id="dock" aria-label="Main" aria-hidden={editing || undefined}>
       <i className="sel" ref={sel} />
       {TABS.slice(0, 2).map(btn)}
       <button type="button" className={'fab' + (sheet === 'add' ? ' open' : '')} aria-label="Add" onClick={() => (sheet === 'add' ? closeSheet() : openSheet('add'))}><Icon name="plus" size={24} /></button>
@@ -166,6 +178,10 @@ export function App() {
     void refreshAlerts();
     if ('serviceWorker' in navigator && !isNative()) navigator.serviceWorker.register('sw.js').catch(() => undefined);
 
+    // coming back from the Nivo 3 bridge: hold what it found until the person chooses
+    const back = takeFromAddress();
+    if (back && back.data) setState({ pending: back.data });
+
     const t0 = Date.now();
     let hidden = false;
     const hide = () => {
@@ -178,8 +194,11 @@ export function App() {
       setState({ splash: false });
       setTimeout(() => setSplashGone(true), 750);
       syncBackground();
-      const onb = needsOnboarding();
-      const after = () => { if (onb) setState({ onboarding: true }); else setTimeout(() => void maybePrompt(), 800); };
+      const onb = needsOnboarding() && !back;
+      const after = () => {
+        if (back) { setTimeout(() => openSheet('import', back.data ? '' : 'none'), 350); return; }
+        if (onb) setState({ onboarding: true }); else setTimeout(() => void maybePrompt(), 800);
+      };
       if (getLock()) lockFlow.unlock(after); else after();
     };
     Promise.race([refreshAll(true), new Promise((r) => setTimeout(r, 4000))]).then(() => setTimeout(hide, Math.max(0, 2000 - (Date.now() - t0))));
@@ -198,39 +217,61 @@ export function App() {
     };
     document.addEventListener('visibilitychange', onVis);
 
-    // Android back button: close sheet, go back, go home, then leave the app in the background.
+    // Android back button (the App plugin) and the browser's back: lock and onboarding steps, then an
+    // open sheet, then the screen stack, then Home; only from Home does the app go to the background.
     let backHandle: { remove?: () => void } | null = null;
-    void call<{ remove?: () => void }>('App', 'addListener', 'backButton', () => {
-      const s = getState();
-      if (lockFlow.isOpen() || s.splash) { void call('App', 'minimizeApp'); return; }
-      if (s.sheet) { closeSheet(); return; }
-      if (pop()) return;
-      if (s.tab !== 'home') { goTab('home'); return; }
-      void call('App', 'minimizeApp');
-    }).then((h) => { backHandle = h; });
+    void installNativeBack().then((h) => { backHandle = h; });
+    const removeWebBack = installWebBack(subscribe);
 
     // No text selection or long-press menus outside text fields.
     const block = (e: Event) => { const el = e.target as HTMLElement | null; if (!el || !el.closest || !el.closest('input,textarea')) e.preventDefault(); };
     ['contextmenu', 'selectstart', 'dragstart'].forEach((ev) => document.addEventListener(ev, block));
-    // Haptics and the ripple from 3.x.
-    const onClick = (e: MouseEvent) => { if ((e.target as HTMLElement).closest?.('.dock button,.btn,.seg button,.pz button')) haptic(6); };
-    const onDown = (e: PointerEvent) => {
-      const tEl = (e.target as HTMLElement).closest?.('.btn,.rb,.seg button,.pz button,.x,.dock button,.pl,.acc,.tile') as HTMLElement | null;
-      if (!tEl) return;
-      const r = tEl.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2, sp = document.createElement('span');
-      sp.className = 'rip'; sp.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - r.left - d / 2) + 'px;top:' + (e.clientY - r.top - d / 2) + 'px';
-      tEl.appendChild(sp); setTimeout(() => sp.remove(), 700);
+    // One light tick for every tap on anything interactive (buttons, rows, tabs, switches, keypad keys),
+    // so feedback is the same everywhere. Saves, unlocks and errors add their own firmer pattern.
+    const TAPPABLE = 'button,[role=button],[role=switch],[role=tab],[role=checkbox],[role=radio],.tap,.acc,.tile,.pl,label.btn,a[href]';
+    const onClick = (e: MouseEvent) => {
+      if (!e.isTrusted) return;
+      const el = (e.target as HTMLElement).closest?.(TAPPABLE) as HTMLButtonElement | null;
+      if (el && !el.disabled && !el.closest('.ptr')) haptic('tap');
     };
+    // Ripple: only on things that are pressed (not while scrolling), always inside the pressed element.
+    const RIPPLE = '.btn,.rb,.seg button,.pz button,.x,.dock button,.pl,.acc,.tile,.qa button,.ob-mig,.linkrow,.dash,.chips button,.chips2 button,.ib,.wd,.pad button,.keypad button,.rp button,.hdr-add,.ava,.navstrip,.nw-foot,.loan,.t2l,.cap-link';
+    let pending: { el: HTMLElement; x: number; y: number; t: number } | null = null;
+    const ripple = (el: HTMLElement, x: number, y: number) => {
+      if ((el as HTMLButtonElement).disabled) return;
+      const cs = getComputedStyle(el);
+      if (cs.position === 'static') el.style.position = 'relative';
+      if (cs.overflow === 'visible') el.style.overflow = 'hidden';
+      const r = el.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2, sp = document.createElement('span');
+      sp.className = 'rip'; sp.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (x - r.left - d / 2) + 'px;top:' + (y - r.top - d / 2) + 'px';
+      el.appendChild(sp); setTimeout(() => sp.remove(), 700);
+    };
+    const onDown = (e: PointerEvent) => {
+      const tEl = (e.target as HTMLElement).closest?.(RIPPLE) as HTMLElement | null;
+      pending = tEl ? { el: tEl, x: e.clientX, y: e.clientY, t: window.setTimeout(() => { if (pending) { ripple(pending.el, pending.x, pending.y); pending = null; } }, 70) } : null;
+    };
+    const onMove = (e: PointerEvent) => { if (pending && Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 8) { clearTimeout(pending.t); pending = null; } };
+    const onUp = () => { if (pending) { clearTimeout(pending.t); ripple(pending.el, pending.x, pending.y); pending = null; } };
+    const onCancel = () => { if (pending) { clearTimeout(pending.t); pending = null; } };
     document.addEventListener('click', onClick);
     document.addEventListener('pointerdown', onDown);
+    document.addEventListener('pointermove', onMove, { passive: true });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+    addEventListener('scroll', onCancel, { passive: true });
     return () => {
       mq.removeEventListener?.('change', onScheme);
       clearInterval(every);
       document.removeEventListener('visibilitychange', onVis);
       backHandle?.remove?.();
+      removeWebBack();
       ['contextmenu', 'selectstart', 'dragstart'].forEach((ev) => document.removeEventListener(ev, block));
       document.removeEventListener('click', onClick);
       document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      removeEventListener('scroll', onCancel);
     };
   }, []);
 
@@ -267,7 +308,7 @@ export function App() {
       const tt = e.touches[0];
       py = window.scrollY <= 0 && !blocked() ? tt.clientY : null; pd = 0;
       sx = tt.clientX; sy = tt.clientY; st0 = Date.now();
-      swipeOk = !blocked() && !(e.target as HTMLElement).closest?.('#ch,input,textarea,.seg,.pz,.hm,.pr,.dock,.sheet,#lock,.sw-row,.chips,.tiles');
+      swipeOk = !blocked() && !(e.target as HTMLElement).closest?.('#ch,.lc,input,textarea,.seg,.pz,.hm,.pr,.dock,.sheet,#lock,.sw-row,.chips,.tiles');
     };
     const move = (e: TouchEvent) => {
       if (py == null) return;
@@ -281,13 +322,13 @@ export function App() {
         const w = wRef.current;
         if (w) { w.classList.remove('pulling'); w.style.transform = ''; }
         if (ptr) { ptr.style.transition = ''; ptr.style.opacity = '0'; ptr.style.transform = 'translate(-50%,0)'; }
-        if (pd > 85) { haptic(10); void refreshAll(false); }
+        if (pd > 85) { haptic('medium'); void refreshAll(false); }
         py = null;
       }
       if (swipeOk && sx != null) {
         const tt = e.changedTouches[0], dx = tt.clientX - sx, dy = tt.clientY - sy;
         if (Math.abs(dx) > 72 && Math.abs(dy) < 48 && Date.now() - st0 < 600) {
-          haptic(8);
+          haptic('select');
           if (getState().stack.length) { if (dx > 0) pop(); } else swipeTab(dx < 0 ? 1 : -1);
         }
       }
@@ -316,6 +357,14 @@ export function App() {
     if (old && hit > old) setTimeout(() => { celebrate(); toast('Net worth milestone: ' + big(hit), 'flag'); }, 400);
     save(KEYS.nwMilestone, hit);
   }, [hit, splash]);
+
+  // While something covers the page (start-up, lock, onboarding, a sheet), the page underneath must not scroll.
+  const sheetOpen = useStore((s) => !!s.sheet);
+  const lockOpen = useLockOpen();
+  useEffect(() => {
+    const r = document.documentElement;
+    if (splash || onboarding || sheetOpen || lockOpen) r.dataset.overlay = '1'; else delete r.dataset.overlay;
+  }, [splash, onboarding, sheetOpen, lockOpen]);
 
   const busy = useStore((s) => s.refreshUi === 'busy');
   const ptrDone = useStore((s) => s.refreshUi === 'ok' || s.refreshUi === 'done');

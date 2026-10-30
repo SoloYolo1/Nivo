@@ -28,7 +28,7 @@ const PRIVACY = (
 function finish(a: Account, isNew: boolean) {
   upsertAccount(a);
   if (a.remind) void setMonthlyReminder(true);
-  haptic(10);
+  haptic('success');
   toast(isNew ? a.name + ' added' : 'Saved', 'check');
   if (isNew) replaceTop({ name: 'account', id: a.id }); else pop();
 }

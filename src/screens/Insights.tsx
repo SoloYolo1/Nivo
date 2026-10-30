@@ -2,12 +2,12 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Card } from '../components/ui';
-import { HeroHead } from '../components/Wordmark';
+import { Wordmark } from '../components/Wordmark';
 import { Donut } from '../components/Charts';
 import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, setNisab, setSpend, useStore } from '../state/store';
-import { emergency, monthLabel, netWorthSeries, workingIdle, zakat, type Group } from '../lib/accounts';
-import { cl, compact, dd, iso, n0, parseAmount, pc, sg } from '../lib/format';
+import { emergency, endOfPrevMonth, fundValueOn, monthChange, netWorthSeries, snapshotOn, workingIdle, worth, worthOf, zakat, type Group } from '../lib/accounts';
+import { compact, dd, iso, n0, parseAmount, sg } from '../lib/format';
 import { GROUP_COLOR } from './Home';
 
 const LABEL: Record<Group, string> = { banks: 'Banks and cash', business: 'Business', investments: 'Investments', assets: 'Other assets', loans: 'Loans' };
@@ -28,6 +28,7 @@ export function Insights() {
   const f = useFund();
   const t = useTotals();
   const accounts = useStore((s) => s.accounts);
+  const buys = useStore((s) => s.buys);
   const spend = useStore((s) => s.spend);
   const nisab = useStore((s) => s.nisab);
   const today = iso();
@@ -38,48 +39,79 @@ export function Insights() {
   const z = useMemo(() => zakat(accounts, fundNow, nisab), [accounts, fundNow, nisab]);
   const first = series[0], last = series[series.length - 1];
   const growth = last && first ? last.value - first.value : 0;
-  const best = series.slice(1).reduce<{ label: string; d: number } | null>((b, p, i) => { const d = p.value - series[i].value; return !b || d > b.d ? { label: monthLabel(p.date), d } : b; }, null);
   const hasHistory = series.length >= 2;
   const groups = (['banks', 'business', 'investments', 'assets'] as Group[]).filter((g) => t.groups[g] > 0);
-  const biggest = groups.slice().sort((a, b) => t.groups[b] - t.groups[a])[0];
   const totalWI = wi.working + wi.idle;
   const keep = spend > 0 ? Math.min(wi.idle, spend) : 0;
+  // what moved this month, account by account
+  const movers = useMemo(() => {
+    const e = endOfPrevMonth(today);
+    const out: Array<{ name: string; d: number }> = accounts.map((a) => ({ name: a.name, d: worth(a) - worthOf(a, snapshotOn(a, e) ?? a.history[0] ?? null) }));
+    // money put into the fund this month is not growth, so it is taken out
+    if (f.last) out.push({ name: 'Meezan fund', d: fundValueOn(f.points, today) - (f.points.some((p) => p.date <= e) ? fundValueOn(f.points, e) : f.points[0]?.val ?? 0) - buys.filter((b) => b.date > e).reduce((t2, b) => t2 + b.sent, 0) });
+    return out.filter((x) => Math.abs(x.d) >= 1).sort((a, b) => b.d - a.d);
+  }, [accounts, f.points, f.last, today, buys]);
+  const mc0 = useMemo(() => monthChange(accounts, f.points, today), [accounts, f.points, today]);
+  const putIn = buys.filter((b) => b.date > endOfPrevMonth(today)).reduce((t2, b) => t2 + b.sent, 0);
+  const mc = { change: mc0.change - putIn };
+  const top = movers[0], worst = movers.length > 1 && movers[movers.length - 1].d < 0 ? movers[movers.length - 1] : null;
+  const fundMove = movers.find((m) => m.name === 'Meezan fund');
+  const amt = (v: number) => (Math.abs(v) >= 1e5 ? 'Rs ' + (Math.abs(v) / 1e5).toFixed(2) + ' lakh' : 'Rs ' + n0(Math.abs(v)));
+  const short = (v: number) => (v >= 0 ? '+' : '−') + (Math.abs(v) >= 1000 ? Math.round(Math.abs(v) / 1000) + 'k' : n0(Math.abs(v)));
+  const working = totalWI > 0 ? Math.round((wi.working / totalWI) * 100) : 0;
+  const gaugeLen = em.months != null ? Math.min(1, em.months / 6) : 0;
   return (
     <section className="pg">
-      <div className="cd hero mini">
-        <HeroHead label={hasHistory ? 'Net worth growth' : 'Net worth today'} chip={hasHistory && 'since ' + first.label} />
-        <div className="mh-v"><span>PKR</span>{hasHistory ? sg(growth) : n0(t.netWorth)}</div>
-        {hasHistory
-          ? <span className={'dl ' + cl(growth)}>{(growth >= 0 ? '▲ ' : '▼ ') + (first.value > 0 ? pc((growth / first.value) * 100) : '0.00%') + ' over ' + (series.length - 1) + (series.length - 1 === 1 ? ' month' : ' months')}</span>
-          : <span className="dl">Growth shows after your first full month</span>}
-        <div className="hx">
-          <div><small>Best month</small><b>{best && best.d > 0 ? best.label + ' · +' + compact(best.d).replace('Rs ', '') : '–'}</b></div>
-          <div><small>Biggest share</small><b>{biggest ? (biggest === 'banks' ? 'Banks' : biggest === 'business' ? 'Business' : biggest === 'investments' ? 'Invest' : 'Assets') + ' ' + Math.round((t.groups[biggest] / (t.assets || 1)) * 100) + '%' : '–'}</b></div>
-          <div><small>Accounts</small><b>{accounts.length + (f.last ? 1 : 0)}</b></div>
-        </div>
+      <div className="cd hero story-card">
+        <div className="hh"><Wordmark className="cw" />{hasHistory && <span className="hd">{sg(growth).replace('+', '+Rs ').replace('−', '−Rs ')} since {first.label}</span>}</div>
+        <p className="story-line">
+          {putIn > 0 ? <>Not counting the Rs {n0(putIn)} you put in, y</> : null}{mc.change >= 0 ? <>{putIn > 0 ? 'ou' : 'You'} grew <span className="pos">{amt(mc.change)}</span> this month</> : <>{putIn > 0 ? 'ou' : 'You'} are down <span className="neg">{amt(mc.change)}</span> this month</>}
+          {top && top.d > 0 && movers.length > 1 && mc.change > 0 ? <>, mostly from <span className="who">{top.name}</span></> : null}.
+          {fundMove && fundMove.d !== 0 && top && top.name !== 'Meezan fund' ? <> The fund {fundMove.d >= 0 ? 'added' : 'slipped'} <span className={fundMove.d >= 0 ? 'pos' : 'neg'}>{amt(fundMove.d)}</span>.</> : null}
+        </p>
+        {movers.length > 1 && <div className="story-chips">
+          {top && <span>Best: {top.name} {short(top.d)}</span>}
+          {worst && worst !== top && <span>Worst: {worst.name} {short(worst.d)}</span>}
+        </div>}
       </div>
 
-      <div className="cap">Mix</div>
-      <Card icon="pie" title="Where your money is" more={t.owed > 0 ? 'Loans: −' + compact(t.owed) : undefined}>
-        <div className="donut">
-          <Donut slices={groups.map((g) => ({ label: LABEL[g], value: t.groups[g], color: GROUP_COLOR[g] }))} center={compact(t.assets).replace('Rs ', '')} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {groups.map((g) => <div className="rw" key={g}><span><span className="dot9" style={{ background: GROUP_COLOR[g] }} />{LABEL[g]}</span><b>{Math.round((t.groups[g] / (t.assets || 1)) * 100)}%</b></div>)}
-          </div>
-        </div>
-      </Card>
+      <div className="g2">
+        <section className="cd tile2">
+          <small>Savings would last</small>
+          <svg viewBox="0 0 120 68" aria-hidden="true" className="gauge">
+            <path d="M12 60 A48 48 0 0 1 108 60" fill="none" stroke="var(--tr)" strokeWidth="10" strokeLinecap="round" />
+            {em.months != null && <path className="gauge-v" d="M12 60 A48 48 0 0 1 108 60" fill="none" stroke={em.months >= 6 ? 'var(--up)' : 'var(--org)'} strokeWidth="10" strokeLinecap="round" pathLength={100} strokeDasharray={Math.max(2, gaugeLen * 100) + ' 100'} />}
+            <text x="60" y="57" fontSize="22" fontWeight="800" textAnchor="middle" style={{ fill: 'var(--tx)' }}>{em.months != null ? em.months.toFixed(1) : '–'}</text>
+          </svg>
+          <span className="t2s">{em.months != null ? 'months · aim for 6' : 'Add your spending below'}</span>
+        </section>
+        <section className="cd tile2">
+          <small>Zakat this year</small>
+          <b className="zk">{z.aboveNisab === false ? 'Below nisab' : 'Rs ' + n0(z.due)}</b>
+          <span className="t2s">2.5% of {compact(z.base)} zakatable</span>
+          <button type="button" className="t2l" onClick={() => document.getElementById('zakat-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>See breakdown</button>
+        </section>
+      </div>
 
       {totalWI > 0 && (
-        <Card icon="trend" title="Working or idle" more="Earning a return?">
-          <div className="trk" style={{ height: 12 }}><i style={{ width: (wi.working / totalWI) * 100 + '%', background: 'var(--up)', borderRadius: 0 }} /><i style={{ left: (wi.working / totalWI) * 100 + '%', width: (wi.idle / totalWI) * 100 + '%', background: 'var(--mu2)', borderRadius: 0 }} /></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, fontWeight: 600 }}><span className="up">Working · {compact(wi.working)}</span><span style={{ color: 'var(--mu)' }}>Idle · {compact(wi.idle)}</span></div>
-          <div className="hint" style={{ marginTop: 8 }}>
+        <Card icon="trend" title="Is your money working?" more={working + '% is'}>
+          <div className="work-bar"><i style={{ flex: wi.working || 0.0001 }} /><i style={{ flex: wi.idle || 0.0001 }} /></div>
+          <div className="hint" style={{ marginTop: 10 }}>
             {wi.idle > 0
-              ? (wi.idleAccounts.length === 1 ? wi.idleAccounts[0].name + ' earns' : wi.idleAccounts.map((a) => a.name).slice(0, 3).join(', ') + ' earn') + ' nothing.' + (wi.bestRate && wi.idle - keep > 0 ? (spend > 0 ? ' Keeping a month of spending there and moving the rest' : ' Moving it') + ' to savings at your ' + wi.bestRate + '% rate could add about Rs ' + n0(((wi.idle - keep) * wi.bestRate) / 100 / 12) + ' a month.' : '')
+              ? <>{'Rs ' + n0(wi.idle) + ' sits in ' + (wi.idleAccounts.length === 1 ? wi.idleAccounts[0].name : wi.idleAccounts.map((a) => a.name).slice(0, 3).join(', ')) + ' earning nothing.'}{wi.bestRate && wi.idle - keep > 0 ? <> {spend > 0 ? 'Keeping a month of spending there and moving the rest' : 'Moved'} to savings at your {wi.bestRate}% rate it would earn about <b>Rs {n0(((wi.idle - keep) * wi.bestRate) / 100 / 12)} a month</b>.</> : null}</>
               : 'Everything you have added is earning a return.'}
           </div>
         </Card>
       )}
+
+      <Card icon="pie" title="Where it is" more={t.owed > 0 ? 'Loans: −' + compact(t.owed) : undefined}>
+        <div className="donut">
+          <Donut slices={groups.map((g) => ({ label: LABEL[g], value: t.groups[g], color: GROUP_COLOR[g] }))} center={compact(t.assets).replace('Rs ', '')} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {groups.slice().sort((x, y) => t.groups[y] - t.groups[x]).map((g) => <div className="rw" key={g}><span><span className="dot9" style={{ background: GROUP_COLOR[g] }} />{LABEL[g]}</span><b>{Math.round((t.groups[g] / (t.assets || 1)) * 100)}%</b></div>)}
+          </div>
+        </div>
+      </Card>
 
       <div className="cap">Safety</div>
       <Card icon="shield" title="Emergency cushion" more={spend > 0 ? 'Spending Rs ' + n0(spend) + ' / mo' : undefined}>
@@ -93,7 +125,7 @@ export function Insights() {
       </Card>
 
       <div className="cap">Zakat</div>
-      <Card icon="scale" title="Zakat estimate" more="2.5% of zakatable wealth">
+      <Card icon="scale" title="Zakat estimate" more="2.5% of zakatable wealth" id="zakat-card">
         {z.lines.length ? z.lines.map((l) => <div className="rw" key={l.label}><span>{l.label}</span><b>{l.amount < 0 ? '−' : ''}{n0(Math.abs(l.amount))}</b></div>) : <div className="hint">Add your accounts to see an estimate.</div>}
         <div className="rw"><span>Nisab (silver)</span><b style={{ color: nisab ? undefined : 'var(--mu)' }}>{nisab ? n0(nisab) : 'Not set'}</b></div>
         <div className="rw" style={{ paddingTop: 12 }}><span style={{ fontWeight: 700 }}>Zakat at 2.5%</span><b style={{ fontSize: 20, color: 'var(--gold)' }}>{z.aboveNisab === false ? 'Below nisab' : 'Rs ' + n0(z.due)}</b></div>

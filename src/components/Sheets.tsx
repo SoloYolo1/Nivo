@@ -6,16 +6,18 @@ import { Sheet } from './Sheet';
 import { applyTheme } from './theme';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, closeSheet, getState, openEntry, push, savePrice, setName, setState, setTheme, toast, useStore, type Theme,
+  addBuy, addSnapshot, celebrate, closeSheet, getState, importLegacy, openEntry, openSheet, push, savePrice, setName, setState, setTheme, toast, useStore, type Theme,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, snapshotOn, type Kind } from '../lib/accounts';
+import { navOn } from '../lib/fund';
 import { cl, dd, iso, longDate, n0, parseAmount, pc, sg } from '../lib/format';
-import { haptic } from '../lib/native';
+import { haptic, isNative } from '../lib/native';
 import { KEYS, load, save } from '../lib/storage';
 import { askPower, permission, powerOk, send } from '../lib/notify';
 import { bioAvailable, bioEnroll, getLock, lockDelay, setLock, type BioInfo } from '../lib/lock';
 import { startAdd } from '../screens/Editors';
+import { bridgeReady, canBridge, fromBackup, startBridge, summarize } from '../lib/legacy';
 import { enableAlerts } from '../screens/Home';
 import { RefreshButton } from '../screens/Fund';
 import { lockFlow } from './Lock';
@@ -27,11 +29,12 @@ export function Sheets() {
     <>
       <div className={'ov' + (sheet ? ' on' : '')} onClick={close} aria-hidden="true" />
       <Sheet open={sheet === 'add'} onClose={close} title="Add to Nivo"><AddPicker /></Sheet>
-      <Sheet open={sheet === 'entry'} onClose={close} title="Meezan fund entry"><EntrySheet /></Sheet>
+      <Sheet open={sheet === 'entry'} onClose={close} title={<EntryTitle />}><EntrySheet /></Sheet>
       <Sheet open={sheet === 'day'} onClose={close} title={<DayTitle />}><DaySheet /></Sheet>
       <Sheet open={sheet === 'update'} onClose={close} title={<UpdateTitle />}><UpdateSheet /></Sheet>
       <Sheet open={sheet === 'settings'} onClose={close} title="Settings"><SettingsSheet /></Sheet>
       <Sheet open={sheet === 'notif'} onClose={close} title="Price alerts"><NotifSheet /></Sheet>
+      <Sheet open={sheet === 'import'} onClose={close} title="Your Nivo 3 history"><ImportSheet /></Sheet>
     </>
   );
 }
@@ -58,51 +61,94 @@ function AddPicker() {
   );
 }
 
-// ---------------- fund price / investment entry ----------------
+// ---------------- fund price / investment entry: amount first, with a keypad ----------------
+function EntryTitle() {
+  const tab = useStore((s) => s.entryTab);
+  return <>{tab === 'inv' ? 'Add investment' : 'Add a price'}</>;
+}
+const fmtTyped = (t: string) => {
+  if (!t) return '';
+  const [a, b] = t.split('.');
+  return (a ? Number(a).toLocaleString('en-PK') : '0') + (b != null ? '.' + b : '');
+};
 function EntrySheet() {
   const tab = useStore((s) => s.entryTab);
   const pre = useStore((s) => s.entryPrefill);
+  const open = useStore((s) => s.sheet === 'entry');
   const navs = useStore((s) => s.navs);
-  const [nd, setNd] = useState(pre.date || iso());
-  const [nn, setNn] = useState(pre.nav || '');
-  const [bd, setBd] = useState(pre.date || iso());
-  const [bs, setBs] = useState('');
-  const [bu, setBu] = useState('');
+  const [amt, setAmt] = useState('');
+  const [units, setUnits] = useState('');
+  const [nav, setNav] = useState('');
+  const [date, setDate] = useState(pre.date || iso());
+  const [field, setField] = useState<'amt' | 'units' | 'nav'>('amt');
   const [msg, setMsg] = useState('');
-  useEffect(() => { setNd(pre.date || iso()); setNn(pre.nav || ''); setBd(pre.date || iso()); setMsg(''); }, [pre]);
-  const saveNav = () => {
-    const v = parseFloat(nn);
-    if (!nd || !(v > 0)) return setMsg('Enter a date and a NAV.');
-    if (nd > iso()) return setMsg('That date is in the future.');
-    savePrice(nd, v); closeSheet(); toast('Price saved for ' + dd(nd), 'check'); syncBackground();
+  useEffect(() => {
+    if (!open) return;
+    setDate(pre.date || iso()); setNav(pre.nav || ''); setAmt(''); setUnits(''); setMsg('');
+    setField(tab === 'inv' ? 'amt' : 'nav');
+  }, [open, pre, tab]);
+  const cur = field === 'amt' ? amt : field === 'units' ? units : nav;
+  const put = (v: string) => { setMsg(''); if (field === 'amt') setAmt(v); else if (field === 'units') setUnits(v); else setNav(v); };
+  const key = (k: string) => {
+    if (k === 'del') return put(cur.slice(0, -1));
+    if (k === '.') { if (field === 'amt' || cur.includes('.')) return; return put((cur || '0') + '.'); }
+    if (!cur && (k === '0' || k === '00')) return;
+    const dec = cur.split('.')[1];
+    if (dec != null && dec.length >= (field === 'nav' ? 4 : 2)) return;
+    if (cur.replace('.', '').length >= 12) return;
+    put(cur === '0' && k !== '.' ? k.replace(/^0+/, '') || '0' : cur + k);
   };
+  const a0 = parseFloat(amt) || 0, u0 = parseFloat(units) || 0, n0v = parseFloat(nav) || 0;
+  const navD = navOn(navs, date);
+  const each = a0 > 0 && u0 > 0 ? a0 / u0 : 0;
+  const fee = navD && each ? Math.max(0, a0 - u0 * navD) : null;
+  const lastNav = navs.length ? navs[navs.length - 1] : null;
   const saveInv = () => {
-    const a = parseAmount(bs), u = parseFloat(bu);
-    if (!bd || !(a > 0) || !(u > 0)) return setMsg('Enter date, amount and units.');
-    if (bd > iso()) return setMsg('That date is in the future.');
+    if (!date || !(a0 > 0) || !(u0 > 0)) { setMsg(!(a0 > 0) ? 'Type the amount you sent.' : 'Add the units you received.'); if (a0 > 0) setField('units'); haptic('error'); return; }
+    if (date > iso()) return setMsg('That date is in the future.');
     const ln = navs.length ? navs[navs.length - 1].date : '';
-    if (ln && bd > ln) return setMsg('Add the price for ' + dd(bd) + ' first, then this investment.');
-    addBuy({ date: bd, sent: a, units: u }); closeSheet(); toast('Investment added', 'check'); syncBackground();
+    if (ln && date > ln) return setMsg('Add the price for ' + dd(date) + ' first, then this investment.');
+    addBuy({ date, sent: a0, units: u0 }); closeSheet(); toast('Investment added', 'check'); syncBackground();
   };
+  const saveNav = () => {
+    if (!date || !(n0v > 0)) { setMsg('Type the NAV.'); haptic('error'); return; }
+    if (date > iso()) return setMsg('That date is in the future.');
+    savePrice(date, n0v); closeSheet(); toast('Price saved for ' + dd(date), 'check'); syncBackground();
+  };
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', field === 'amt' ? '00' : '.', '0', 'del'];
+  const big = tab === 'inv' ? amt : nav;
   return (
-    <>
-      <Seg label="Entry type" style={{ margin: '0 0 12px' }} value={tab} onChange={(t) => { setState({ entryTab: t }); setMsg(''); }} items={[{ v: 'nav', label: 'Price (NAV)' }, { v: 'inv', label: 'Investment' }]} />
-      {tab === 'nav' ? (
-        <div className="frm">
-          <input type="date" aria-label="Date" max={iso()} value={nd} onChange={(e) => setNd(e.target.value)} />
-          <input type="number" inputMode="decimal" step="0.0001" aria-label="NAV" placeholder="NAV, e.g. 26.75" value={nn} onChange={(e) => setNn(e.target.value)} />
-          <button type="button" className="btn" onClick={saveNav}>Save price</button>
-        </div>
-      ) : (
-        <div className="frm">
-          <input type="date" aria-label="Date" max={iso()} value={bd} onChange={(e) => setBd(e.target.value)} />
-          <input type="text" inputMode="decimal" aria-label="Amount sent" placeholder="Amount sent (Rs)" value={bs} onChange={(e) => setBs(e.target.value.replace(/[^\d.,]/g, ''))} />
-          <input type="number" inputMode="decimal" step="0.01" aria-label="Units received" placeholder="Units received" value={bu} onChange={(e) => setBu(e.target.value)} />
-          <button type="button" className="btn" onClick={saveInv}>Save investment</button>
+    <div className="entry">
+      <button type="button" className="entry-switch" onClick={() => setState({ entryTab: tab === 'inv' ? 'nav' : 'inv' })}>{tab === 'inv' ? 'Add a price instead' : 'Add an investment instead'}</button>
+      <button type="button" className={'amt' + ((tab === 'inv' ? field === 'amt' : field === 'nav') ? ' on' : '')} onClick={() => setField(tab === 'inv' ? 'amt' : 'nav')}>
+        <small>{tab === 'inv' ? 'Amount you sent' : 'NAV per unit'}</small>
+        <span className="amt-v">{tab === 'inv' && <em>Rs</em>}<b className={big ? '' : 'ph'}>{big ? fmtTyped(big) : tab === 'inv' ? '0' : lastNav ? lastNav.nav.toFixed(4) : '0.0000'}</b><i className="caret" aria-hidden="true" /></span>
+      </button>
+      {tab === 'inv' && (
+        <div className="chips2">
+          {[25000, 50000, 100000].map((v) => <button type="button" key={v} onClick={() => { setField('amt'); put(String((parseFloat(amt) || 0) + v)); }}>+{v === 100000 ? '1 lakh' : n0(v)}</button>)}
         </div>
       )}
-      <div className="k" role="alert">{msg}</div>
-    </>
+      <div className="two2">
+        {tab === 'inv'
+          ? <button type="button" className={'fld' + (field === 'units' ? ' on' : '')} onClick={() => setField('units')}><small>Units received</small><b className={units ? '' : 'ph'}>{units ? fmtTyped(units) : '7,360.42'}</b></button>
+          : <div className="fld static"><small>Last price in Nivo</small><b>{lastNav ? lastNav.nav.toFixed(4) : '–'}</b></div>}
+        <label className="fld" htmlFor="entry-date"><small>Date</small><input id="entry-date" type="date" max={iso()} value={date} onChange={(e) => setDate(e.target.value)} /></label>
+      </div>
+      <div className="note-g">
+        <Icon name="info" size={17} />
+        <span>{tab === 'inv'
+          ? each ? <>You paid <b>{each.toFixed(2)}</b> a unit.{navD ? <> NAV that day was {navD.toFixed(2)}, so the fee was about <b>Rs {n0(fee || 0)}</b>{a0 ? ' (' + (((fee || 0) / a0) * 100).toFixed(1) + '%)' : ''}.</> : null}</> : 'From your Al Meezan confirmation: the amount you sent and the units you received.'
+          : 'A price you type wins over the one from Al Meezan for that day.'}</span>
+      </div>
+      <div className="err" role="alert">{msg}</div>
+      <div className="keypad">
+        {keys.map((k) => <button type="button" key={k} aria-label={k === 'del' ? 'Delete' : k} onClick={() => key(k)}>{k === 'del' ? <Icon name="back" size={24} /> : k}</button>)}
+      </div>
+      <button type="button" className="btn gold big full" onClick={tab === 'inv' ? saveInv : saveNav}>
+        {tab === 'inv' ? (a0 > 0 ? 'Save Rs ' + n0(a0) + ' investment' : 'Save investment') : (n0v > 0 ? 'Save price ' + n0v.toFixed(4) : 'Save price')}
+      </button>
+    </div>
   );
 }
 
@@ -168,7 +214,7 @@ function UpdateSheet() {
       if (!(newVal >= 0)) return setErr(a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.');
       addSnapshot(a.id, { date, value: newVal, ...(note.trim() ? { note: note.trim() } : {}) });
     }
-    haptic(10); closeSheet(); toast('Saved', 'check');
+    haptic('success'); closeSheet(); toast('Saved', 'check');
   };
   const field = (k: keyof typeof b, label: string) => (
     <label className="lab" htmlFor={'u-' + k}>{label}<input id={'u-' + k} className="in" inputMode="decimal" value={b[k]} onChange={(e) => setB({ ...b, [k]: e.target.value.replace(/[^\d.,]/g, '') })} /></label>
@@ -217,7 +263,7 @@ function SettingsSheet() {
       <Seg label="Theme" style={{ margin: 0 }} value={theme} onChange={(t: Theme) => { setTheme(t); applyTheme(t); }} items={[{ v: 'system', label: 'System' }, { v: 'light', label: 'Light' }, { v: 'dark', label: 'Dark' }]} />
       <h3>Notifications</h3>
       <div className="grp">
-        <div className="rw"><div><b>New price alerts</b><small>{alerts.perm === 'granted' ? (alerts.on ? 'On. You will hear about each new NAV.' : 'Off') : alerts.perm === 'denied' ? 'Blocked. Allow notifications for Nivo in your phone settings.' : alerts.perm === 'unsupported' ? 'Not available in this browser.' : 'Off. Tap to turn on.'}</small></div>
+        <div className="rw"><div><b>New price alerts</b><small>{alerts.perm === 'granted' ? (alerts.on ? 'On. You will hear about each new NAV.' : 'Off') : alerts.perm === 'denied' ? 'Blocked. Allow notifications for Nivo in your phone settings.' : alerts.perm === 'unsupported' ? (isNative() ? 'Not available on this phone.' : 'Not available in this browser.') : 'Off. Tap to turn on.'}</small></div>
           <Switch label="New price alerts" on={alerts.perm === 'granted' && alerts.on} disabled={alerts.perm === 'unsupported'} onChange={() => {
             if (alerts.perm === 'granted') { const on = !alerts.on; save(KEYS.notif, on); setState({ alerts: { ...alerts, on } }); toast(on ? 'Price alerts are on' : 'Price alerts are off', on ? 'bell' : 'close'); syncBackground(); }
             else if (alerts.perm === 'denied') toast('Allow notifications for Nivo in your phone settings');
@@ -235,7 +281,7 @@ function SettingsSheet() {
       <div className="grp">
         <div className="rw"><div><b>PIN</b><small>{has ? 'On. Nivo asks for it when you open the app.' : 'Off. Anyone with your phone can open Nivo.'}</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => { closeSheet(); lockFlow.setPin(afterLock); }}>{has ? 'Change' : 'Set PIN'}</button></div>
         {has && <div className="rw"><div><b>Remove PIN</b><small>Turns the lock off</small></div><button type="button" className="btn ghost" style={{ minHeight: 38, padding: '8px 10px', fontSize: 13, color: 'var(--dn)' }} onClick={() => { closeSheet(); lockFlow.removePin(afterLock); }}>Remove</button></div>}
-        <div className="rw"><div><b>{bio ? bio.name : 'Fingerprint unlock'}</b><small>{!has ? 'Set a PIN first' : !bio ? 'Not available on this device' : lockCfg?.bio ? 'On. PIN stays as a backup.' : 'Off'}</small></div>
+        <div className="rw"><div><b>{bio ? bio.name : 'Fingerprint unlock'}</b><small>{!has ? 'Set a PIN first' : !bio ? (isNative() ? 'No fingerprint or face unlock set up on this phone' : 'Not available in this browser') : lockCfg?.bio ? 'On. PIN stays as a backup.' : 'Off'}</small></div>
           <Switch label="Fingerprint unlock" disabled={!(has && bio)} on={!!(has && bio && lockCfg?.bio)} onChange={async () => {
             const c = getLock(); if (!c) return;
             if (c.bio) { setLock({ ...c, bio: false }); toast('Fingerprint unlock is off'); afterLock(); return; }
@@ -249,8 +295,11 @@ function SettingsSheet() {
       <div className="grp"><div className="rw"><div><b>Check now</b><small>{lc.t ? 'Last checked ' + new Date(lc.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' via ' + lc.src : 'Not checked yet this session'}</small></div><RefreshButton /></div></div>
       <div className="k" style={{ marginTop: 8, lineHeight: 1.5 }}>Prices are checked each time you open Nivo and every 5 minutes while it is open.</div>
       <h3>Your data</h3>
-      <div className="grp"><div className="rw"><div><b>Backup and restore</b><small>Copy everything before you change phones</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => { closeSheet(); push({ name: 'activity' }); }}>Open</button></div></div>
-      <div className="f" style={{ marginTop: 22 }}>Nivo 4.0 · data stays on your device</div>
+      <div className="grp">
+        <div className="rw"><div><b>Nivo 3 history</b><small>Bring over prices, purchases and your goal from the old app</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => openSheet('import')}>Bring over</button></div>
+        <div className="rw"><div><b>Backup and restore</b><small>Copy everything before you change phones</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => { closeSheet(); push({ name: 'activity' }); }}>Open</button></div>
+      </div>
+      <div className="f" style={{ marginTop: 22 }}>Nivo 4.2 · data stays on your device</div>
     </>
   );
 }
@@ -260,6 +309,73 @@ export async function refreshAlerts(): Promise<void> {
   const perm = await permission();
   const power = await powerOk();
   setState({ alerts: { perm, on: perm === 'granted' && load<boolean>(KEYS.notif, true), power } });
+}
+
+// ---------------- bring over Nivo 3 history ----------------
+function ImportSheet() {
+  const pending = useStore((s) => s.pending);
+  const arg = useStore((s) => s.sheetArg);
+  const [text, setText] = useState('');
+  const [msg, setMsg] = useState('');
+  const [going, setGoing] = useState(false);
+  useEffect(() => { setMsg(''); setGoing(false); }, [pending, arg]);
+  const check = (t: string) => {
+    const l = fromBackup(t);
+    if (!l) { setMsg('That does not look like a Nivo backup. Copy it again from Nivo 3 and paste the whole text.'); haptic('error'); return; }
+    setText(''); setState({ pending: l });
+  };
+  if (pending) {
+    const s = summarize(pending);
+    const bring = () => {
+      const r = importLegacy(pending);
+      closeSheet(); haptic('success');
+      setTimeout(() => { celebrate(); toast('History brought over' + (r.prices > 0 ? ': ' + r.prices + ' more prices' : ''), 'check'); }, 380);
+    };
+    return (
+      <div className="form">
+        <div className="hint" style={{ marginTop: -8 }}>{pending.source === 'phone' ? 'Nivo 3 kept this on your phone. Choose whether to bring it into Nivo 4.' : 'This is what your backup holds. Choose whether to bring it into Nivo 4.'}</div>
+        <div className="grp2">
+          <div className="tg"><span><b>{s.prices} daily prices</b><small>{s.first ? dd(s.first) + ' to ' + dd(s.last) : 'None'}</small></span><span className="tic up"><Icon name="trend" size={16} /></span></div>
+          <div className="tg"><span><b>{s.buys} {s.buys === 1 ? 'purchase' : 'purchases'}</b><small>{s.sent ? 'Rs ' + n0(s.sent) + ' put in' : 'None'}</small></span><span className="tic inv"><Icon name="wallet" size={16} /></span></div>
+          {(pending.goal || pending.name) && <div className="tg"><span><b>Goal and settings</b><small>{[pending.goal ? 'Goal ' + n0(pending.goal.amount) + ' in ' + pending.goal.years + ' years' : '', pending.name ? 'Name: ' + pending.name : ''].filter(Boolean).join(' · ')}</small></span><span className="tic inv"><Icon name="target" size={16} /></span></div>}
+          {s.accounts > 0 && <div className="tg"><span><b>{s.accounts} {s.accounts === 1 ? 'account' : 'accounts'}</b><small>Banks, business and other accounts</small></span><span className="tic inv"><Icon name="bank" size={16} /></span></div>}
+        </div>
+        <div className="privacy"><Icon name="shield" size={16} /><span>Everything already in Nivo 4 stays. Prices are added day by day; your purchases replace the sample one.</span></div>
+        <button type="button" className="btn gold big full" onClick={bring}><Icon name="check" size={17} />Bring it over</button>
+        <button type="button" className="btn ghost full" onClick={() => { setState({ pending: null }); closeSheet(); }}>Not now</button>
+      </div>
+    );
+  }
+  return (
+    <div className="form">
+      {arg === 'none' && <div className="cd nudge" style={{ margin: 0 }}><span className="tic"><Icon name="info" size={16} /></span><div style={{ flex: 1 }}><b>No Nivo 3 history on this phone</b><span className="k" style={{ display: 'block', lineHeight: 1.5, marginTop: 2 }}>If the old app was uninstalled first, its data went with it. A backup copied from Nivo 3 still works below.</span></div></div>}
+      {canBridge() && <>
+        <div className="grp2">
+          <div className="tg"><span><b>From Nivo 3 on this phone</b><small>Nivo opens your page for a second, reads what Nivo 3 saved, and comes straight back. Needs internet.</small></span></div>
+        </div>
+        <button type="button" className={'btn gold big full' + (going ? ' busy' : '')} disabled={going} onClick={async () => {
+          setGoing(true); setMsg('');
+          const r = await bridgeReady();
+          if (r === 'ok') { startBridge(); return; }
+          setGoing(false);
+          setMsg(r === 'offline' ? 'Nivo needs internet for this. Connect and try again, or use a backup below.' : 'Your GitHub page does not have the latest files yet. Upload them (they include bridge.html), wait a minute, then try again.');
+        }}>
+          {going ? <span className="spn" style={{ display: 'grid' }}><Icon name="loader" size={17} /></span> : <Icon name="sync" size={17} />}{going ? 'Opening Nivo 3 data' : 'Find my Nivo 3 history'}
+        </button>
+        <div className="cap" style={{ margin: '6px 4px 0' }}>Or use a backup</div>
+      </>}
+      <div className="hint">In Nivo 3: History › Backup and export › Copy backup. Paste it here, or choose a saved backup file.</div>
+      <label className="sr" htmlFor="imp-text">Backup text</label>
+      <textarea className="tx" id="imp-text" style={{ marginBottom: 0 }} placeholder="Paste a Nivo backup here" value={text} onChange={(e) => { setText(e.target.value); setMsg(''); }} />
+      <div className="two" style={{ margin: 0 }}>
+        <label className="btn sec" style={{ cursor: 'pointer' }}><Icon name="save" size={16} />Choose file
+          <input type="file" accept=".json,.txt,application/json,text/plain" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) check(await f.text()); }} />
+        </label>
+        <button type="button" className="btn" disabled={!text.trim()} onClick={() => check(text)}>Check backup</button>
+      </div>
+      <div className="err" role="alert">{msg}</div>
+    </div>
+  );
 }
 
 // ---------------- first-run alerts prompt ----------------

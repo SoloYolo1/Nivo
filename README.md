@@ -4,6 +4,33 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.2
+
+Fixes for the Android app, and a polish pass.
+
+- **The APK really has its phone features this time.** The 4.1 notes said this was fixed, but the Build APK workflow still installed the Capacitor plugins with `--no-save`, and `cap sync` only picks up plugins listed in `package.json`, so every APK so far shipped with *no* native plugins: no App plugin (the Android back button closed the app), no biometrics ("Fingerprint not available on this device"), no notifications ("Not available in this browser"), and no status-bar colour. The workflow now saves the plugins before syncing and **fails the build if any plugin is missing** from the Android project.
+- **Android back button** goes back properly: it steps back inside the lock and onboarding screens, closes an open sheet or menu, pops the screen you are on, returns to Home, and only from Home sends the app to the background. The same happens with the browser's back button on the website, so a sheet closes instead of leaving the site.
+- **Fingerprint unlock** and **price alerts** work in the installed app (see the first point). The copy in Settings now says "on this phone" rather than "in this browser" when something really is unavailable.
+- **Haptic feedback everywhere.** The app uses the phone's haptics engine (with the `VIBRATE` permission that was missing before): a light tick on every button, row, tab, switch and keypad key; a soft tick when moving between screens with the back button or a swipe; a firmer pattern when something is saved, unlocked or refreshed; a double buzz for a wrong PIN or a form that cannot be saved. All in one vocabulary (`haptic('tap' | 'select' | 'medium' | 'success' | 'error')`), so it feels the same on every screen.
+- **No flash at start-up.** Android 12+ shows its own launch screen first; it is now the Nivo wordmark on navy, the native splash is held until the app's own splash has drawn, and the page itself paints that same splash before any script runs, so neither the home screen nor its chart is ever seen before the splash.
+- **Home quick actions** (Add, Update, Prices, Insights) sit in a card that matches the cards below it, and each action has its own colour: gold, indigo, green and orange.
+- **The dock** is a solid surface again: raised a little, opaque enough to read over any card, with a clearer selected pill. It still slides in and out and still tucks in while you scroll, but it no longer fades.
+- **No phantom scroll.** The page was always a little taller than the screen (100vh plus the safe-area padding), so even one-screen pages could scroll a few pixels without anything moving, and the home page kept scrolling invisibly under the lock, onboarding and start-up screens. The page now fits the screen exactly and is frozen while anything covers it.
+- Small things: tapping the tab you are already on scrolls to the top; Escape closes a sheet on the website; the dock pill is re-measured once the font has loaded.
+
+## What is new in 4.1
+
+- **The 3.x polish is back.** Big hero numbers (they were rendering at label size), the Nivo wordmark above a large page title, icon chips on the dark cards, filled quick-action icons, cards with the soft edge highlight and deeper shadows, and no thin seam along card edges.
+- **Cards rise into view one after another** as you scroll, and their numbers count up, like 3.x.
+- **Charts:** the net worth chart on Home no longer clips its last value; it draws in, its area fades in, and you can drag across it to read any month. Daily profit and loss shows the last 14 days (readable labels) and Day by day the last 42.
+- **Bring over your Nivo 3 history.** Settings › Nivo 3 history (also offered on Home and in the first-run setup). Nivo 3 kept its data in the phone's storage for your GitHub page; Nivo 4 runs bundled inside the app, so it opens `bridge.html` on your page for a second, reads what Nivo 3 saved, comes straight back, and shows you what it found. You choose to bring it over or not. Nothing in Nivo 4 is removed. A backup copied from Nivo 3 (History › Backup and export › Copy backup) can be pasted or chosen as a file instead.
+- **Phone features are back in the APK.** The build installed the Capacitor plugins with `--no-save`, so `cap sync` saw none of them and the APK had no notifications, fingerprint unlock, background price check, status-bar colour or back-button handling. The build now saves them and fails loudly if any is missing.
+- **Home has a real chart:** net worth day by day (1W, 1M, 3M, All) that you can drag across. All charts share one component: smooth line, glow, a reveal that works on every WebView, readable labels.
+- **No light line along the bottom of cards** (the 1px borders are gone; depth comes from shadow and a top highlight). Taps ripple only inside what you pressed, and not while scrolling.
+- **Forms:** the fund entry sheet has labelled fields, shows what you paid a unit and the fee; the dock steps aside while you fill a form.
+- **Setup and lock screens fit any phone** without scrolling. Fingerprint is asked for as soon as the lock appears.
+- **Same signing key on every build** (`android-assets/nivo-debug.keystore`), so future APKs install over the old one and keep your data. Builds made before 4.1 each had a different key, so this one time Android may ask you to uninstall first: copy a backup in the old app before you do.
+
 ## What is new in 4.0
 
 - **Net worth across everything.** Add bank accounts (savings, current, term deposit), a business, stocks, gold, property, National Savings, cash in hand, loans and cards, or anything with your own name. You type the balances; Nivo never connects to a bank.

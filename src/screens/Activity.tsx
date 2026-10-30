@@ -14,8 +14,8 @@ export function Activity() {
   const buys = useStore((s) => s.buys);
   const f = useFund();
   const ev: Ev[] = [];
-  buys.forEach((b, i) => ev.push({ key: 'b' + i, d: b.date, t: 'Invested Rs ' + n0(b.sent), s: 'Meezan Balanced Fund · ' + b.units.toFixed(2) + ' units', icon: 'wallet', tone: 'inv', go: () => push({ name: 'fund', tab: 'history' }) }));
-  f.rows.slice(1).forEach((x) => ev.push({ key: 'n' + x.date, d: x.date, t: 'NAV ' + x.nav.toFixed(4), s: 'Meezan Balanced Fund · ' + sg(x.chg) + ' Rs that day', icon: 'trend', tone: cl(x.chg), go: () => openSheet('day', x.date) }));
+  buys.forEach((b, i) => ev.push({ key: 'b' + i, d: b.date, t: 'Invested Rs ' + n0(b.sent), s: 'Meezan fund · ' + b.units.toFixed(2) + ' units', icon: 'wallet', tone: 'inv', go: () => push({ name: 'fund', tab: 'history' }) }));
+  f.rows.slice(1).forEach((x) => ev.push({ key: 'n' + x.date, d: x.date, t: 'NAV ' + x.nav.toFixed(4), s: 'Meezan fund · ' + sg(x.chg) + ' on your holding', icon: 'trend', tone: cl(x.chg), go: () => openSheet('day', x.date) }));
   accounts.forEach((a) => a.history.forEach((h, i) => {
     const prev = a.history[i - 1];
     const d = prev ? worthOf(a, h) - worthOf(a, prev) : null;
@@ -27,7 +27,7 @@ export function Activity() {
       <Card icon="clock" title="All activity" more={ev.length > 60 ? 'Latest 60' : 'Latest first'}>
         {ev.slice(0, 60).map((e) => (
           <div className="rw tap" key={e.key} onClick={e.go}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={'tic ' + e.tone}><Icon name={e.icon} size={16} /></span><div style={{ minWidth: 0 }}><b style={{ fontSize: 14 }}>{e.t}</b><small>{e.s}</small></div></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={'tic ' + e.tone}><Icon name={e.icon} size={16} /></span><div style={{ minWidth: 0 }}><b className="ell" style={{ fontSize: 14 }}>{e.t}</b><small className="ell">{e.s}</small></div></div>
             <span className="k" style={{ flex: 'none' }}>{dd(e.d)}</span>
           </div>
         ))}

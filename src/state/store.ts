@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 import { KEYS, load, loadArray, save, remove } from '../lib/storage';
 import { SEED_BUYS, SEED_NAVS, SEED_PEERS, mergeNavs, type Buy, type Nav, type Peers } from '../lib/fund';
 import { DEFAULT_GOAL, type Goal } from '../lib/plan';
+import type { Legacy } from '../lib/legacy';
 import { cleanAccounts, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -16,7 +17,7 @@ export type Route =
   | { name: 'editBusiness'; id?: string }
   | { name: 'editAsset'; kind: Account['kind']; id?: string }
   | { name: 'activity' };
-export type SheetName = '' | 'add' | 'entry' | 'day' | 'settings' | 'notif' | 'update';
+export type SheetName = '' | 'add' | 'entry' | 'day' | 'settings' | 'notif' | 'update' | 'import';
 
 export interface Toast { id: number; text: string; icon?: string; action?: { label: string; fn: () => void } }
 export interface LastCheck { t: number; src: string; latest: string }
@@ -34,9 +35,11 @@ export interface State {
   toast: Toast | null; confetti: number;
   booted: boolean; splash: boolean; locked: boolean; onboarding: boolean;
   newSince: string; alerts: Alerts;
+  /** History found in Nivo 3 (or a pasted backup), waiting for the person to choose to bring it over. */
+  pending: Legacy | null;
 }
 
-function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts'> {
+function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending'> {
   const deleted = loadArray<string>(KEYS.deleted);
   const overrides = loadArray<string>(KEYS.overrides);
   const m: Record<string, Nav> = {};
@@ -73,6 +76,7 @@ let state: State = {
   toast: null, confetti: 0,
   booted: false, splash: true, locked: false, onboarding: false,
   newSince: '', alerts: { perm: 'unknown', on: false, power: null },
+  pending: null,
 };
 
 const listeners = new Set<() => void>();
@@ -82,7 +86,7 @@ export function setState(patch: Partial<State> | ((s: State) => Partial<State>))
   state = { ...state, ...p };
   listeners.forEach((l) => l());
 }
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+export const subscribe = (l: () => void): (() => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 export function useStore<T>(sel: (s: State) => T): T {
   return useSyncExternalStore(subscribe, () => sel(state), () => sel(state));
 }
@@ -244,4 +248,50 @@ export function restore(text: string): boolean {
   if (j.goal && j.goal.amount > 0 && j.goal.years > 0) { setGoal({ amount: +j.goal.amount, years: Math.round(+j.goal.years) }); any = true; }
   if (Array.isArray(j.accounts)) { const acc = cleanAccounts(j.accounts); saveAccounts(acc); any = true; }
   return any;
+}
+
+// ---------------- bringing over Nivo 3 history ----------------
+const isSampleBuys = (b: Buy[]) => b.length === 1 && b[0].date === SEED_BUYS[0].date && b[0].sent === SEED_BUYS[0].sent && b[0].units === SEED_BUYS[0].units;
+
+/** Merge history from Nivo 3 (or a backup) into what is here. Nothing already in Nivo 4 is removed. */
+export function importLegacy(l: Legacy): { prices: number; buys: number; accounts: number } {
+  const before = state.navs.length;
+  // days deleted or typed by hand in Nivo 3 keep that status here
+  const has = new Set(l.navs.map((x) => x.date));
+  const deleted = Array.from(new Set(state.deleted.concat(l.deleted))).filter((d) => !has.has(d));
+  const overrides = Array.from(new Set(state.overrides.concat(l.overrides)));
+  save(KEYS.deleted, deleted); save(KEYS.overrides, overrides);
+  const navs0 = state.navs.filter((x) => !deleted.includes(x.date));
+  const navs = mergeNavs(navs0, l.navs, deleted, overrides, false);
+  save(KEYS.navs, navs);
+  // purchases: Nivo 3's list replaces the sample; otherwise add the ones not already here
+  let buys = state.buys, addedBuys = 0;
+  if (l.buys.length) {
+    if (isSampleBuys(state.buys)) { buys = l.buys.slice(); addedBuys = l.buys.length; }
+    else {
+      const key = (b: Buy) => b.date + '|' + b.sent + '|' + b.units;
+      const have = new Set(state.buys.map(key));
+      const add = l.buys.filter((b) => !have.has(key(b)));
+      buys = state.buys.concat(add); addedBuys = add.length;
+    }
+    buys = buys.slice().sort((x, y) => (x.date < y.date ? -1 : 1));
+    save(KEYS.buys, buys);
+  }
+  // accounts (only in Nivo 4 backups): add the ones not here yet
+  let accounts = state.accounts, addedAcc = 0;
+  if (l.accounts && l.accounts.length) {
+    const ids = new Set(state.accounts.map((a) => a.id));
+    const add = l.accounts.filter((a) => !ids.has(a.id));
+    accounts = state.accounts.concat(add); addedAcc = add.length;
+    save(KEYS.accounts, accounts);
+  }
+  const patch: Partial<State> = { navs, buys, deleted, overrides, accounts, pending: null };
+  if (l.goal && state.goal.amount === DEFAULT_GOAL.amount && state.goal.years === DEFAULT_GOAL.years) { patch.goal = l.goal; save(KEYS.goal, l.goal); }
+  if (l.checklist) { patch.checklist = l.checklist; save(KEYS.checklist, l.checklist); }
+  if (l.name && !state.name) { patch.name = l.name; save(KEYS.name, l.name); }
+  save(KEYS.onboarded, true);
+  save(KEYS.migrated, Date.now());
+  remove(KEYS.above); remove(KEYS.milestone); remove(KEYS.nwMilestone);
+  setState(patch);
+  return { prices: navs.length - before, buys: addedBuys, accounts: addedAcc };
 }

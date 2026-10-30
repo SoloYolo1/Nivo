@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Card } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
+import { AreaChart } from '../components/AreaChart';
+import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
 import { setGoal, toggleCheck, useStore } from '../state/store';
 import { CHECKLIST, duration, futureValue, monthsTo, sipNeeded } from '../lib/plan';
@@ -24,17 +26,14 @@ export function Plan() {
   }, [gA, gY, goal.amount, goal.years]);
   const v = Math.max(0, t.netWorth), r = rate / 100, Y = Math.max(1, goal.years);
   const pts = Array.from({ length: Y + 1 }, (_, k) => futureValue(v, sip, r, k));
-  const mx = Math.max(...pts, 1);
-  const pp = pts.map((y, i) => [8 + i * (284 / (pts.length - 1 || 1)), 130 - (y / mx) * 110]);
-  const ln = pp.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const gy = 130 - Math.min(1, goal.amount / mx) * 110;
+  const C2 = useColors();
   const gp = Math.min(100, (v / goal.amount) * 100), C = 2 * Math.PI * 34;
   const eta = monthsTo(v, sip, r, goal.amount);
   const doneCount = done.reduce((a, b) => a + b, 0);
   return (
     <section className="pg">
       <div className="cd hero mini">
-        <HeroHead label="Where you are headed" chip={'in ' + Y + (Y > 1 ? ' years' : ' year')} />
+        <HeroHead icon="target" label="Where you are headed" chip={'in ' + Y + (Y > 1 ? ' years' : ' year')} />
         <div className="mh-v"><span>Rs</span>{big(pts[Y]).replace('Rs ', '')}</div>
         <span className="dl">{gp.toFixed(1)}% of your {big(goal.amount)} goal today</span>
         <div className="hx"><div><small>Monthly SIP</small><b>Rs {n0(sip)}</b></div><div><small>Return</small><b>{rate}% / yr</b></div><div><small>Goal in</small><b>{duration(eta)}</b></div></div>
@@ -56,19 +55,10 @@ export function Plan() {
         <input type="range" id="s1" min={0} max={100000} step={5000} value={sip} onChange={(e) => setSip(+e.target.value)} />
         <div className="sl"><label htmlFor="s2">Yearly return</label><span>{rate}%</span></div>
         <input type="range" id="s2" min={4} max={20} step={1} value={rate} onChange={(e) => setRate(+e.target.value)} />
-        <div id="pc">
-          <svg viewBox="0 0 300 160" role="img" aria-label="Projected growth">
-            <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style={{ stopColor: 'var(--a)' }} stopOpacity=".35" /><stop offset="1" style={{ stopColor: 'var(--a)' }} stopOpacity="0" /></linearGradient></defs>
-            <polygon fill="url(#g2)" points={'8,130 ' + ln + ' 292,130'} />
-            <polyline fill="none" stroke="var(--a)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={ln} />
-            {goal.amount <= mx && <><line x1="8" x2="292" y1={gy.toFixed(1)} y2={gy.toFixed(1)} stroke="var(--gold)" strokeDasharray="4 4" /><text x="292" y={(gy - 5).toFixed(1)} fontSize="9" textAnchor="end" fill="var(--gold)">Goal</text></>}
-            <text x="8" y="150" fontSize="9" fill="currentColor" opacity=".55">Now</text>
-            <text x="292" y="150" fontSize="9" textAnchor="end" fill="currentColor" opacity=".55">{Y} years</text>
-          </svg>
-        </div>
+        <AreaChart points={pts.map((y, k) => ({ date: String(k), label: k === 0 ? 'Now' : 'Year ' + k, value: y }))} height={160} color={C2.a} replay={String(Y)} ariaLabel="Projected growth" baseline={{ value: goal.amount, label: 'Goal ' + big(goal.amount).replace('Rs ', ''), color: C2.gold }} tip={(p) => p.label + ' · ' + big(p.value)} />
         <div className="res"><div className="k">At the end of your goal period</div><div className="v">{big(pts[Y])}</div><div className="k">you would put in {big(v + sip * 12 * Y)} · before tax · not guaranteed</div></div>
         <div className="rw" style={{ marginTop: 6 }}><span>Goal reached in</span><b>{eta < 0 ? 'Over 50 years' : duration(eta)}</b></div>
-        <div className="rw"><span>Monthly SIP to reach it on time</span><b>Rs {n0(sipNeeded(v, r, goal.amount, Y))} / month</b></div>
+        <div className="rw"><span>Monthly SIP to reach it on time</span><b style={{ whiteSpace: 'nowrap' }}>Rs {n0(sipNeeded(v, r, goal.amount, Y))} / month</b></div>
       </Card>
       <div className="cap">Roadmap</div>
       <Card icon="flag" title="Milestones" more="At the current plan">

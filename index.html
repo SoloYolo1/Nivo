@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
 <title>Nivo</title>
-<meta name="theme-color" content="#141729">
+<meta name="theme-color" content="#0f111d">
 <meta name="description" content="Your Meezan fund, bank accounts, business and other assets in one place.">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,9 +13,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <script>try{var t=JSON.parse(localStorage.getItem("mw_theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<!-- The start-up screen is in the page itself, so it is on screen from the very first paint, before any
+     script runs. The app's own splash takes over seamlessly (same colours, same wordmark in the same place),
+     so nothing underneath is ever seen on a cold start. -->
+<style>
+#boot{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow:hidden;background:radial-gradient(90% 58% at 50% 50%,rgba(91,105,217,.2),transparent 72%),linear-gradient(155deg,#191d3b 0%,#131522 48%,#101116 100%)}
+#boot svg{width:min(56vw,208px);height:auto;color:#f4f5ff;overflow:visible;filter:drop-shadow(0 18px 50px rgba(77,91,205,.35))}
+</style>
 <link rel="stylesheet" href="%CSS%">
 </head>
 <body>
+<div id="boot" aria-hidden="true"><svg viewBox="76.1 163.9 364.1 208.2"><defs><linearGradient id="bt-gold" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#d9a84e"/><stop offset="1" stop-color="#ffe7a3"/></linearGradient></defs><path d="M109.734375 269.9453125C109.734375 255.8828125 116.5703125 249.33984375 127.21484375 249.33984375C137.859375 249.33984375 144.01171875 255.98046875 144.01171875 268.1875V326.0H177.60546875V261.15625C177.60546875 235.765625 164.51953125 220.62890625 142.15625 220.62890625C126.62890625 220.62890625 116.1796875 227.7578125 109.34375 239.57421875V222.875H76.140625V326.0H109.734375Z" fill="currentColor"/><path d="M187.35546875 326.0H220.94921875V222.875H187.35546875Z" fill="#8e9bff"/><path d="M259.3125 326.0H297.49609375L335.09375 222.875H300.328125L285.6796875 270.3359375C283.3359375 278.5390625 281.08984375 286.64453125 278.84375 294.75C276.59765625 286.64453125 274.25390625 278.5390625 271.8125 270.3359375L256.87109375 222.875H221.71484375Z" fill="currentColor"/><path d="M385.95703125 328.34375C418.28125 328.34375 440.15625 307.15234375 440.15625 274.4375C440.15625 241.91796875 418.28125 220.53125 385.95703125 220.53125C353.6328125 220.53125 331.66015625 241.91796875 331.66015625 274.4375C331.66015625 307.15234375 353.6328125 328.34375 385.95703125 328.34375ZM385.95703125 301.5859375C374.140625 301.5859375 365.7421875 291.91796875 365.7421875 274.4375C365.7421875 257.0546875 374.23828125 247.2890625 385.95703125 247.2890625C397.67578125 247.2890625 406.171875 257.0546875 406.171875 274.4375C406.171875 291.91796875 397.67578125 301.5859375 385.95703125 301.5859375Z" fill="currentColor"/><circle cx="204.2" cy="184.9" r="42" fill="#ffe7a3" opacity=".16"/><circle cx="204.2" cy="184.9" r="21" fill="url(#bt-gold)"/></svg></div>
 <div id="root"></div>
 <noscript>Nivo needs JavaScript to run.</noscript>
 <script src="%JS%" defer></script>

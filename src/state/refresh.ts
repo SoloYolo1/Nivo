@@ -6,7 +6,6 @@ import { fetchDataJson, fetchSite, fromEmail, fromRunner, peersFrom, syncRunner 
 import { send } from '../lib/notify';
 import { KEYS, load } from '../lib/storage';
 import { dd, n0, pc, sg } from '../lib/format';
-import { haptic } from '../lib/native';
 
 let lastAuto = 0;
 export const lastAutoAt = () => lastAuto;
@@ -41,7 +40,6 @@ export async function refreshAll(auto: boolean): Promise<void> {
   const f0 = computeFund(s0.navs, s0.buys);
   const n = s0.navs.length, prev = f0.last ? f0.last.date : '';
   setState({ refreshing: true, refreshUi: auto ? s0.refreshUi : 'busy' });
-  if (!auto) haptic(6);
   const ok: string[] = [];
   const t0 = Date.now();
   const inClaude = typeof window !== 'undefined' && !!window.claude;

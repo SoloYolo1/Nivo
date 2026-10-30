@@ -13,7 +13,7 @@ export function applyTheme(theme: Theme): void {
   const r = document.documentElement;
   if (theme === 'light' || theme === 'dark') r.dataset.theme = theme; else delete r.dataset.theme;
   const dark = isDark(theme);
-  const bg = dark ? '#141729' : '#f3f4fa';
+  const bg = dark ? '#0f111d' : '#f3f4fa';
   const m = document.querySelector('meta[name=theme-color]');
   if (m) m.setAttribute('content', bg);
   void call('StatusBar', 'setBackgroundColor', { color: bg });
@@ -30,8 +30,10 @@ const snap = () => {
   const t = document.documentElement.dataset.theme;
   return t ? t === 'dark' : !!mq()?.matches;
 };
-const DARK = { up: '#4fd59c', dn: '#f2847b' }, LIGHT = { up: '#15966a', dn: '#d2493f' };
-export function useColors(): { up: string; dn: string } {
+// The dark summary cards stay dark in both themes, so their charts always use the bright pair.
+const HERO = { upHero: '#30d158', dnHero: '#ff6961' };
+const DARK = { up: '#30d158', dn: '#ff6961', a: '#8f9cff', gold: '#e2bd72', org: '#ff9f0a', ...HERO }, LIGHT = { up: '#1f9d45', dn: '#e0342a', a: '#4a58d0', gold: '#b98a2e', org: '#e8780a', ...HERO };
+export function useColors(): typeof DARK {
   const d = useSyncExternalStore(sub, snap, () => true);
   return d ? DARK : LIGHT;
 }

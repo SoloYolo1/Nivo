@@ -4,7 +4,7 @@ import { Icon, type IconName } from './Icon';
 
 export function H2({ icon, children, more }: { icon: IconName; children: ReactNode; more?: ReactNode }) {
   return (
-    <h2><span className="hi"><Icon name={icon} size={14} /></span>{children}{more != null && <span className="more">{more}</span>}</h2>
+    <h2><span className="hi"><Icon name={icon} size={14} /></span><span className="h2t">{children}</span>{more != null && <span className="more">{more}</span>}</h2>
   );
 }
 
@@ -69,11 +69,22 @@ export function CountUp({ id, value, format }: { id: string; value: number; form
     shownValues.set(id, to);
     return () => cancelAnimationFrame(raf);
   }, [id, value, format]);
-  return <span ref={ref}>{format(shownValues.has(id) ? (shownValues.get(id) as number) : 0)}</span>;
+  return <span className="cu" ref={ref}>{format(shownValues.has(id) ? (shownValues.get(id) as number) : 0)}</span>;
 }
 
 export function Empty({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: ReactNode }) {
   return (
     <div className="empty"><span className="tic inv"><Icon name={icon} size={22} /></span><b>{title}</b><p>{text}</p>{action}</div>
+  );
+}
+
+/** Underlined tabs for the sections of one screen (the fund's Overview, Analysis, History). */
+export function Tabs<T extends string>({ items, value, onChange, label }: { items: Array<{ v: T; label: string }>; value: T; onChange: (v: T) => void; label: string }) {
+  const i = Math.max(0, items.findIndex((x) => x.v === value));
+  return (
+    <div className="tabs" role="tablist" aria-label={label} style={{ ['--n' as string]: items.length, ['--i' as string]: i } as React.CSSProperties}>
+      {items.map((x) => <button key={x.v} type="button" role="tab" aria-selected={x.v === value} className={x.v === value ? 'on' : ''} onClick={() => onChange(x.v)}>{x.label}</button>)}
+      <i aria-hidden="true" />
+    </div>
   );
 }

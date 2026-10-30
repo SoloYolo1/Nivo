@@ -245,3 +245,20 @@ export function businessStats(a: Account): { latest: Snapshot | null; profit: nu
   const months = a.history.filter((s) => s.sales != null && s.costs != null).map((s) => ({ date: s.date, profit: (s.sales as number) - (s.costs as number) }));
   return { latest, profit, margin, runway, months };
 }
+
+/** Net worth day by day: every day the fund priced or an account was updated, plus today. days = 0 for all. */
+export function dailyNetWorth(list: Account[], fund: FundPoint[], today: string, days: number): Array<{ date: string; value: number }> {
+  const set = new Set<string>(fund.map((p) => p.date));
+  for (const a of list) for (const h of a.history) set.add(h.date);
+  set.add(today);
+  const first = earliestDate(list, fund);
+  let dates = Array.from(set).filter((d) => (!first || d >= first) && d <= today).sort();
+  if (days > 0) {
+    const t = new Date(today + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - days);
+    const from = t.toISOString().slice(0, 10);
+    const inRange = dates.filter((d) => d >= from);
+    const before = dates.filter((d) => d < from).pop();
+    dates = before ? [before, ...inRange] : inRange;
+  }
+  return dates.map((d) => ({ date: d, value: netWorthOn(list, fund, d) }));
+}

@@ -5,6 +5,7 @@ import { Wordmark } from './Wordmark';
 import { bioVerify, checkPin, getLock, newLock, setLock } from '../lib/lock';
 import { clearAll } from '../lib/storage';
 import { haptic } from '../lib/native';
+import { backHooks, refreshBackGuard } from '../lib/back';
 import { toast } from '../state/store';
 
 type Mode = '' | 'unlock' | 'verify' | 'set1' | 'set2';
@@ -18,7 +19,14 @@ let ls: LS = { mode: '', buf: '', tmp: '', title: '', sub: '', err: false, forgo
 let cb: ((ok: boolean) => void) | null = null;
 let fails = 0, until = 0;
 const subs = new Set<() => void>();
-const set = (p: Partial<LS>) => { ls = { ...ls, ...p }; subs.forEach((f) => f()); };
+const set = (p: Partial<LS>) => { ls = { ...ls, ...p }; subs.forEach((f) => f()); refreshBackGuard(); };
+
+// Back inside the lock: the "forgot" note returns to the keypad; verify or set-PIN steps cancel;
+// the unlock screen itself does not go back (the app goes to the background instead).
+backHooks.lock = {
+  can: () => ls.mode !== '' && !ls.out && (ls.forgot || ls.mode !== 'unlock'),
+  go: () => { if (ls.forgot) set({ forgot: false }); else close(false); },
+};
 const useLock = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, () => ls, () => ls);
 
 function open(mode: Exclude<Mode, ''>, done?: (ok: boolean) => void) {
@@ -26,7 +34,10 @@ function open(mode: Exclude<Mode, ''>, done?: (ok: boolean) => void) {
   const c = getLock();
   const t = TEXT[mode];
   set({ mode, buf: '', tmp: '', title: t[0], sub: mode === 'unlock' && c?.bio ? 'Use your fingerprint or enter your PIN' : t[1], err: false, forgot: false, out: false });
+  // ask for the fingerprint straight away, as 3.x did (not more than once every few seconds)
+  if (mode === 'unlock' && c?.bio && Date.now() - lastAuto > 3000) { lastAuto = Date.now(); setTimeout(() => void bio(), 380); }
 }
+let lastAuto = 0;
 function close(ok: boolean) {
   set({ out: true });
   const f = cb; cb = null;
@@ -34,7 +45,7 @@ function close(ok: boolean) {
   if (f) f(ok);
 }
 function err(t: string) {
-  haptic([30, 40, 30]);
+  haptic('error');
   set({ buf: '', err: true, sub: t });
   setTimeout(() => set({ err: false }), 450);
 }
@@ -46,16 +57,15 @@ async function key(k: string) {
   if (ls.buf.length >= 4) return;
   const buf = ls.buf + k;
   set({ buf });
-  haptic(4);
   if (buf.length < 4) return;
   await new Promise((r) => setTimeout(r, 120));
   if (ls.mode === 'set1') { set({ tmp: buf, buf: '', mode: 'set2', title: TEXT.set2[0], sub: TEXT.set2[1] }); return; }
   if (ls.mode === 'set2') {
     if (buf !== ls.tmp) { err('The PINs did not match. Start again.'); set({ mode: 'set1', tmp: '', title: TEXT.set1[0] }); return; }
     setLock(await newLock(buf, getLock()));
-    haptic(12); close(true); return;
+    haptic('success'); close(true); return;
   }
-  if (await checkPin(buf)) { fails = 0; haptic(10); close(true); }
+  if (await checkPin(buf)) { fails = 0; haptic('success'); close(true); }
   else { fails++; if (fails >= 5) { until = Date.now() + 30000; fails = 0; } err(until > Date.now() ? 'Too many tries. Wait 30 seconds.' : 'Wrong PIN. Try again.'); }
 }
 
@@ -66,8 +76,11 @@ async function bio() {
   try { ok = await bioVerify(); } catch { ok = false; }
   set({ scanning: false });
   if (ls.mode !== 'unlock') return;
-  if (ok) { haptic(10); close(true); } else set({ sub: 'Not recognised. Try again or enter your PIN.' });
+  if (ok) { haptic('success'); close(true); } else set({ sub: 'Not recognised. Try again or enter your PIN.' });
 }
+
+/** Whether the lock screen is showing (for the app shell, which freezes the page underneath). */
+export const useLockOpen = (): boolean => useLock().mode !== '';
 
 /** Entry points used by the app and the Settings sheet. */
 export const lockFlow = {

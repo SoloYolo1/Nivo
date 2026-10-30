@@ -35,7 +35,7 @@
 
 /* buttons that stretch */
 .btn.full{width:100%}
-.btn.big{min-height:52px;font-size:15.5px;border-radius:15px}
+.btn.big{min-height:52px;font-size:15.5px;border-radius:15px;letter-spacing:0;line-height:1.2;margin:0}
 .dash{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;width:100%;border-radius:18px;border:1.5px dashed color-mix(in srgb,var(--a) 40%,transparent);color:var(--a);background:none;font-weight:700;font-size:14.5px}
 .linkrow{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 6px;background:none;border:0;color:var(--mu);font:600 14px var(--f)}
 .linkrow span{display:flex;align-items:center;gap:10px}
@@ -123,12 +123,20 @@
 #root{min-height:100vh}
 .hero .hx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}
 
-/* ---------- page header: clean title; the nivo logo sits on the dark card below ---------- */
-.hdr.phdr{align-items:center;padding:18px 2px 14px}
-.hdr.phdr b{font-size:30px;line-height:1.1;letter-spacing:-1px;margin-top:0}
-.hdr.phdr small{margin-top:3px}
+/* ---------- page header: the nivo wordmark above a large title, as in 3.x ---------- */
 .phdr-sm{padding:8px 0 10px}
 .phdr-sm .dhdr{padding:0}
-.hero .hh .cw{width:58px;height:auto;display:block;color:#fff;margin:2px 0}
-.hero .hl{font-size:13.5px;font-weight:700;color:#fff;margin:0 0 2px}
-.hero .hl span{font-weight:500;color:rgba(243,217,155,.88)}
+.hdr .hw{margin:4px 0 12px}
+/* charts: area fades in under the line as it draws; touch scrubbing */
+.lc{touch-action:pan-y;user-select:none;cursor:crosshair}
+.area{animation:fadein .9s .2s both}
+.tipg{animation:fadein .5s .9s both}
+#ch .area{animation-delay:.2s}
+.acc .l{color:var(--tx);font-size:inherit;font-weight:inherit}
+/* Nivo 3 history card */
+.cd.mig{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(135deg,color-mix(in srgb,var(--a) 16%,var(--cd)),var(--cd) 70%);background-origin:border-box}
+.mig .tic{width:40px;height:40px;border-radius:13px;background:var(--a-soft);color:var(--a)}
+.mig b{display:block;font-size:15px}.mig p{margin:3px 0 12px;color:var(--mu);font-size:13px;line-height:1.45}
+.mig .acts{display:flex;gap:8px}.mig .btn{padding:9px 14px;min-height:40px;font-size:13.5px}
+.ob-mig{display:flex;align-items:center;gap:12px;width:100%;margin-top:18px;padding:14px;border-radius:18px;border:1px solid var(--bd);background:var(--cdg);box-shadow:var(--sh);color:var(--tx);font:inherit;text-align:left;position:relative;overflow:hidden;transition:transform .15s}
+.ob-mig:active{transform:scale(.98)}.ob-mig>span:nth-child(2){flex:1;min-width:0}.ob-mig b{display:block;font-size:14.5px}.ob-mig small{display:block;color:var(--mu);font-size:12.5px;margin-top:2px}.ob-mig>svg{color:var(--mu)}
