@@ -33,11 +33,9 @@ function open(mode: Exclude<Mode, ''>, done?: (ok: boolean) => void) {
   cb = done || null;
   const c = getLock();
   const t = TEXT[mode];
-  set({ mode, buf: '', tmp: '', title: t[0], sub: mode === 'unlock' && c?.bio ? 'Use your fingerprint or enter your PIN' : t[1], err: false, forgot: false, out: false });
-  // ask for the fingerprint straight away, as 3.x did (not more than once every few seconds)
-  if (mode === 'unlock' && c?.bio && Date.now() - lastAuto > 3000) { lastAuto = Date.now(); setTimeout(() => void bio(), 380); }
+  set({ mode, buf: '', tmp: '', title: t[0], sub: mode === 'unlock' && c?.bio ? 'Enter your PIN, or tap the fingerprint button' : t[1], err: false, forgot: false, out: false });
+  // The fingerprint prompt opens only when the fingerprint button is tapped; the PIN pad comes first.
 }
-let lastAuto = 0;
 function close(ok: boolean) {
   set({ out: true });
   const f = cb; cb = null;

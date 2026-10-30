@@ -58,7 +58,7 @@ Fixes for the Android app, and a polish pass.
 - **Home has a real chart:** net worth day by day (1W, 1M, 3M, All) that you can drag across. All charts share one component: smooth line, glow, a reveal that works on every WebView, readable labels.
 - **No light line along the bottom of cards** (the 1px borders are gone; depth comes from shadow and a top highlight). Taps ripple only inside what you pressed, and not while scrolling.
 - **Forms:** the fund entry sheet has labelled fields, shows what you paid a unit and the fee; the dock steps aside while you fill a form.
-- **Setup and lock screens fit any phone** without scrolling. Fingerprint is asked for as soon as the lock appears.
+- **Setup and lock screens fit any phone** without scrolling. The fingerprint prompt opens when you tap the fingerprint button (from 4.3).
 - **Same signing key on every build** (`android-assets/nivo-debug.keystore`), so future APKs install over the old one and keep your data. Builds made before 4.1 each had a different key, so this one time Android may ask you to uninstall first: copy a backup in the old app before you do.
 
 ## What is new in 4.0
