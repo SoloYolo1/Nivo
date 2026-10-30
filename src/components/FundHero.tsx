@@ -5,7 +5,8 @@ import { CountUp } from './ui';
 import { AreaChart } from './AreaChart';
 import { Icon } from './Icon';
 import { RANGES, rangeRows, type Row } from '../lib/fund';
-import { cl, dd, n0 } from '../lib/format';
+import { amountsHidden, cl, compact, dd, n0 } from '../lib/format';
+import { useStore } from '../state/store';
 import { useColors } from './theme';
 import type { Fund } from '../state/derived';
 
@@ -14,7 +15,9 @@ export function FundHero({ f, range, onRange }: { f: Fund; range: number; onRang
   const S = useMemo(() => rangeRows(f.rows, range), [f.rows, range]);
   const [ix, setIx] = useState<number | null>(null);
   const C = useColors();
-  const fmt = useCallback((v: number) => n0(v), []);
+  const masked = useStore((s) => s.masked);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fmt = useCallback((v: number) => n0(v), [masked]);
   const rg = S.slice(1).reduce((a, x) => a + x.chg, 0);
   const word = (RANGES.find((r) => r.d === range) || RANGES[3]).word;
   const sx = ix != null ? S[ix] : null;
@@ -36,8 +39,8 @@ export function FundHero({ f, range, onRange }: { f: Fund; range: number; onRang
         : <div className="hero-sub"><b className={net >= 0 ? 'g' : 'r'}>{(net >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(net))}</b> on Rs {n0(f.sent)} put in · <b>{(pct >= 0 ? '+' : '−') + Math.abs(pct).toFixed(2)}%</b><span className="hero-sub2">{(rg >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(rg))} {word}</span></div>}
       <AreaChart points={pts} height={140} bleed color={rg >= 0 ? C.upHero : C.dnHero} onDark ariaLabel={'Holding value ' + word} replay={String(range)} onScrub={setIx} tip={(p) => p.label + ' · Rs ' + n0(p.value)} />
       <div className="nw-foot" role="group" aria-label="Your units">
-        <span><small>Invested</small><b>Rs {(f.sent / 1e5).toFixed(2)} L</b></span>
-        <span><small>Units</small><b>{L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</b></span>
+        <span><small>Invested</small><b>{compact(f.sent)}</b></span>
+        <span><small>Units</small><b>{amountsHidden() ? '••••' : L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</b></span>
         <span><small>Avg cost</small><b>{f.be.toFixed(2)}</b></span>
       </div>
     </div>

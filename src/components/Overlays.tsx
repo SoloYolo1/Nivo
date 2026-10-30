@@ -10,11 +10,12 @@ export function ToastView() {
   if (t) last.current = t;
   const show = last.current;
   return (
-    <div className={'toast' + (t ? ' on' : '')} role="status" aria-live="polite">
+    <div className={'toast' + (t ? ' on' : '') + (show && show.action ? ' act' : '')} role="status" aria-live="polite">
       {show && <>
         {show.icon && <span className="chk" style={{ display: 'grid' }}><Icon name={show.icon} size={16} /></span>}
         {show.text}
         {show.action && <button type="button" onClick={() => { const a = show.action; dismissToast(); a?.fn(); }}>{show.action.label}</button>}
+        {show.action && t && <i key={show.id} className="toast-time" aria-hidden="true" />}
       </>}
     </div>
   );

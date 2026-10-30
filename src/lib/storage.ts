@@ -26,6 +26,11 @@ export const KEYS = {
   nwMilestone: 'nv_nw_ms',
   migrated: 'nv_migrated',
   migrateHide: 'nv_mig_hide',
+  // new in 4.4
+  hideOnLaunch: 'nv_hide_launch',
+  summary: 'nv_summary',
+  swipeHint: 'nv_swipe_hint',
+  goalHit: 'nv_goal_hit',
 } as const;
 
 /** Read a JSON value, falling back when it is missing or unreadable. */

@@ -10,18 +10,18 @@ import { refreshAlerts } from '../components/Sheets';
 import { RefreshButton } from './Fund';
 import { BackupCard } from './Backup';
 import { enableAlerts } from './Home';
-import { getState, openSettings, openSheet, push, setName, setState, setTheme, toast, useStore, type SettingsPage, type Theme } from '../state/store';
+import { getState, openSettings, openSheet, push, setMasked, setName, setState, setTheme, toast, useStore, type SettingsPage, type Theme } from '../state/store';
 import { syncBackground } from '../state/refresh';
 import { dd } from '../lib/format';
 import { isNative } from '../lib/native';
-import { KEYS, save } from '../lib/storage';
+import { KEYS, load, save } from '../lib/storage';
 import { askPower, openNotificationSettings, send } from '../lib/notify';
 import { bioEnroll, bioStatus, getLock, lockDelay, setLock, type BioStatus } from '../lib/lock';
 import { canSelfUpdate, useBuild, useUpdate } from '../lib/update';
 import { canBridge } from '../lib/legacy';
 
 export const SETTINGS_TITLE: Record<SettingsPage, string> = {
-  profile: 'Your name', appearance: 'Appearance', notifications: 'Notifications', security: 'App lock',
+  profile: 'Your name', appearance: 'Appearance', notifications: 'Notifications', security: 'Privacy and lock',
   prices: 'Prices', data: 'Your data', updates: 'Updates', phone: 'Phone features', about: 'About Nivo',
 };
 
@@ -47,6 +47,7 @@ function Menu() {
   const b = useBuild();
   const u = useUpdate();
   const lock = getLock();
+  const masked = useStore((s) => s.masked);
   useEffect(() => { void refreshAlerts(); }, []);
   const notif = alerts.perm === 'granted' ? (alerts.on ? 'On' : 'Off') : alerts.perm === 'denied' ? 'Blocked' : alerts.perm === 'unsupported' ? 'Not here' : 'Off';
   return (
@@ -61,7 +62,7 @@ function Menu() {
       <div className="set-grp">
         <Item icon="sun" tone="t-gold" title="Appearance" value={theme === 'system' ? 'System' : theme === 'light' ? 'Light' : 'Dark'} onClick={() => openSettings('appearance')} />
         <Item icon="bell" tone="t-red" title="Notifications" value={notif} onClick={() => openSettings('notifications')} />
-        <Item icon="lock" tone="t-indigo" title="App lock" value={lock ? (lock.bio ? 'PIN and fingerprint' : 'PIN') : 'Off'} onClick={() => openSettings('security')} />
+        <Item icon="lock" tone="t-indigo" title="Privacy and lock" value={lock ? (lock.bio ? 'PIN and fingerprint' : 'PIN') : masked ? 'Amounts hidden' : 'Off'} onClick={() => openSettings('security')} />
       </div>
 
       <div className="cap">Money</div>
@@ -74,9 +75,9 @@ function Menu() {
       <div className="set-grp">
         {canSelfUpdate() && <Item icon="sync" tone="t-gold" title="Updates" value={u.s === 'available' || u.s === 'ready' ? 'New version' : b ? b.versionName : ''} onClick={() => openSettings('updates')} />}
         <Item icon="shield" tone="t-indigo" title="Phone features" value={isNative() ? 'Check' : 'Website'} onClick={() => openSettings('phone')} />
-        <Item icon="info" tone="t-mute" title="About Nivo" value={b ? b.versionName : '4.3'} onClick={() => openSettings('about')} />
+        <Item icon="info" tone="t-mute" title="About Nivo" value={b ? b.versionName : '4.4'} onClick={() => openSettings('about')} />
       </div>
-      <div className="f" style={{ marginTop: 18 }}>Nivo {b ? b.versionName : '4.3'} · data stays on your device</div>
+      <div className="f" style={{ marginTop: 18 }}>Nivo {b ? b.versionName : '4.4'} · data stays on your device</div>
     </section>
   );
 }
@@ -138,12 +139,22 @@ function Security() {
   const has = !!lockCfg;
   const delay = lockDelay(lockCfg);
   const afterLock = () => setLockCfg(getLock());
+  const masked = useStore((s) => s.masked);
+  const [onLaunch, setOnLaunch] = useState(() => load<boolean>(KEYS.hideOnLaunch, false));
   return (
     <section className="pg">
+      <div className="cap">Privacy</div>
+      <div className="grp set-card" style={{ marginBottom: 6 }}>
+        <div className="rw"><div><b>Hide amounts</b><small>{masked ? 'On. Rupee amounts show as dots.' : 'Off. Also the eye on the Net worth card.'}</small></div>
+          <Switch label="Hide amounts" on={masked} onChange={(v) => setMasked(v)} /></div>
+        <div className="rw"><div><b>Hide when Nivo opens</b><small>Start with amounts hidden every time</small></div>
+          <Switch label="Hide amounts when Nivo opens" on={onLaunch} onChange={(v) => { save(KEYS.hideOnLaunch, v); setOnLaunch(v); if (v) setMasked(true); }} /></div>
+      </div>
+      <div className="cap">Lock</div>
       <div className="grp set-card">
         <div className="rw"><div><b>PIN</b><small>{has ? 'On. Nivo asks for it when you open the app.' : 'Off. Anyone with your phone can open Nivo.'}</small></div><button type="button" className="btn sec" style={small} onClick={() => lockFlow.setPin(afterLock)}>{has ? 'Change' : 'Set PIN'}</button></div>
         {has && <div className="rw"><div><b>Remove PIN</b><small>Turns the lock off</small></div><button type="button" className="btn ghost" style={{ ...small, padding: '8px 10px', color: 'var(--dn)' }} onClick={() => lockFlow.removePin(afterLock)}>Remove</button></div>}
-        <div className="rw"><div><b>{bio ? bio.name : 'Fingerprint unlock'}</b><small>{!has ? 'Set a PIN first' : !bioSt ? 'Checking…' : !bio ? bioSt.reason : lockCfg?.bio ? 'On. PIN stays as a backup.' : 'Off'}</small></div>
+        <div className="rw"><div><b>{bio ? bio.name : 'Fingerprint unlock'}</b>{has && !bioSt ? <span className="skel blk" style={{ width: 150 }} /> : null}<small hidden={has && !bioSt}>{!has ? 'Set a PIN first' : !bioSt ? '' : !bio ? bioSt.reason : lockCfg?.bio ? 'On. PIN stays as a backup.' : 'Off'}</small></div>
           <Switch label="Fingerprint unlock" disabled={!(has && bio)} on={!!(has && bio && lockCfg?.bio)} onChange={async () => {
             const c = getLock(); if (!c) return;
             if (c.bio) { setLock({ ...c, bio: false }); toast('Fingerprint unlock is off'); afterLock(); return; }
@@ -188,7 +199,7 @@ function Updates() {
 function About() {
   const b = useBuild();
   const rows: Array<[string, string]> = [
-    ['Version', b ? b.versionName + (b.versionCode ? ' (build ' + b.versionCode + ')' : '') : '4.3'],
+    ['Version', b ? b.versionName + (b.versionCode ? ' (build ' + b.versionCode + ')' : '') : '4.4'],
     ...(b?.built ? [['Built', b.built.slice(0, 10)] as [string, string]] : []),
     ...(b?.device ? [['Phone', b.device]] as Array<[string, string]> : []),
     ['Your data', 'Stays on this phone. Nivo has no account and no server.'],

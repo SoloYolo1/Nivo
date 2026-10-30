@@ -1,12 +1,13 @@
 // Notifications: everything Nivo has told you, newest first. Tap one to go where it points.
 import { useEffect } from 'react';
 import { Icon, type IconName } from '../components/Icon';
-import { clearInbox, markAllRead, markRead, unread, useInbox, type InboxItem } from '../lib/inbox';
+import { clearInbox, markAllRead, markRead, restoreInbox, unread, useInbox, type InboxItem } from '../lib/inbox';
+import { maskText } from '../lib/format';
 import { goTab, openSettings, push, toast } from '../state/store';
 
 const KIND: Record<InboxItem['kind'], { icon: IconName; tone: string }> = {
   nav: { icon: 'trend', tone: 't-green' }, stale: { icon: 'qedit', tone: 't-gold' }, update: { icon: 'sync', tone: 't-indigo' },
-  milestone: { icon: 'flag', tone: 't-gold' }, alert: { icon: 'bell', tone: 't-red' }, info: { icon: 'info', tone: 't-mute' },
+  milestone: { icon: 'flag', tone: 't-gold' }, alert: { icon: 'bell', tone: 't-red' }, info: { icon: 'info', tone: 't-mute' }, summary: { icon: 'pie', tone: 't-indigo' },
 };
 
 function when(t: number): string {
@@ -60,14 +61,14 @@ export function Notifications() {
             {items.map((it) => (
               <button type="button" key={it.key} className={'notif' + (it.read ? '' : ' new')} onClick={() => open(it)}>
                 <span className={'set-ic ' + KIND[it.kind].tone}><Icon name={KIND[it.kind].icon} size={17} /></span>
-                <span className="notif-t"><b>{it.title}</b><small>{it.body}</small><em>{when(it.t)}</em></span>
+                <span className="notif-t"><b>{maskText(it.title)}</b><small>{maskText(it.body)}</small><em>{when(it.t)}</em></span>
                 {!it.read && <i className="notif-dot" aria-label="New" />}
               </button>
             ))}
           </div>
         </div>
       ))}
-      <button type="button" className="linkrow" style={{ justifyContent: 'center', marginTop: 8 }} onClick={() => { clearInbox(); toast('Notifications cleared', 'check'); }}><span><Icon name="trash" size={16} />Clear all</span></button>
+      <button type="button" className="linkrow" style={{ justifyContent: 'center', marginTop: 8 }} onClick={() => { const was = clearInbox(); toast('Notifications cleared', 'trash', { label: 'Undo', fn: () => { restoreInbox(was); toast('Restored', 'check'); } }); }}><span><Icon name="trash" size={16} />Clear all</span></button>
     </section>
   );
 }

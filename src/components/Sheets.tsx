@@ -9,7 +9,7 @@ import {
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, snapshotOn, type Kind } from '../lib/accounts';
 import { navOn } from '../lib/fund';
-import { cl, dd, iso, longDate, n0, parseAmount, pc, sg } from '../lib/format';
+import { amountsHidden, cl, dd, iso, longDate, n0, parseAmount, pc, rawN0, sg } from '../lib/format';
 import { haptic } from '../lib/native';
 import { KEYS, load, save } from '../lib/storage';
 import { permission, powerOk } from '../lib/notify';
@@ -120,7 +120,7 @@ function EntrySheet() {
       </button>
       {tab === 'inv' && (
         <div className="chips2">
-          {[25000, 50000, 100000].map((v) => <button type="button" key={v} onClick={() => { setField('amt'); put(String((parseFloat(amt) || 0) + v)); }}>+{v === 100000 ? '1 lakh' : n0(v)}</button>)}
+          {[25000, 50000, 100000].map((v) => <button type="button" key={v} onClick={() => { setField('amt'); put(String((parseFloat(amt) || 0) + v)); }}>+{v === 100000 ? '1 lakh' : rawN0(v)}</button>)}
         </div>
       )}
       <div className="two2">
@@ -140,7 +140,7 @@ function EntrySheet() {
         {keys.map((k) => <button type="button" key={k} aria-label={k === 'del' ? 'Delete' : k} onClick={() => key(k)}>{k === 'del' ? <Icon name="back" size={24} /> : k}</button>)}
       </div>
       <button type="button" className="btn gold big full" onClick={tab === 'inv' ? saveInv : saveNav}>
-        {tab === 'inv' ? (a0 > 0 ? 'Save Rs ' + n0(a0) + ' investment' : 'Save investment') : (n0v > 0 ? 'Save price ' + n0v.toFixed(4) : 'Save price')}
+        {tab === 'inv' ? (a0 > 0 ? 'Save Rs ' + rawN0(a0) + ' investment' : 'Save investment') : (n0v > 0 ? 'Save price ' + n0v.toFixed(4) : 'Save price')}
       </button>
     </div>
   );
@@ -166,7 +166,7 @@ function DaySheet() {
       <div className="dy">
         <div><small>NAV</small><b>{x.nav.toFixed(4)}</b></div>
         <div><small>Your value</small><b>Rs {n0(x.val)}</b></div>
-        <div><small>Units held</small><b>{x.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</b></div>
+        <div><small>Units held</small><b>{amountsHidden() ? '••••' : x.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</b></div>
         <div><small>Since start</small><b className={cl(since)}>{sg(since)}</b></div>
       </div>
       {buys.filter((b) => b.date === d).map((b, k) => (
@@ -189,10 +189,10 @@ function UpdateSheet() {
   const id = useStore((s) => s.sheetArg);
   const a = useStore((s) => s.accounts.find((x) => x.id === id));
   const last = a ? snapshotOn(a) : null;
-  const [val, setVal] = useState(last ? n0(last.value) : '');
+  const [val, setVal] = useState(last ? rawN0(last.value) : '');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(iso());
-  const [b, setB] = useState({ bank: last?.bank != null ? n0(last.bank) : '', cash: last?.cash != null ? n0(last.cash) : '', receivable: last?.receivable != null ? n0(last.receivable) : '', payable: last?.payable != null ? n0(last.payable) : '', sales: last?.sales != null ? n0(last.sales) : '', costs: last?.costs != null ? n0(last.costs) : '' });
+  const [b, setB] = useState({ bank: last?.bank != null ? rawN0(last.bank) : '', cash: last?.cash != null ? rawN0(last.cash) : '', receivable: last?.receivable != null ? rawN0(last.receivable) : '', payable: last?.payable != null ? rawN0(last.payable) : '', sales: last?.sales != null ? rawN0(last.sales) : '', costs: last?.costs != null ? rawN0(last.costs) : '' });
   const [err, setErr] = useState('');
   if (!a) return null;
   const isBiz = a.kind === 'business';

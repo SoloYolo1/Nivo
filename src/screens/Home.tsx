@@ -7,7 +7,7 @@ import { Card, CountUp } from '../components/ui';
 import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useFund, useTotals } from '../state/derived';
-import { goTab, openSheet, push, setState, useStore } from '../state/store';
+import { goTab, openSheet, push, setMasked, setState, useStore } from '../state/store';
 import { refreshAll } from '../state/refresh';
 import { dailyNetWorth, emergency, endOfPrevMonth, growth, staleAccounts, workingIdle, worth, zakat, type Group } from '../lib/accounts';
 import { UpdateCard } from '../components/Update';
@@ -79,7 +79,7 @@ export function Home() {
           <button type="button" onClick={() => goTab('insights')}><small>{month.started && month.started > endOfPrevMonth(today) ? 'Since ' + dd(month.started) : 'This month'}</small><b className={Math.abs(month.change) >= 1 ? cl(month.change) : ''}>{Math.abs(month.change) < 1 ? 'No change' : (month.change >= 0 ? '+' : '−') + compact(Math.abs(month.change))}</b></button>
         </div>
         {L && (
-          <button type="button" className="navstrip" onClick={() => push({ name: 'fund', tab: 'overview' })}>
+          <button type="button" className={'navstrip' + (busy ? ' checking' : '')} aria-busy={busy || undefined} onClick={() => push({ name: 'fund', tab: 'overview' })}>
             <span className={'pulse-dot' + (fresh ? ' new' : '')} aria-hidden="true" />
             <span className="ns-t">
               <b>{fresh ? 'New NAV ' : 'NAV '}{L.nav.toFixed(4)}{f.prev && <span className={cl(L.chg)}> {pc((L.nav / f.prev.nav - 1) * 100)}</span>}</b>
@@ -177,8 +177,10 @@ function NetWorthHero() {
   const C = useColors();
   const [range, setRange] = useState(30);
   const [ix, setIx] = useState<number | null>(null);
+  const masked = useStore((s) => s.masked);
   const today = iso();
-  const fmt = useCallback((v: number) => n0(v), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fmt = useCallback((v: number) => n0(v), [masked]);
   const series = useMemo(() => dailyNetWorth(accounts, f.points, today, range), [accounts, f.points, today, range]);
   const pts = useMemo(() => series.map((p) => ({ date: p.date, label: p.date === today ? 'Today' : dd(p.date), value: p.value })), [series, today]);
   const deposits = useMemo(() => buys.map((b) => ({ date: b.date, amount: b.sent })), [buys]);
@@ -200,7 +202,10 @@ function NetWorthHero() {
           {NW_RANGES.map((r) => <button key={r.v} type="button" role="tab" aria-selected={range === r.v} className={range === r.v ? 'on' : ''} onClick={() => { setIx(null); setRange(r.v); }}>{r.label}</button>)}
         </div>
       </div>
-      <div className="hl">{sx ? (sx.label === 'Today' ? 'Today' : longish(sx.date)) : 'Net worth'}</div>
+      <div className="hl nw-hl">
+        <span>{sx ? (sx.label === 'Today' ? 'Today' : longish(sx.date)) : 'Net worth'}</span>
+        <button type="button" className={'nw-eye' + (masked ? ' on' : '')} aria-pressed={masked} aria-label={masked ? 'Show amounts' : 'Hide amounts'} onClick={() => setMasked(!masked)}><Icon name={masked ? 'eyeoff' : 'eye'} size={18} /></button>
+      </div>
       <div className="big"><span>Rs</span>{sx ? n0(sx.value) : <CountUp id="net-worth" value={t.netWorth} format={fmt} />}</div>
       <div className="chg-row">
         {Math.abs(shown) >= 1

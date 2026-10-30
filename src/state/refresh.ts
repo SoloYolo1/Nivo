@@ -6,7 +6,7 @@ import { fetchDataJson, fetchSite, fromEmail, fromRunner, peersFrom, syncRunner 
 import { send } from '../lib/notify';
 import { addInbox } from '../lib/inbox';
 import { KEYS, load } from '../lib/storage';
-import { dd, n0, pc, sg } from '../lib/format';
+import { dd, pc, rawN0 as n0, rawSg as sg } from '../lib/format';
 
 let lastAuto = 0;
 export const lastAutoAt = () => lastAuto;

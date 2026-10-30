@@ -17,7 +17,7 @@ function Row({ tone, title, text, action }: { tone: Tone; title: string; text: s
   return (
     <div className="rw pf">
       <span className={'pf-i ' + tone} aria-hidden="true"><Icon name={tone === 'ok' ? 'check' : tone === 'warn' ? 'info' : 'close'} size={14} stroke={2.6} /></span>
-      <div style={{ flex: 1, minWidth: 0 }}><b>{title}</b><small>{text}</small></div>
+      <div style={{ flex: 1, minWidth: 0 }}><b>{title}</b>{text ? <small>{text}</small> : <span className="skel blk" style={{ width: '70%' }} />}</div>
       {action}
     </div>
   );
@@ -52,9 +52,9 @@ export function PhoneFeatures({ always = false }: { always?: boolean }) {
           <Row tone={own || has('Haptics') ? 'ok' : native ? 'off' : 'warn'} title="Vibration on touch" text={own ? 'On. Uses Android’s touch feedback, or the vibrator when that is switched off.' : has('Haptics') ? 'On (Haptics plugin)' : native ? 'This build cannot vibrate' : 'Browsers vibrate only on some phones'}
             action={<button type="button" className="btn sec" style={small} onClick={() => haptic('success')}>Test</button>} />
           <Row tone={bio == null ? 'warn' : bio.info ? 'ok' : native ? 'off' : 'warn'} title={bio?.info ? bio.info.name : 'Fingerprint unlock'}
-            text={bio == null ? 'Checking…' : bio.info ? (getLock()?.bio ? 'On. Nivo asks for it when it opens.' : 'Available. Turn it on under App lock' + (getLock() ? '.' : ' after setting a PIN.')) : bio.reason} />
+            text={bio == null ? '' : bio.info ? (getLock()?.bio ? 'On. Nivo asks for it when it opens.' : 'Available. Turn it on under App lock' + (getLock() ? '.' : ' after setting a PIN.')) : bio.reason} />
           <Row tone={perm === 'granted' ? 'ok' : perm === 'prompt' ? 'warn' : perm == null ? 'warn' : 'off'} title="Notifications"
-            text={perm == null ? 'Checking…' : perm === 'granted' ? 'Allowed. New prices arrive as alerts.' : perm === 'prompt' ? 'Not asked yet. Android will ask when you allow them.' : perm === 'denied' ? 'Blocked. Allow notifications for Nivo in your phone’s Settings › Apps › Nivo.' : native ? 'This build has no notification support' : 'Not available in this browser'}
+            text={perm == null ? '' : perm === 'granted' ? 'Allowed. New prices arrive as alerts.' : perm === 'prompt' ? 'Not asked yet. Android will ask when you allow them.' : perm === 'denied' ? 'Blocked. Allow notifications for Nivo in your phone’s Settings › Apps › Nivo.' : native ? 'This build has no notification support' : 'Not available in this browser'}
             action={perm === 'prompt' ? <button type="button" className="btn gold" style={small} onClick={() => void enableAlerts().then(() => void permission().then(setPerm))}>Allow</button>
               : perm === 'denied' && native ? <button type="button" className="btn sec" style={small} onClick={() => void openNotificationSettings()}>Settings</button> : undefined} />
           <Row tone={has('BackgroundRunner') ? 'ok' : native ? 'off' : 'warn'} title="Background price check" text={has('BackgroundRunner') ? 'Checks Al Meezan about every 15 minutes while Nivo is closed' : native ? 'Not in this build' : 'Only in the Android app'} />

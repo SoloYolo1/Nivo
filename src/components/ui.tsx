@@ -72,6 +72,21 @@ export function CountUp({ id, value, format }: { id: string; value: number; form
   return <span className="cu" ref={ref}>{format(shownValues.has(id) ? (shownValues.get(id) as number) : 0)}</span>;
 }
 
+/** A progress ring that fills from empty when it first appears. */
+export function Ring({ pct, size = 96, stroke = 9, color = 'var(--gold)', track, children, label }: { pct: number; size?: number; stroke?: number; color?: string; track?: string; children?: ReactNode; label?: string }) {
+  const r = 50 - stroke / 2, C = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+  return (
+    <span className={'ring' + (p >= 100 ? ' full' : '')} style={{ width: size, height: size }} role={label ? 'img' : undefined} aria-label={label}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r={r} fill="none" stroke={track || 'currentColor'} strokeOpacity={track ? 1 : 0.1} strokeWidth={stroke} />
+        {p > 0 && <circle className="ring-arc" cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" transform="rotate(-90 50 50)"
+          style={{ strokeDasharray: C.toFixed(2), strokeDashoffset: (C * (1 - Math.max(p, 1.5) / 100)).toFixed(2), ['--c' as string]: C.toFixed(2) } as React.CSSProperties} />}
+      </svg>
+      {children != null && <span className="ring-in">{children}</span>}
+    </span>
+  );
+}
+
 export function Empty({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: ReactNode }) {
   return (
     <div className="empty"><span className="tic inv"><Icon name={icon} size={22} /></span><b>{title}</b><p>{text}</p>{action}</div>

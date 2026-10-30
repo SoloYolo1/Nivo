@@ -5,6 +5,7 @@ import { KEYS, load, loadArray, save, remove } from '../lib/storage';
 import { SEED_BUYS, SEED_NAVS, SEED_PEERS, mergeNavs, type Buy, type Nav, type Peers } from '../lib/fund';
 import { DEFAULT_GOAL, type Goal } from '../lib/plan';
 import type { Legacy } from '../lib/legacy';
+import { setAmountsHidden } from '../lib/format';
 import { cleanAccounts, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -40,9 +41,11 @@ export interface State {
   newSince: string; alerts: Alerts;
   /** History found in Nivo 3 (or a pasted backup), waiting for the person to choose to bring it over. */
   pending: Legacy | null;
+  /** Amounts drawn as dots (the eye on the Net worth card). */
+  masked: boolean;
 }
 
-function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending'> {
+function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'entryTab' | 'entryPrefill' | 'toast' | 'confetti' | 'booted' | 'splash' | 'locked' | 'onboarding' | 'refreshing' | 'refreshUi' | 'newSince' | 'alerts' | 'pending' | 'masked'> {
   const deleted = loadArray<string>(KEYS.deleted);
   const overrides = loadArray<string>(KEYS.overrides);
   const m: Record<string, Nav> = {};
@@ -80,6 +83,7 @@ let state: State = {
   booted: false, splash: true, locked: false, onboarding: false,
   newSince: '', alerts: { perm: 'unknown', on: false, power: null },
   pending: null,
+  masked: (() => { const m = !!load<boolean>(KEYS.hideOnLaunch, false); setAmountsHidden(m); return m; })(),
 };
 
 const listeners = new Set<() => void>();
@@ -221,6 +225,9 @@ export function deleteAccount(id: string): void {
     fn: () => { const list = [...state.accounts]; list.splice(Math.min(i, list.length), 0, gone); saveAccounts(list); toast('Restored', 'check'); },
   });
 }
+
+// ---------------- hiding amounts ----------------
+export function setMasked(masked: boolean): void { setAmountsHidden(masked); setState({ masked }); }
 
 // ---------------- settings ----------------
 export function setGoal(goal: Goal): void { save(KEYS.goal, goal); setState({ goal }); }

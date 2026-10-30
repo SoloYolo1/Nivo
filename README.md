@@ -4,6 +4,18 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.4
+
+- **Hide amounts.** The eye on the Net worth card turns every rupee figure into dots (percentages stay). Settings › Privacy and lock can start Nivo with amounts hidden. Notifications sent to the phone are not affected.
+- **Pull to refresh** on any tab: a ring fills as you pull, ticks when far enough, and the price check starts when you let go.
+- **Swipe on an account**: left to type a new balance, right to edit it. The first row nudges once to show it can be swiped.
+- **Undo** after removing an account, a balance, a price, an investment or clearing notifications; the toast drains while Undo is still possible.
+- **Read the chart**: drag sideways (or hold) on the Net worth chart to see the value on any day; up and down still scrolls.
+- **Monthly summary**: early each month, "October in review" lands in notifications, with the change and the account that moved it most. Money put in is not counted.
+- **Goals as rings** on Plan, with milestone rings and a celebration when you reach your goal.
+- Skeleton placeholders while phone features are checked, a sheen while prices are being checked, and empty states on Accounts and Insights.
+- Softer jade green; hidden sheets no longer shade the bottom of the screen.
+
 ## What is new in 4.3
 
 A second pass at the Android problems, this time at their root causes, plus the Home redesign.

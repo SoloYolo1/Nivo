@@ -1,7 +1,7 @@
 // Plan: goal, growth forecast, milestones, scenarios and checklist. Now measured on net worth.
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
-import { Card } from '../components/ui';
+import { Card, Ring } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
@@ -9,7 +9,7 @@ import { useTotals } from '../state/derived';
 import { setGoal, toggleCheck, useStore } from '../state/store';
 import { CHECKLIST, duration, futureValue, monthsTo, sipNeeded } from '../lib/plan';
 import { MILESTONES } from '../lib/fund';
-import { big, n0 } from '../lib/format';
+import { big, n0, rawN0 } from '../lib/format';
 
 export function Plan() {
   const t = useTotals();
@@ -27,25 +27,28 @@ export function Plan() {
   const v = Math.max(0, t.netWorth), r = rate / 100, Y = Math.max(1, goal.years);
   const pts = Array.from({ length: Y + 1 }, (_, k) => futureValue(v, sip, r, k));
   const C2 = useColors();
-  const gp = Math.min(100, (v / goal.amount) * 100), C = 2 * Math.PI * 34;
+  const gp = Math.min(100, (v / goal.amount) * 100);
   const eta = monthsTo(v, sip, r, goal.amount);
   const doneCount = done.reduce((a, b) => a + b, 0);
   return (
     <section className="pg">
-      <div className="cd hero mini">
-        <HeroHead icon="target" label="Where you are headed" chip={'in ' + Y + (Y > 1 ? ' years' : ' year')} />
-        <div className="mh-v"><span>Rs</span>{big(pts[Y]).replace('Rs ', '')}</div>
-        <span className="dl">{gp.toFixed(1)}% of your {big(goal.amount)} goal today</span>
-        <div className="hx"><div><small>Monthly SIP</small><b>Rs {n0(sip)}</b></div><div><small>Return</small><b>{rate}% / yr</b></div><div><small>Goal in</small><b>{duration(eta)}</b></div></div>
+      <div className="cd hero mini plan-hero">
+        <HeroHead icon="target" label="Your goal" chip={'in ' + Y + (Y > 1 ? ' years' : ' year')} />
+        <div className="ph-row">
+          <Ring pct={gp} size={112} stroke={10} color="#f3d99b" track="rgba(255,255,255,.14)" label={gp.toFixed(0) + '% of your goal'}>
+            <b>{gp >= 100 ? <Icon name="check" size={30} stroke={3} /> : gp < 10 ? gp.toFixed(1) + '%' : Math.floor(gp) + '%'}</b><small>{gp >= 100 ? 'Reached' : 'of goal'}</small>
+          </Ring>
+          <div className="ph-t">
+            <small>Now</small><b>{big(v)}</b>
+            <small>Goal</small><b className="gold">{big(goal.amount)}</b>
+          </div>
+        </div>
+        <div className="hx"><div><small>Goal in</small><b>{eta === 0 ? 'Reached' : duration(eta)}</b></div><div><small>Monthly SIP</small><b>Rs {n0(sip)}</b></div><div><small>In {Y} {Y > 1 ? 'years' : 'year'}</small><b>{big(pts[Y]).replace('Rs ', '')}</b></div></div>
       </div>
       <div className="cap">Set up</div>
-      <Card icon="target" title="Your goal" more="Based on your net worth">
-        <div className="row">
-          <div><svg viewBox="0 0 80 80" style={{ width: 84, height: 84 }} aria-hidden="true"><circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeOpacity=".1" strokeWidth="9" /><circle className="rg" cx="40" cy="40" r="34" fill="none" stroke="var(--gold)" strokeWidth="9" strokeLinecap="round" strokeDasharray={((C * Math.max(gp, 2)) / 100).toFixed(1) + ' ' + C.toFixed(1)} transform="rotate(-90 40 40)" /></svg></div>
-          <div style={{ flex: 1 }}><div className="v" style={{ margin: 0 }}>{gp.toFixed(1)}%</div><div className="k">{big(v)} of {big(goal.amount)}</div></div>
-        </div>
-        <div className="frm" style={{ margin: '14px 0 0' }}>
-          <label className="fl" htmlFor="gA"><span>Target amount (Rs)</span><input type="number" inputMode="numeric" id="gA" placeholder="e.g. 10000000" value={gA} onChange={(e) => setGA(e.target.value)} /></label>
+      <Card icon="target" title="Your goal" more="Measured on net worth">
+        <div className="frm" style={{ margin: '4px 0 0' }}>
+          <label className="fl" htmlFor="gA"><span>Target amount (Rs)</span><input type="text" inputMode="numeric" id="gA" placeholder="e.g. 1,00,00,000" value={gA ? rawN0(+gA) : ''} onChange={(e) => setGA(e.target.value.replace(/[^\d]/g, '').slice(0, 12))} /></label>
           <label className="fl" htmlFor="gY"><span>Years to get there</span><input type="number" inputMode="numeric" id="gY" placeholder="e.g. 10" value={gY} onChange={(e) => setGY(e.target.value)} /></label>
         </div>
       </Card>
@@ -62,15 +65,20 @@ export function Plan() {
       </Card>
       <div className="cap">Roadmap</div>
       <Card icon="flag" title="Milestones" more="At the current plan">
-        {MILESTONES.map((m) => {
-          const p = Math.min(100, (v / m) * 100), e = monthsTo(v, sip, r, m);
-          return (
-            <div style={{ margin: '12px 0' }} key={m}>
-              <div className="rw" style={{ border: 0, padding: 0 }}><b>{big(m)}</b><span className="k">{e === 0 ? 'Reached' : 'in ' + duration(e)}</span></div>
-              <div className="bar"><b style={{ width: p.toFixed(1) + '%' }} /></div>
-            </div>
-          );
-        })}
+        <div className="ms-rings">
+          {MILESTONES.map((m) => {
+            const p = Math.min(100, (v / m) * 100), e = monthsTo(v, sip, r, m);
+            return (
+              <div className={'ms' + (e === 0 ? ' hit' : '')} key={m}>
+                <Ring pct={p} size={58} stroke={11} color={e === 0 ? 'var(--up)' : 'var(--gold)'} label={(m >= 1e7 ? m / 1e7 + ' crore' : m / 1e5 + ' lakh') + ': ' + (e === 0 ? 'reached' : Math.floor(p) + '%')}>
+                  {e === 0 ? <Icon name="check" size={18} stroke={3} /> : <b>{Math.floor(p)}%</b>}
+                </Ring>
+                <b>{m >= 1e7 ? m / 1e7 + ' Cr' : m / 1e5 + ' L'}</b>
+                <small>{e === 0 ? 'Reached' : duration(e)}</small>
+              </div>
+            );
+          })}
+        </div>
       </Card>
       <Card icon="sliders" title="Scenarios" more="Three return paths">
         {[[8, 'Cautious'], [12, 'Base'], [16, 'Bullish']].map(([x, l]) => (

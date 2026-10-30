@@ -1,6 +1,9 @@
 // Accounts: every bank, business, fund, asset and loan, grouped with totals.
+import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
-import { AccountRow, FundRow } from '../components/Rows';
+import { AccountRow, FundRow, swipeFor } from '../components/Rows';
+import { SwipeRow } from '../components/Swipe';
+import { KEYS, load, save } from '../lib/storage';
 import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, useStore } from '../state/store';
 import { GROUPS, KINDS, snapshotOn, staleAccounts, staleDays, type Account, type Group } from '../lib/accounts';
@@ -29,12 +32,15 @@ function LoanCard({ a }: { a: Account }) {
   const paid = first && first.value > 0 ? Math.max(0, Math.min(1, 1 - left / first.value)) : 0;
   const prev = a.history.length > 1 ? a.history[a.history.length - 2] : null;
   const step = prev && s ? prev.value - s.value : 0;
+  const sw = swipeFor(a);
   return (
+    <SwipeRow left={sw.left} right={{ ...sw.right, label: 'Paid' }}>
     <button type="button" className="cd loan" onClick={() => push({ name: 'account', id: a.id })}>
       <span className="loan-t"><b>{a.name}</b><b className="num">{n0(left)} left</b></span>
       <span className="loan-bar"><i style={{ width: paid * 100 + '%' }} /></span>
       <small>{paid > 0 ? Math.round(paid * 100) + '% paid off since ' + new Date(first.date + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' }) : 'Added ' + (first ? ago(first.date, iso()) : '')}{step > 0 ? ' · −Rs ' + n0(step) + ' last update' : ''}</small>
     </button>
+    </SwipeRow>
   );
 }
 
@@ -48,6 +54,10 @@ export function Accounts() {
   const count = accounts.length + (L ? 1 : 0);
   const groups = (['banks', 'business', 'investments', 'assets'] as Group[]).filter((g) => t.groups[g] > 0);
   const share = (g: Group) => (t.assets > 0 ? Math.round((t.groups[g] / t.assets) * 100) : 0);
+  // the first time accounts are listed, the first row nudges sideways to show it can be swiped
+  const [hint] = useState(() => accounts.length > 0 && !load<boolean>(KEYS.swipeHint, false));
+  useEffect(() => { if (hint) save(KEYS.swipeHint, true); }, [hint]);
+  const firstId = accounts.find((a) => KINDS[a.kind].group !== 'loans')?.id;
   return (
     <section className="pg">
       <div className="cd hero acct-hero">
@@ -60,12 +70,24 @@ export function Accounts() {
         </>}
       </div>
 
+      {!accounts.length && (
+        <div className="cd empty-start">
+          <span className="es-ic"><Icon name="wallet" size={26} /></span>
+          <b>Put all your money in one place</b>
+          <p>Add your banks, a business, gold or property, and any loans. Nivo adds them up into one net worth and tracks it over time.</p>
+          <div className="es-chips">
+            {([['bank', 'Bank', () => push({ name: 'editBank' })], ['briefcase', 'Business', () => push({ name: 'editBusiness' })], ['gold', 'Gold', () => push({ name: 'editAsset', kind: 'gold' })], ['house', 'Property', () => push({ name: 'editAsset', kind: 'property' })], ['card', 'Loan', () => push({ name: 'editAsset', kind: 'loan' })]] as Array<[string, string, () => void]>).map(([ic, l, fn]) => (
+              <button type="button" key={l} onClick={fn}><Icon name={ic} size={16} />{l}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {GROUPS.map((g) => {
         const list = accounts.filter((a) => KINDS[a.kind].group === g.id);
         const hasFund = g.id === 'investments' && !!L;
         const total = t.groups[g.id];
         if (!list.length && !hasFund) {
-          if (g.id !== 'loans') return null;
+          if (g.id !== 'loans' || !accounts.length) return null;
           return (
             <div key={g.id}>
               <div className="cap"><span><i className="gdot" style={{ background: DOT[g.id] }} />Loans and cards</span></div>
@@ -82,10 +104,11 @@ export function Accounts() {
             <div className="cap"><span><i className="gdot" style={{ background: DOT[g.id] }} />{g.label}</span><b className={g.id === 'loans' ? 'dn' : ''}>{total < 0 ? '−' : ''}Rs {n0(Math.abs(total))}</b></div>
             {g.id === 'loans'
               ? list.map((a) => <LoanCard key={a.id} a={a} />)
-              : <section className="cd list">{hasFund && <FundRow f={f} />}{list.map((a) => <AccountRow key={a.id} a={a} today={today} />)}</section>}
+              : <section className="cd list">{hasFund && <FundRow f={f} />}{list.map((a) => <AccountRow key={a.id} a={a} today={today} hint={hint && a.id === firstId} />)}</section>}
           </div>
         );
       })}
+      {accounts.length > 0 && <div className="sw-tip"><Icon name="chevl" size={14} />Swipe an account left to update it, right to edit<Icon name="chevr" size={14} /></div>}
       <button type="button" className="dash" style={{ marginTop: 16 }} onClick={() => openSheet('add')}><Icon name="plus" size={18} />Add an account</button>
       <button type="button" className="linkrow" style={{ marginTop: 6 }} onClick={() => push({ name: 'activity' })}><span><Icon name="list" size={18} />All activity and backup</span><Icon name="chevr" size={18} /></button>
     </section>

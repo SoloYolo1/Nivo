@@ -8,6 +8,7 @@ declare module 'node:assert/strict' {
   interface A {
     (v: unknown, msg?: string): void;
     equal(a: unknown, b: unknown, msg?: string): void;
+    match(s: string, re: RegExp, msg?: string): void;
     deepEqual(a: unknown, b: unknown, msg?: string): void;
     ok(v: unknown, msg?: string): void;
     notEqual(a: unknown, b: unknown, msg?: string): void;

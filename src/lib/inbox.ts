@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { load, save } from './storage';
 
-export type InboxKind = 'nav' | 'stale' | 'update' | 'milestone' | 'alert' | 'info';
+export type InboxKind = 'nav' | 'stale' | 'update' | 'milestone' | 'alert' | 'info' | 'summary';
 export type InboxGo = 'fund' | 'accounts' | 'updates' | 'insights' | 'notifications' | '';
 export interface InboxItem { key: string; t: number; kind: InboxKind; title: string; body: string; go: InboxGo; read?: boolean }
 
@@ -24,5 +24,7 @@ export function addInbox(it: Omit<InboxItem, 't' | 'read'> & { t?: number }): vo
 }
 export const markRead = (key: string): void => { if (items.some((x) => x.key === key && !x.read)) commit(items.map((x) => (x.key === key ? { ...x, read: true } : x))); };
 export const markAllRead = (): void => { if (items.some((x) => !x.read)) commit(items.map((x) => ({ ...x, read: true }))); };
-export const clearInbox = (): void => commit([]);
+/** Empty the list; returns what was there so it can be put back (Undo). */
+export const clearInbox = (): InboxItem[] => { const was = items; commit([]); return was; };
+export const restoreInbox = (list: InboxItem[]): void => { const keys = new Set(items.map((x) => x.key)); commit([...items, ...list.filter((x) => !keys.has(x.key))].sort((a, b) => b.t - a.t)); };
 export const unread = (list: InboxItem[]): number => list.filter((x) => !x.read).length;

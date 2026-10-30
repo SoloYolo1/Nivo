@@ -10,7 +10,7 @@ import { useFund, type Fund } from '../state/derived';
 import { deletePrice, getState, openEntry, openSheet, removeBuy, replaceTop, toast, useStore, type FundTab } from '../state/store';
 import { refreshAll } from '../state/refresh';
 import { dealing, expectedDate, feeOf, windowPL, type Row, type Stats } from '../lib/fund';
-import { cl, dd, iso, n0, pc, sg } from '../lib/format';
+import { amountsHidden, cl, dd, iso, n0, pc, sg } from '../lib/format';
 import { haptic } from '../lib/native';
 import { BackupCard } from './Backup';
 
@@ -213,7 +213,7 @@ function Analysis({ f }: { f: Fund }) {
                 return (
                   <g key={x.date}>
                     <rect className="gb" x={(cx - bw / 2).toFixed(1)} y={y.toFixed(1)} width={bw.toFixed(1)} height={h.toFixed(1)} rx="6" fill={x.chg >= 0 ? C.up : C.dn} style={{ transformBox: 'fill-box', transformOrigin: 'center ' + (x.chg >= 0 ? 'bottom' : 'top'), animationDelay: Math.min(i * 60, 600) + 'ms' }} />
-                    <text x={cx.toFixed(1)} y={(x.chg >= 0 ? y - 5 : y + h + 11).toFixed(1)} fontSize={bars.length > 8 ? 7.5 : 9} fontWeight="700" textAnchor="middle" fill="currentColor" opacity=".8">{Math.abs(x.chg) >= 1000 ? (x.chg >= 0 ? '+' : '−') + (Math.abs(x.chg) / 1000).toFixed(1) + 'k' : sg(x.chg)}</text>
+                    <text x={cx.toFixed(1)} y={(x.chg >= 0 ? y - 5 : y + h + 11).toFixed(1)} fontSize={bars.length > 8 ? 7.5 : 9} fontWeight="700" textAnchor="middle" fill="currentColor" opacity=".8">{amountsHidden() ? '' : Math.abs(x.chg) >= 1000 ? (x.chg >= 0 ? '+' : '−') + (Math.abs(x.chg) / 1000).toFixed(1) + 'k' : sg(x.chg)}</text>
                     {(bars.length <= 7 || i % 2 === (bars.length - 1) % 2) && <text x={cx.toFixed(1)} y="144" fontSize="8.5" textAnchor="middle" fill="currentColor" opacity=".5">{dd(x.date)}</text>}
                   </g>
                 );

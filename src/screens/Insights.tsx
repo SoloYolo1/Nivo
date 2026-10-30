@@ -7,14 +7,14 @@ import { Donut } from '../components/Charts';
 import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, setNisab, setSpend, useStore } from '../state/store';
 import { emergency, endOfPrevMonth, growth, netWorthSeries, workingIdle, zakat, type Group } from '../lib/accounts';
-import { compact, dd, iso, n0, parseAmount, sg } from '../lib/format';
+import { amountsHidden, compact, dd, iso, n0, parseAmount, rawN0, sg } from '../lib/format';
 import { GROUP_COLOR } from './Home';
 
 const LABEL: Record<Group, string> = { banks: 'Banks and cash', business: 'Business', investments: 'Investments', assets: 'Other assets', loans: 'Loans' };
 
 function InlineAmount({ id, label, value, onSave, placeholder }: { id: string; label: string; value: number | null; onSave: (v: number | null) => void; placeholder: string }) {
-  const [t, setT] = useState(value ? n0(value) : '');
-  const commit = () => { const v = parseAmount(t); onSave(Number.isFinite(v) && v > 0 ? v : null); if (Number.isFinite(v) && v > 0) setT(n0(v)); };
+  const [t, setT] = useState(value ? rawN0(value) : '');
+  const commit = () => { const v = parseAmount(t); onSave(Number.isFinite(v) && v > 0 ? v : null); if (Number.isFinite(v) && v > 0) setT(rawN0(v)); };
   return (
     <div className="spend">
       <label className="lab" htmlFor={id} style={{ flex: 1 }}><span>{label}</span>
@@ -54,8 +54,8 @@ export function Insights() {
   const fundMove = g.parts.find((x) => x.id === 'fund');
   // Nothing to compare with from before this month: say since when, rather than "this month".
   const startedThisMonth = !!g.started && g.started > monthStart;
-  const amt = (v: number) => (Math.abs(v) >= 1e5 ? 'Rs ' + (Math.abs(v) / 1e5).toFixed(2) + ' lakh' : 'Rs ' + n0(Math.abs(v)));
-  const short = (v: number) => (v >= 0 ? '+' : '−') + (Math.abs(v) >= 1000 ? Math.round(Math.abs(v) / 1000) + 'k' : n0(Math.abs(v)));
+  const amt = (v: number) => (amountsHidden() ? 'Rs ••••' : Math.abs(v) >= 1e5 ? 'Rs ' + (Math.abs(v) / 1e5).toFixed(2) + ' lakh' : 'Rs ' + n0(Math.abs(v)));
+  const short = (v: number) => (v >= 0 ? '+' : '−') + (amountsHidden() ? '••••' : Math.abs(v) >= 1000 ? Math.round(Math.abs(v) / 1000) + 'k' : n0(Math.abs(v)));
   const working = totalWI > 0 ? Math.round((wi.working / totalWI) * 100) : 0;
   const gaugeLen = em.months != null ? Math.min(1, em.months / 6) : 0;
   return (
@@ -77,6 +77,13 @@ export function Insights() {
           {worst && worst !== top && <span>Worst: {worst.name} {short(worst.change)}</span>}
         </div>}
       </div>
+      {!accounts.length && (
+        <button type="button" className="cd ins-cta" onClick={() => openSheet('add')}>
+          <span className="es-ic"><Icon name="pie" size={22} /></span>
+          <span><b>See the whole picture</b><small>Add your banks, gold, property or loans. Insights then shows what is earning, how long your savings last and your zakat across everything.</small></span>
+          <Icon name="chevr" size={18} />
+        </button>
+      )}
 
       <div className="g2">
         <section className="cd tile2">

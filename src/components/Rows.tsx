@@ -3,8 +3,10 @@ import { Icon, KIND_ICON } from './Icon';
 import { useColors } from './theme';
 import { KINDS, businessStats, snapshotOn, staleDays, worthOf, type Account } from '../lib/accounts';
 import type { Fund } from '../state/derived';
-import { push } from '../state/store';
-import { dd, n0, sg } from '../lib/format';
+import { openSheet, push } from '../state/store';
+import { amountsHidden, dd, n0, sg } from '../lib/format';
+import { SwipeRow, type SwipeAction } from './Swipe';
+import { editRoute } from '../screens/AccountDetail';
 
 /** A tiny trend line; flat when there is only one value. */
 export function MiniSpark({ values, color }: { values: number[]; color: string }) {
@@ -49,7 +51,15 @@ function initials(a: Account): string {
   return w.slice(0, 2).map((x) => x[0]).join('').toUpperCase();
 }
 
-export function AccountRow({ a, today }: { a: Account; today: string }) {
+/** Swipe left to type a new balance, right to edit the account. */
+export function swipeFor(a: Account): { left: SwipeAction; right: SwipeAction } {
+  return {
+    left: { label: 'Edit', icon: 'pencil', tone: 'indigo', run: () => push(editRoute(a)) },
+    right: { label: a.kind === 'loan' ? 'Update' : 'Update', icon: 'qedit', tone: 'gold', run: () => openSheet('update', a.id) },
+  };
+}
+
+export function AccountRow({ a, today, hint = false }: { a: Account; today: string; hint?: boolean }) {
   const C = useColors();
   const s = snapshotOn(a);
   const prev = a.history.length > 1 ? a.history[a.history.length - 2] : null;
@@ -59,12 +69,15 @@ export function AccountRow({ a, today }: { a: Account; today: string }) {
   const ini = initials(a);
   const vals = a.history.slice(-8).map((h) => worthOf(a, h));
   const good = diff == null ? true : diff >= 0;
+  const sw = swipeFor(a);
   return (
+    <SwipeRow left={sw.left} right={sw.right} hint={hint}>
     <button type="button" className="acc" onClick={() => push({ name: 'account', id: a.id })}>
       <span className="l"><span className={'ai ' + g}>{ini || <Icon name={KIND_ICON[a.kind]} size={18} />}</span><span><b>{a.name}</b><small className={note.tone}>{note.text}</small></span></span>
       {a.kind !== 'loan' && vals.length > 1 && <MiniSpark values={vals} color={good ? C.up : C.dn} />}
       <span className="r"><b>{a.kind === 'loan' ? '−' : ''}{n0(Math.abs(s ? s.value : 0))}</b>{diff != null && diff !== 0 && <small className={good ? 'up' : 'dn'}>{a.kind === 'loan' ? (diff > 0 ? n0(diff) + ' paid' : '+' + n0(-diff) + ' owed') : sg(diff)}</small>}</span>
     </button>
+    </SwipeRow>
   );
 }
 
@@ -76,7 +89,7 @@ export function FundRow({ f }: { f: Fund }) {
   const trend = vals.length > 1 ? vals[vals.length - 1] - vals[0] : 0;
   return (
     <button type="button" className="acc" onClick={() => push({ name: 'fund', tab: 'overview' })}>
-      <span className="l"><span className="ai investments"><Icon name="trend" size={18} /></span><span><b>Meezan Balanced</b><small><span className="livedot" />Live · {L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })} units</small></span></span>
+      <span className="l"><span className="ai investments"><Icon name="trend" size={18} /></span><span><b>Meezan Balanced</b><small><span className="livedot" />Live · {amountsHidden() ? '••••' : L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })} units</small></span></span>
       <MiniSpark values={vals} color={trend >= 0 ? C.up : C.dn} />
       <span className="r"><b>{n0(L.val)}</b>{f.prev && <small className={L.chg >= 0 ? 'up' : 'dn'}>{sg(L.chg)}</small>}</span>
     </button>

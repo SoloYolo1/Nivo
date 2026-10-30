@@ -44,6 +44,7 @@ export function AreaChart({
   const box = useRef<HTMLDivElement>(null);
   const [ix, setIx] = useState<number | null>(null);
   const last = useRef(-1);
+  const gest = useRef<{ x0: number; y0: number; on: boolean; t: number } | null>(null);
   const pts = points.length === 1 ? [points[0], { ...points[0] }] : points;
   if (pts.length < 2) return null;
 
@@ -60,14 +61,42 @@ export function AreaChart({
   const k = ix == null ? pts.length - 1 : ix;
   const [px, py] = P[k];
 
-  const scrub = (e: React.PointerEvent) => {
+  // Touch: a sideways drag (or a short hold) starts reading the chart, so an up-and-down swipe that
+  // begins on the chart still scrolls the page. A mouse reads it on hover.
+  const at = (clientX: number) => {
     const r = box.current?.getBoundingClientRect();
     if (!r || !r.width) return;
-    const x = ((e.clientX - r.left) / r.width) * W;
+    const x = ((clientX - r.left) / r.width) * W;
     const i = Math.max(0, Math.min(pts.length - 1, Math.round(((x - L0) / (R0 - L0)) * (pts.length - 1))));
-    if (i !== last.current) { last.current = i; haptic('select'); setIx(i); onScrub?.(i); }
+    if (i !== last.current) {
+      const firstTouch = last.current === -1;
+      last.current = i;
+      haptic(!firstTouch && (i === 0 || i === pts.length - 1) ? 'medium' : 'select');
+      setIx(i); onScrub?.(i);
+    }
   };
-  const off = () => { if (last.current === -1) return; last.current = -1; setIx(null); onScrub?.(null); };
+  const down = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') { at(e.clientX); return; }
+    const x0 = e.clientX, y0 = e.clientY, id = e.pointerId, el = e.currentTarget as HTMLElement;
+    gest.current = { x0, y0, on: false, t: window.setTimeout(() => { const g = gest.current; if (g && !g.on) { g.on = true; try { el.setPointerCapture(id); } catch { /* ignore */ } at(x0); } }, 180) };
+  };
+  const move = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') { at(e.clientX); return; }
+    const g = gest.current;
+    if (!g) return;
+    if (!g.on) {
+      const dx = Math.abs(e.clientX - g.x0), dy = Math.abs(e.clientY - g.y0);
+      if (dy > 8 && dy > dx) { clearTimeout(g.t); gest.current = null; return; }
+      if (dx > 6 && dx > dy) { clearTimeout(g.t); g.on = true; try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ } }
+      else return;
+    }
+    at(e.clientX);
+  };
+  const off = () => {
+    if (gest.current) { clearTimeout(gest.current.t); gest.current = null; }
+    if (last.current === -1) return;
+    last.current = -1; setIx(null); onScrub?.(null);
+  };
 
   const bubble = ix != null && tip ? tip(pts[ix]) : '';
   const bw = Math.max(64, bubble.length * 5.6 + 22);
@@ -75,7 +104,7 @@ export function AreaChart({
   const first = pts[0], lastP = pts[pts.length - 1];
 
   return (
-    <div className={'ac' + (bleed ? ' bleed' : '')} ref={box} onPointerDown={scrub} onPointerMove={scrub} onPointerLeave={off} onPointerUp={off} onPointerCancel={off}>
+    <div className={'ac' + (bleed ? ' bleed' : '')} ref={box} onPointerDown={down} onPointerMove={move} onPointerLeave={off} onPointerUp={off} onPointerCancel={off}>
       <svg viewBox={'0 0 ' + W + ' ' + height} role="img" aria-label={ariaLabel}>
         <defs>
           <linearGradient id={'f' + uid} x1="0" y1="0" x2="0" y2="1">

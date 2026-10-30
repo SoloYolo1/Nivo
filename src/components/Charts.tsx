@@ -1,7 +1,7 @@
 // Small SVG charts drawn to scale. Labels only name values the chart actually reaches.
 import { useId, useRef, useState } from 'react';
 import { haptic } from '../lib/native';
-import { compact } from '../lib/format';
+import { amountsHidden, compact } from '../lib/format';
 
 export interface Pt { label: string; value: number }
 
@@ -93,7 +93,7 @@ export function Bars({ items, highlightLast = true, upColor, dnColor }: { items:
         return (
           <g key={x.label + i}>
             <rect className="gb" x={(cx - bw / 2).toFixed(1)} y={y.toFixed(1)} width={bw.toFixed(1)} height={h.toFixed(1)} rx="6" fill={x.value >= 0 ? upColor : dnColor} opacity={highlightLast && !last ? 0.5 : 1} style={{ transformBox: 'fill-box', transformOrigin: 'center ' + (x.value >= 0 ? 'bottom' : 'top'), animationDelay: Math.min(i * 60, 400) + 'ms' }} />
-            <text x={cx.toFixed(1)} y={(x.value >= 0 ? y - 5 : y + h + 11).toFixed(1)} fontSize="9" fontWeight="700" textAnchor="middle" fill="currentColor" opacity=".8">{Math.abs(x.value) >= 1000 ? (x.value < 0 ? '−' : '') + Math.round(Math.abs(x.value) / 1000) + 'k' : Math.round(x.value)}</text>
+            <text x={cx.toFixed(1)} y={(x.value >= 0 ? y - 5 : y + h + 11).toFixed(1)} fontSize="9" fontWeight="700" textAnchor="middle" fill="currentColor" opacity=".8">{amountsHidden() ? '' : Math.abs(x.value) >= 1000 ? (x.value < 0 ? '−' : '') + Math.round(Math.abs(x.value) / 1000) + 'k' : Math.round(x.value)}</text>
             <text x={cx.toFixed(1)} y={H - 6} fontSize="9" textAnchor="middle" fill="currentColor" opacity=".55">{x.label}</text>
           </g>
         );

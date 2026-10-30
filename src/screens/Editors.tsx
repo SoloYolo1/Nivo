@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Seg, Switch } from '../components/ui';
 import { pop, push, replaceTop, toast, upsertAccount, useStore } from '../state/store';
 import { BANKS, BIZ_TYPES, KINDS, businessValue, newId, snapshotOn, type Account, type BankType, type Kind } from '../lib/accounts';
-import { iso, n0, parseAmount } from '../lib/format';
+import { iso, parseAmount, rawN0 } from '../lib/format';
 import { haptic } from '../lib/native';
 import { setMonthlyReminder } from '../lib/notify';
 
@@ -14,7 +14,7 @@ function Money({ id, label, value, onChange, big, placeholder }: { id: string; l
     <label className="lab" htmlFor={id}>{label}
       <input id={id} className={'in' + (big ? ' money' : '')} inputMode="decimal" autoComplete="off" placeholder={placeholder || 'Optional'} value={value}
         onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-        onBlur={() => { const v = parseAmount(value); if (Number.isFinite(v)) onChange(n0(v)); }} />
+        onBlur={() => { const v = parseAmount(value); if (Number.isFinite(v)) onChange(rawN0(v)); }} />
     </label>
   );
 }
@@ -72,7 +72,7 @@ export function EditBank({ id }: { id?: string }) {
       {!existing && <Money id="b-bal" label="Current balance (Rs)" value={bal} onChange={setBal} big placeholder="e.g. 850,000" />}
       {type !== 'current' && <>
         <label className="lab" htmlFor="b-rate">Profit rate a year, % (optional)<input id="b-rate" className="in" inputMode="decimal" placeholder="e.g. 9.5" value={rate} onChange={(e) => setRate(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
-        {r > 0 && (existing ? (snapshotOn(existing)?.value || 0) : balV) > 0 && <div className="hint gold" style={{ marginTop: -8 }}>About Rs {n0(((existing ? (snapshotOn(existing)?.value || 0) : balV) * r) / 100 / 12)} a month before tax at this rate.</div>}
+        {r > 0 && (existing ? (snapshotOn(existing)?.value || 0) : balV) > 0 && <div className="hint gold" style={{ marginTop: -8 }}>About Rs {rawN0(((existing ? (snapshotOn(existing)?.value || 0) : balV) * r) / 100 / 12)} a month before tax at this rate.</div>}
       </>}
       <div className="grp2">
         <div className="tg"><span>Count as emergency money<small>Used for the cash cushion in Insights</small></span><Switch label="Count as emergency money" on={emer} onChange={setEmer} /></div>
@@ -131,7 +131,7 @@ export function EditBusiness({ id }: { id?: string }) {
         <div className="cap" style={{ margin: '4px 4px -6px' }}>A normal month (optional)</div>
         <div className="two2"><Money id="z-sales" label="Sales" value={sales} onChange={setSales} placeholder="e.g. 410,000" /><Money id="z-costs" label="Costs" value={costs} onChange={setCosts} placeholder="e.g. 348,000" /></div>
         <div className="hint" style={{ marginTop: -6 }}>Lets Nivo show profit, margin and how many months the cash would last.</div>
-        <div className="sumbox"><span>Adds to your net worth<br /><small>(has − owes) × your share</small></span><b>Rs {n0(net * ((shareV > 0 ? shareV : 0) / 100))}</b></div>
+        <div className="sumbox"><span>Adds to your net worth<br /><small>(has − owes) × your share</small></span><b>Rs {rawN0(net * ((shareV > 0 ? shareV : 0) / 100))}</b></div>
       </>}
       <div className="grp2"><div className="tg"><span>Remind me to update it<small>Once a month, on the 1st</small></span><Switch label="Monthly reminder" on={remind} onChange={setRemind} /></div></div>
       {PRIVACY}

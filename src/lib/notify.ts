@@ -80,3 +80,14 @@ export async function setMonthlyReminder(on: boolean): Promise<void> {
     notifications: [{ id: 7001, title: 'Time to update your balances', body: 'Open Nivo and type in this month’s bank and business balances.', channelId: 'nav', smallIcon: 'ic_stat_nivo', schedule: { on: { day: 1, hour: 10, minute: 0 }, allowWhileIdle: true } }],
   });
 }
+
+/** On the 1st of each month: the summary of last month is waiting in Nivo. Installed app only. */
+export async function setSummaryReminder(on: boolean): Promise<void> {
+  if (!plugin('LocalNotifications')) return;
+  await call('LocalNotifications', 'cancel', { notifications: [{ id: 7002 }] });
+  if (!on) return;
+  await ensureChannel();
+  await call('LocalNotifications', 'schedule', {
+    notifications: [{ id: 7002, title: 'Your month in review', body: 'See how your net worth moved last month and what moved it.', channelId: 'nav', smallIcon: 'ic_stat_nivo', iconColor: '#8F9CFF', schedule: { on: { day: 1, hour: 19, minute: 30 }, allowWhileIdle: true } }],
+  });
+}

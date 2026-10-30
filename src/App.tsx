@@ -25,12 +25,14 @@ import {
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
 import { KINDS, staleAccounts } from './lib/accounts';
 import { MILESTONES } from './lib/fund';
-import { big, dd, greeting, iso, n0 } from './lib/format';
+import { big, dd, greeting, iso, n0, unmasked } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
 import { haptic, isNative } from './lib/native';
 import { installNativeBack, installWebBack } from './lib/back';
 import { checkForUpdate, loadBuild } from './lib/update';
-import { ensureChannel, permission } from './lib/notify';
+import { ensureChannel, permission, setSummaryReminder } from './lib/notify';
+import { monthSummary } from './lib/summary';
+import { computeFund } from './state/derived';
 import { getLock, lockDelay } from './lib/lock';
 import { takeFromAddress } from './lib/legacy';
 
@@ -182,6 +184,9 @@ function TopBar() {
 
 export function App() {
   const splash = useStore((s) => s.splash);
+  // read here so the whole app redraws its amounts when they are hidden or shown
+  const masked = useStore((s) => s.masked);
+  useEffect(() => { const r = document.documentElement; if (masked) r.dataset.masked = '1'; else delete r.dataset.masked; }, [masked]);
   const onboarding = useStore((s) => s.onboarding);
   const [splashGone, setSplashGone] = useState(false);
   const f = useFund();
@@ -215,6 +220,7 @@ export function App() {
       setTimeout(() => setSplashGone(true), 750);
       syncBackground();
       remindStale();
+      postSummary();
       // installed app: what build this is, and whether a newer APK is out (at most twice a day)
       setTimeout(() => void loadBuild().then(() => checkForUpdate(true)), 1500);
       const onb = needsOnboarding() && !back;
@@ -326,30 +332,50 @@ export function App() {
   }, []);
 
   // ---------- pull to refresh and swipe between tabs ----------
+  // Pull down from the top of any tab: a ring fills as you pull, ticks once when far enough
+  // (release refreshes), and the page eases back. Horizontal drags (rows, the chart) never start it.
   useEffect(() => {
-    let py: number | null = null, pd = 0, sx: number | null = null, sy = 0, st0 = 0, swipeOk = false;
+    const PULL = 80, RING = 88;
+    let py: number | null = null, px = 0, pd = 0, armed = false, sx: number | null = null, sy = 0, st0 = 0, swipeOk = false;
     const ptr = document.getElementById('ptr');
+    const ring = ptr?.querySelector('.ptr-ring circle') as SVGCircleElement | null;
     const blocked = () => { const s = getState(); return !!s.sheet || lockFlow.isOpen() || s.onboarding || s.splash; };
+    const reset = () => {
+      const w = wRef.current;
+      if (w) { w.classList.remove('pulling'); w.style.transform = ''; }
+      if (ptr) { ptr.style.transition = ''; ptr.style.opacity = ''; ptr.style.transform = ''; ptr.classList.remove('armed'); }
+      if (ring) ring.style.strokeDashoffset = '';
+    };
     const start = (e: TouchEvent) => {
-      const tt = e.touches[0];
-      py = window.scrollY <= 0 && !blocked() ? tt.clientY : null; pd = 0;
+      const tt = e.touches[0], tgt = e.target as HTMLElement;
+      py = window.scrollY <= 0 && !blocked() && !tgt.closest?.('.ac,.sheet,#lock,input,textarea,[type=range]') ? tt.clientY : null;
+      px = tt.clientX; pd = 0; armed = false;
       sx = tt.clientX; sy = tt.clientY; st0 = Date.now();
-      swipeOk = !blocked() && !(e.target as HTMLElement).closest?.('#ch,.lc,input,textarea,.seg,.pz,.hm,.pr,.dock,.sheet,#lock,.sw-row,.chips,.tiles');
+      swipeOk = !blocked() && !tgt.closest?.('#ch,.lc,.ac,input,textarea,.seg,.pz,.hm,.pr,.dock,.sheet,#lock,.sw-row,.chips,.tiles');
     };
     const move = (e: TouchEvent) => {
       if (py == null) return;
-      pd = Math.max(0, e.touches[0].clientY - py);
+      const t = e.touches[0], dy = t.clientY - py, dx = t.clientX - px;
+      if (pd < 12 && Math.abs(dx) > Math.abs(dy)) { py = null; reset(); return; }
+      if (window.scrollY > 0) { py = null; reset(); return; }
+      pd = Math.max(0, dy);
+      const k = Math.min(1, pd / PULL);
       const w = wRef.current;
-      if (w) { w.classList.add('pulling'); w.style.transform = 'translateY(' + Math.min(pd * 0.32, 56) + 'px)'; }
-      if (ptr) { ptr.style.transition = 'none'; ptr.style.opacity = String(Math.min(1, pd / 70)); ptr.style.transform = 'translate(-50%,' + Math.min(pd * 0.5, 60) + 'px) rotate(' + pd * 3 + 'deg)'; }
+      if (w) { w.classList.add('pulling'); w.style.transform = 'translateY(' + Math.min(pd * 0.35, 64) + 'px)'; }
+      if (ptr) {
+        ptr.style.transition = 'none';
+        ptr.style.opacity = String(Math.min(1, pd / 40));
+        ptr.style.transform = 'translate(-50%,' + Math.min(pd * 0.5, 56) + 'px) rotate(' + k * 270 + 'deg)';
+      }
+      if (ring) ring.style.strokeDashoffset = String(RING * (1 - k));
+      if (pd >= PULL && !armed) { armed = true; ptr?.classList.add('armed'); haptic('select'); }
+      else if (pd < PULL && armed) { armed = false; ptr?.classList.remove('armed'); }
     };
     const end = (e: TouchEvent) => {
       if (py != null) {
-        const w = wRef.current;
-        if (w) { w.classList.remove('pulling'); w.style.transform = ''; }
-        if (ptr) { ptr.style.transition = ''; ptr.style.opacity = '0'; ptr.style.transform = 'translate(-50%,0)'; }
-        if (pd > 85) { haptic('medium'); void refreshAll(false); }
-        py = null;
+        reset();
+        if (armed) { haptic('medium'); void refreshAll(false); }
+        py = null; armed = false;
       }
       if (swipeOk && sx != null) {
         const tt = e.changedTouches[0], dx = tt.clientX - sx, dy = tt.clientY - sy;
@@ -360,10 +386,12 @@ export function App() {
       }
       sx = null;
     };
+    const cancel = () => { if (py != null) { reset(); py = null; } sx = null; };
     addEventListener('touchstart', start, { passive: true });
     addEventListener('touchmove', move, { passive: true });
     addEventListener('touchend', end, { passive: true });
-    return () => { removeEventListener('touchstart', start); removeEventListener('touchmove', move); removeEventListener('touchend', end); };
+    addEventListener('touchcancel', cancel, { passive: true });
+    return () => { removeEventListener('touchstart', start); removeEventListener('touchmove', move); removeEventListener('touchend', end); removeEventListener('touchcancel', cancel); };
   }, []);
 
   // ---------- remember the latest price seen, and celebrate real milestones ----------
@@ -380,9 +408,21 @@ export function App() {
   useEffect(() => {
     if (splash) return;
     const old = load<number>(KEYS.nwMilestone, 0);
-    if (old && hit > old) setTimeout(() => { celebrate(); toast('Net worth milestone: ' + big(hit), 'flag'); addInbox({ key: 'ms-' + hit, kind: 'milestone', go: 'insights', title: 'Net worth passed ' + big(hit), body: 'A milestone on the way to your goal.' }); }, 400);
+    if (old && hit > old) setTimeout(() => { celebrate(); toast('Net worth milestone: ' + big(hit), 'flag'); addInbox({ key: 'ms-' + hit, kind: 'milestone', go: 'insights', title: 'Net worth passed ' + unmasked(() => big(hit)), body: 'A milestone on the way to your goal.' }); }, 400);
     save(KEYS.nwMilestone, hit);
   }, [hit, splash]);
+
+  // Reaching the goal set on Plan: once per goal amount.
+  const goalAmt = useStore((s) => s.goal.amount);
+  const reached = t.netWorth >= goalAmt;
+  useEffect(() => {
+    if (splash) return;
+    const hitFor = load<number>(KEYS.goalHit, 0);
+    if (reached && hitFor !== goalAmt) {
+      save(KEYS.goalHit, goalAmt);
+      setTimeout(() => { celebrate(); toast('Goal reached: ' + big(goalAmt), 'target'); addInbox({ key: 'goal-' + goalAmt, kind: 'milestone', go: '', title: 'You reached your goal', body: 'Net worth passed ' + unmasked(() => big(goalAmt)) + '. Set a new one on Plan.' }); }, 600);
+    } else if (!reached && hitFor === goalAmt) save(KEYS.goalHit, 0);
+  }, [reached, goalAmt, splash]);
 
   // While something covers the page (start-up, lock, onboarding, a sheet), the page underneath must not scroll.
   const sheetOpen = useStore((s) => !!s.sheet);
@@ -399,7 +439,10 @@ export function App() {
       <div className="bgfx" aria-hidden="true"><i /><i /></div>
       <TopBar />
       <div className={'pbar' + (busy ? ' on' : '')} aria-hidden="true"><i /></div>
-      <div className={'ptr' + (busy ? ' busy' : '') + (ptrDone ? ' done' : '')} id="ptr" aria-hidden="true"><Icon name={ptrDone ? 'check' : 'refresh'} size={18} /></div>
+      <div className={'ptr' + (busy ? ' busy' : '') + (ptrDone ? ' done' : '')} id="ptr" aria-hidden="true">
+        <svg className="ptr-ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" /></svg>
+        <Icon name={ptrDone ? 'check' : 'refresh'} size={16} stroke={2.4} />
+      </div>
       <div className="w" ref={wRef}>
         <Header />
         <Screen />
@@ -426,6 +469,18 @@ function remindStale(): void {
     title: stale.length === 1 ? stale[0].name + ' needs updating' : stale.length + ' balances need updating',
     body: 'Not updated for over a month: ' + stale.slice(0, 3).map((a) => a.name).join(', ') + (stale.length > 3 ? ' and ' + (stale.length - 3) + ' more' : '') + '.',
   });
+}
+
+/** Early in a new month, last month's summary goes into the notification list (once). */
+function postSummary(): void {
+  const s = getState();
+  const f = computeFund(s.navs, s.buys);
+  const sum = monthSummary(s.accounts, f.points, s.buys.map((b) => ({ date: b.date, amount: b.sent })), iso());
+  if (sum && sum.key !== load<string>(KEYS.summary, '')) {
+    save(KEYS.summary, sum.key);
+    addInbox({ key: sum.key, kind: 'summary', go: 'insights', title: sum.title, body: sum.body });
+  }
+  void permission().then((p) => setSummaryReminder(p === 'granted' && load<boolean>(KEYS.notif, true)));
 }
 
 async function maybePrompt(): Promise<void> {
