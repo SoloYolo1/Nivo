@@ -38,14 +38,30 @@ const fromHeader = (c: Cap, name: string): Plugin | null => {
 
 const cache: Record<string, Plugin | null> = {};
 
-/** A native plugin by name, or null when the app runs in a browser or the plugin is not in the APK. */
-export const plugin = (name: string): Plugin | null => {
-  const c = cap();
-  if (!c) return null;
+/**
+ * Names the native side registers under, where they differ from the names the app uses.
+ * @capacitor/background-runner registers as "CapacitorBackgroundRunner"; its JavaScript package (which
+ * Nivo does not bundle) maps "BackgroundRunner" to it. Without this, every call to the background
+ * price check (handing it the latest price, reading what it found) failed silently.
+ */
+const NATIVE_NAMES: Record<string, string[]> = { BackgroundRunner: ['CapacitorBackgroundRunner', 'BackgroundRunner'] };
+
+const lookup = (c: Cap, name: string): Plugin | null => {
   const direct = c.Plugins && c.Plugins[name];
   if (direct) return direct;
   if (!(name in cache)) cache[name] = fromHeader(c, name);
   return cache[name];
+};
+
+/** A native plugin by name, or null when the app runs in a browser or the plugin is not in the APK. */
+export const plugin = (name: string): Plugin | null => {
+  const c = cap();
+  if (!c) return null;
+  for (const n of NATIVE_NAMES[name] || [name]) {
+    const p = lookup(c, n);
+    if (p) return p;
+  }
+  return null;
 };
 
 export const plugins = (): Record<string, Plugin | undefined> | null => {
