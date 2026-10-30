@@ -98,7 +98,7 @@
 .spend .in{min-height:42px;font-size:15px;padding:8px 12px;box-shadow:none;background:var(--tr)}
 
 /* fund screen tabs */
-.subnav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 54px);z-index:8;margin:0 0 12px}
+.subnav{position:sticky;top:calc(var(--sat,env(safe-area-inset-top,0px)) + 54px);z-index:8;margin:0 0 12px}
 .subnav .seg{margin:0;background:color-mix(in srgb,var(--bg) 70%,var(--tr));-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 
 /* sheet used for quick balance updates */

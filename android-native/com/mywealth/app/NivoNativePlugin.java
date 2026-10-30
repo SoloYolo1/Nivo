@@ -39,6 +39,33 @@ import java.security.MessageDigest;
 @CapacitorPlugin(name = "NivoNative")
 public class NivoNativePlugin extends Plugin {
 
+    // ---------- screen insets (edge to edge) ----------
+
+    private static final int[] INSETS = new int[] { 0, 0, 0, 0 }; // top, right, bottom, left, in CSS pixels
+
+    static synchronized void setInsets(int top, int right, int bottom, int left) {
+        INSETS[0] = top;
+        INSETS[1] = right;
+        INSETS[2] = bottom;
+        INSETS[3] = left;
+    }
+
+    static synchronized int[] getInsets() {
+        return INSETS.clone();
+    }
+
+    /** The status bar, navigation bar and cutout sizes, measured by MainActivity. */
+    @PluginMethod
+    public void insets(PluginCall call) {
+        int[] i = getInsets();
+        JSObject r = new JSObject();
+        r.put("top", i[0]);
+        r.put("right", i[1]);
+        r.put("bottom", i[2]);
+        r.put("left", i[3]);
+        call.resolve(r);
+    }
+
     // ---------- haptics ----------
 
     /**

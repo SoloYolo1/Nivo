@@ -56,9 +56,10 @@ jobs:
             const c={appId:'com.mywealth.app',appName:'Nivo',webDir:'www'};
             c.server={androidScheme:'https'};
             c.backgroundColor='#141729';
-            // Android 15 draws every app edge to edge. Keep the web view clear of the status and navigation
-            // bars, so the dock is never under the navigation bar or its translucent scrim.
-            c.android={adjustMarginsForEdgeToEdge:'force'};
+            // Edge to edge is handled by Nivo's own MainActivity: the app draws under transparent system bars
+            // (one continuous surface) and gets their exact sizes as CSS variables. Capacitor's margins are off,
+            // because they leave separate coloured strips above and below the app.
+            c.android={adjustMarginsForEdgeToEdge:'disable'};
             c.plugins={
               BackgroundRunner:{label:'com.mywealth.app.nav',src:'runners/background.js',event:'checkNav',repeat:true,interval:15,autoStart:true},
               LocalNotifications:{smallIcon:'ic_stat_nivo',iconColor:'#8f9cff'},
@@ -176,6 +177,8 @@ jobs:
           for p in VIBRATE POST_NOTIFICATIONS USE_BIOMETRIC REQUEST_INSTALL_PACKAGES; do
             grep -q "android.permission.$p" /tmp/perms || { echo "::error::$p is missing from the APK"; exit 1; }
           done
+          unzip -p $APK assets/capacitor.config.json > /tmp/capcfg.json
+          node -e "const c=require('/tmp/capcfg.json'); if(!c.android||c.android.adjustMarginsForEdgeToEdge!=='disable'){console.error('::error::Edge-to-edge setting is wrong');process.exit(1)} console.log('edge to edge: handled by MainActivity')"
           unzip -p $APK assets/public/build.json
           mkdir -p out && cp $APK "out/nivo-$VNAME-$VCODE.apk"
       - uses: actions/upload-artifact@v4
