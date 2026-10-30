@@ -16,8 +16,11 @@ export type Route =
   | { name: 'editBank'; id?: string }
   | { name: 'editBusiness'; id?: string }
   | { name: 'editAsset'; kind: Account['kind']; id?: string }
-  | { name: 'activity' };
-export type SheetName = '' | 'add' | 'entry' | 'day' | 'settings' | 'notif' | 'update' | 'import';
+  | { name: 'activity' }
+  | { name: 'settings'; page?: SettingsPage }
+  | { name: 'notifications' };
+export type SettingsPage = 'profile' | 'appearance' | 'notifications' | 'security' | 'prices' | 'data' | 'updates' | 'phone' | 'about';
+export type SheetName = '' | 'add' | 'entry' | 'day' | 'notif' | 'update' | 'import';
 
 export interface Toast { id: number; text: string; icon?: string; action?: { label: string; fn: () => void } }
 export interface LastCheck { t: number; src: string; latest: string }
@@ -128,6 +131,8 @@ export function pop(): boolean {
 }
 export function resetHome(): void { setState({ tab: 'home', stack: [], dir: '', sheet: '' }); scrollTop(); }
 export function scrollTop(): void { try { window.scrollTo(0, 0); } catch { /* ignore */ } }
+/** Settings is a page of its own: the menu, or one of its pages. */
+export function openSettings(page?: SettingsPage): void { push(page ? { name: 'settings', page } : { name: 'settings' }); }
 export const openSheet = (sheet: SheetName, sheetArg = '') => setState({ sheet, sheetArg });
 export const closeSheet = () => setState({ sheet: '' });
 export function openEntry(tab: 'nav' | 'inv', prefill: { date?: string; nav?: string } = {}): void {

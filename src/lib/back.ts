@@ -28,8 +28,17 @@ export function canGoBack(): boolean {
   return !!s.sheet || s.stack.length > 0 || s.tab !== 'home';
 }
 
-/** Android: the hardware or gesture back. Installed once at start-up. */
+/**
+ * Android: the hardware back button and the back gesture. Installed once at start-up.
+ * Nivo's MainActivity asks window.nivoBack() first and only sends the app to the background on 'exit',
+ * so back works even without the App plugin. The App plugin's listener stays as a second route
+ * (it is only called when the activity does not handle back itself).
+ */
 export function installNativeBack(): Promise<{ remove?: () => void } | null> {
+  (window as Window & { nivoBack?: () => 'handled' | 'exit' }).nivoBack = () => {
+    if (goBack()) { haptic('select'); return 'handled'; }
+    return 'exit';
+  };
   return call<{ remove?: () => void }>('App', 'addListener', 'backButton', () => {
     haptic('select');
     if (!goBack()) void call('App', 'minimizeApp');

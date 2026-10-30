@@ -15,17 +15,21 @@ import { FundScreen } from './screens/Fund';
 import { Insights } from './screens/Insights';
 import { Plan } from './screens/Plan';
 import { Activity } from './screens/Activity';
+import { Settings, SETTINGS_TITLE } from './screens/Settings';
+import { Notifications } from './screens/Notifications';
+import { addInbox, unread, useInbox } from './lib/inbox';
 import { useFund, useTotals } from './state/derived';
 import {
-  celebrate, closeSheet, getState, goTab, openSheet, pop, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
+  celebrate, closeSheet, getState, goTab, openSettings, openSheet, pop, push, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
 } from './state/store';
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
-import { KINDS } from './lib/accounts';
+import { KINDS, staleAccounts } from './lib/accounts';
 import { MILESTONES } from './lib/fund';
 import { big, dd, greeting, iso, n0 } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
 import { haptic, isNative } from './lib/native';
 import { installNativeBack, installWebBack } from './lib/back';
+import { checkForUpdate, loadBuild } from './lib/update';
 import { ensureChannel, permission } from './lib/notify';
 import { getLock, lockDelay } from './lib/lock';
 import { takeFromAddress } from './lib/legacy';
@@ -45,6 +49,8 @@ function routeTitle(r: Route): string {
     case 'editBusiness': return r.id ? 'Edit business' : 'Add a business';
     case 'editAsset': return (r.id ? 'Edit ' : 'Add ') + KINDS[r.kind].label.toLowerCase();
     case 'activity': return 'Activity';
+    case 'settings': return r.page ? SETTINGS_TITLE[r.page] : 'Settings';
+    case 'notifications': return 'Notifications';
   }
 }
 
@@ -60,6 +66,7 @@ function Header() {
     if (top.name === 'fund' && f.last) sub = <>NAV {f.last.nav.toFixed(4)} · {dd(f.last.date)} · <span className="up">live</span></>;
     if (top.name === 'account') { const a = accounts.find((x) => x.id === top.id); if (a) sub = subtitle(a, iso()); }
     if (top.name === 'activity') sub = 'Everything you have logged';
+    if (top.name === 'settings' && !top.page) sub = 'Nivo ' + (getState().name ? 'for ' + getState().name : 'on this phone');
     return (
       <header className="phdr phdr-sm">
         <div className="dhdr">
@@ -78,10 +85,21 @@ function Header() {
     <header className="hdr phdr">
       <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
       <div className="hdr-acts">
-        {tab === 'accounts' && <button type="button" className="hdr-add" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
-        <button type="button" className="ava" aria-label="Settings" onClick={() => openSheet('settings')}>{name ? name[0].toUpperCase() : <Icon name="sliders" size={20} />}</button>
+        {tab === 'accounts' && <button type="button" className="hdr-ib" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
+        <BellButton />
+        <button type="button" className="hdr-ib" aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={21} /></button>
       </div>
     </header>
+  );
+}
+
+/** The bell: opens the notification list; the badge counts the ones you have not seen. */
+function BellButton() {
+  const n = unread(useInbox());
+  return (
+    <button type="button" className="hdr-ib" aria-label={n ? 'Notifications, ' + n + ' new' : 'Notifications'} onClick={() => push({ name: 'notifications' })}>
+      <Icon name="bell" size={21} />{n > 0 && <em className="hdr-badge">{n > 9 ? '9+' : n}</em>}
+    </button>
   );
 }
 
@@ -99,6 +117,8 @@ function Screen() {
     else if (top.name === 'editBank') el = <EditBank id={top.id} />;
     else if (top.name === 'editBusiness') el = <EditBusiness id={top.id} />;
     else if (top.name === 'editAsset') el = <EditAsset kind={top.kind} id={top.id} />;
+    else if (top.name === 'settings') { el = <Settings page={top.page} />; key = 'settings-' + (top.page || ''); }
+    else if (top.name === 'notifications') el = <Notifications />;
     else el = <Activity />;
   } else {
     el = tab === 'home' ? <Home /> : tab === 'accounts' ? <Accounts /> : tab === 'insights' ? <Insights /> : <Plan />;
@@ -155,7 +175,7 @@ function TopBar() {
     <div className="nb" id="nb" data-val={showVal ? '1' : ''}>
       <span className="nbt">{title}</span>
       <span className="nbv"><b>Rs {n0(t.netWorth)}</b><span className={today >= 0 ? 'up' : 'dn'}>{f.last ? (today >= 0 ? '▲ ' : '▼ ') + n0(Math.abs(today)) + ' today' : ''}</span></span>
-      <button type="button" className="rb" aria-label="Settings" onClick={() => openSheet('settings')}><Icon name="sliders" size={19} /></button>
+      <button type="button" className="rb" aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={19} /></button>
     </div>
   );
 }
@@ -194,6 +214,9 @@ export function App() {
       setState({ splash: false });
       setTimeout(() => setSplashGone(true), 750);
       syncBackground();
+      remindStale();
+      // installed app: what build this is, and whether a newer APK is out (at most twice a day)
+      setTimeout(() => void loadBuild().then(() => checkForUpdate(true)), 1500);
       const onb = needsOnboarding() && !back;
       const after = () => {
         if (back) { setTimeout(() => openSheet('import', back.data ? '' : 'none'), 350); return; }
@@ -253,7 +276,10 @@ export function App() {
     const onMove = (e: PointerEvent) => { if (pending && Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 8) { clearTimeout(pending.t); pending = null; } };
     const onUp = () => { if (pending) { clearTimeout(pending.t); ripple(pending.el, pending.x, pending.y); pending = null; } };
     const onCancel = () => { if (pending) { clearTimeout(pending.t); pending = null; } };
-    document.addEventListener('click', onClick);
+    // Capture phase: by the time a click bubbles up, React has often re-rendered the control that was tapped
+    // (switching tab replaces its icon), the target is detached and no longer inside its button, and the tick
+    // was silently skipped. Before React handles it, the target is always still in place.
+    document.addEventListener('click', onClick, true);
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerup', onUp);
@@ -266,7 +292,7 @@ export function App() {
       backHandle?.remove?.();
       removeWebBack();
       ['contextmenu', 'selectstart', 'dragstart'].forEach((ev) => document.removeEventListener(ev, block));
-      document.removeEventListener('click', onClick);
+      document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
@@ -347,14 +373,14 @@ export function App() {
   useEffect(() => {
     if (splash || above == null) return;
     const was = load<boolean | null>(KEYS.above, null);
-    if (was === false && above) setTimeout(() => { celebrate(); toast('You are above break-even. Fees covered.', 'check'); }, 400);
+    if (was === false && above) setTimeout(() => { celebrate(); toast('You are above break-even. Fees covered.', 'check'); addInbox({ key: 'be-' + iso(), kind: 'milestone', go: 'fund', title: 'Above break-even', body: 'The fund’s price now covers your purchase fee.' }); }, 400);
     save(KEYS.above, above);
   }, [above, splash]);
   const hit = MILESTONES.filter((m) => t.netWorth >= m).pop() || 0;
   useEffect(() => {
     if (splash) return;
     const old = load<number>(KEYS.nwMilestone, 0);
-    if (old && hit > old) setTimeout(() => { celebrate(); toast('Net worth milestone: ' + big(hit), 'flag'); }, 400);
+    if (old && hit > old) setTimeout(() => { celebrate(); toast('Net worth milestone: ' + big(hit), 'flag'); addInbox({ key: 'ms-' + hit, kind: 'milestone', go: 'insights', title: 'Net worth passed ' + big(hit), body: 'A milestone on the way to your goal.' }); }, 400);
     save(KEYS.nwMilestone, hit);
   }, [hit, splash]);
 
@@ -388,6 +414,18 @@ export function App() {
       {!splashGone && <Splash out={!splash} />}
     </>
   );
+}
+
+/** Once a month, list the balances that have not been updated for 30 days. */
+function remindStale(): void {
+  const s = getState();
+  const stale = staleAccounts(s.accounts, iso());
+  if (!stale.length) return;
+  addInbox({
+    key: 'stale-' + iso().slice(0, 7), kind: 'stale', go: 'accounts',
+    title: stale.length === 1 ? stale[0].name + ' needs updating' : stale.length + ' balances need updating',
+    body: 'Not updated for over a month: ' + stale.slice(0, 3).map((a) => a.name).join(', ') + (stale.length > 3 ? ' and ' + (stale.length - 3) + ' more' : '') + '.',
+  });
 }
 
 async function maybePrompt(): Promise<void> {

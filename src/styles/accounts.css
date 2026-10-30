@@ -11,14 +11,14 @@
 .alloc i{display:block;height:100%;min-width:4px}
 .hero .hx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hx small .sw8{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
-.c-banks{background:#8f9cff}.c-business{background:#f3d99b}.c-investments{background:#4fd59c}.c-assets{background:#ff9f0a}.c-loans{background:#f2847b}
+.c-banks{background:#8f9cff}.c-business{background:#56c8f0}.c-investments{background:#4fd59c}.c-assets{background:#d68bf5}.c-loans{background:#f2847b}
 
 /* account rows */
 .ai{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;font-weight:800;font-size:12.5px;letter-spacing:-.2px}
 .ai.banks{background:color-mix(in srgb,var(--a) 16%,transparent);color:var(--a)}
-.ai.business{background:var(--gold-soft);color:var(--gold)}
+.ai.business{background:color-mix(in srgb,var(--cat-biz) 15%,transparent);color:var(--cat-biz)}
 .ai.investments{background:color-mix(in srgb,var(--up) 14%,transparent);color:var(--up)}
-.ai.assets{background:color-mix(in srgb,var(--org) 14%,transparent);color:var(--org)}
+.ai.assets{background:color-mix(in srgb,var(--cat-asset) 15%,transparent);color:var(--cat-asset)}
 .ai.loans{background:color-mix(in srgb,var(--dn) 14%,transparent);color:var(--dn)}
 .acc{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--bd);width:100%;background:none;border-left:0;border-right:0;border-top:0;color:var(--tx);font:inherit;text-align:left;cursor:pointer}
 .acc:last-child{border-bottom:0}

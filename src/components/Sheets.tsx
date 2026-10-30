@@ -1,26 +1,21 @@
 // Every bottom sheet in the app, driven by state.sheet.
 import { useEffect, useState } from 'react';
 import { Icon, KIND_ICON } from './Icon';
-import { Seg, Switch } from './ui';
 import { Sheet } from './Sheet';
-import { applyTheme } from './theme';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, celebrate, closeSheet, getState, importLegacy, openEntry, openSheet, push, savePrice, setName, setState, setTheme, toast, useStore, type Theme,
+  addBuy, addSnapshot, celebrate, closeSheet, importLegacy, openEntry, push, savePrice, setState, toast, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, snapshotOn, type Kind } from '../lib/accounts';
 import { navOn } from '../lib/fund';
 import { cl, dd, iso, longDate, n0, parseAmount, pc, sg } from '../lib/format';
-import { haptic, isNative } from '../lib/native';
+import { haptic } from '../lib/native';
 import { KEYS, load, save } from '../lib/storage';
-import { askPower, permission, powerOk, send } from '../lib/notify';
-import { bioAvailable, bioEnroll, getLock, lockDelay, setLock, type BioInfo } from '../lib/lock';
+import { permission, powerOk } from '../lib/notify';
 import { startAdd } from '../screens/Editors';
 import { bridgeReady, canBridge, fromBackup, startBridge, summarize } from '../lib/legacy';
 import { enableAlerts } from '../screens/Home';
-import { RefreshButton } from '../screens/Fund';
-import { lockFlow } from './Lock';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
@@ -32,7 +27,6 @@ export function Sheets() {
       <Sheet open={sheet === 'entry'} onClose={close} title={<EntryTitle />}><EntrySheet /></Sheet>
       <Sheet open={sheet === 'day'} onClose={close} title={<DayTitle />}><DaySheet /></Sheet>
       <Sheet open={sheet === 'update'} onClose={close} title={<UpdateTitle />}><UpdateSheet /></Sheet>
-      <Sheet open={sheet === 'settings'} onClose={close} title="Settings"><SettingsSheet /></Sheet>
       <Sheet open={sheet === 'notif'} onClose={close} title="Price alerts"><NotifSheet /></Sheet>
       <Sheet open={sheet === 'import'} onClose={close} title="Your Nivo 3 history"><ImportSheet /></Sheet>
     </>
@@ -238,69 +232,6 @@ function UpdateSheet() {
       <button type="button" className="btn gold big full" onClick={saveIt}>Save</button>
       <button type="button" className="btn ghost full" onClick={() => { closeSheet(); push({ name: 'account', id: a.id }); }}>Open {a.name}</button>
     </div>
-  );
-}
-
-// ---------------- settings ----------------
-function SettingsSheet() {
-  const name = useStore((s) => s.name);
-  const theme = useStore((s) => s.theme);
-  const alerts = useStore((s) => s.alerts);
-  const lc = useStore((s) => s.lastCheck);
-  const [nm, setNm] = useState(name);
-  const [lockCfg, setLockCfg] = useState(getLock());
-  const [bio, setBio] = useState<BioInfo | null>(null);
-  useEffect(() => { void bioAvailable().then(setBio); void refreshAlerts(); }, []);
-  const has = !!lockCfg;
-  const delay = lockDelay(lockCfg);
-  const afterLock = () => setLockCfg(getLock());
-  return (
-    <>
-      <h3>About you</h3>
-      <div className="grp"><div className="rw"><div><b>Your name</b><small>Used in the greeting</small></div>
-        <input aria-label="Your name" placeholder="Name" maxLength={24} value={nm} onChange={(e) => { setNm(e.target.value); setName(e.target.value); }} style={{ width: 140, minHeight: 40, padding: '8px 12px', borderRadius: 11, border: '1px solid transparent', background: 'var(--tr)', color: 'var(--tx)', font: '600 14px var(--f)', textAlign: 'right', outline: 0 }} /></div></div>
-      <h3>Appearance</h3>
-      <Seg label="Theme" style={{ margin: 0 }} value={theme} onChange={(t: Theme) => { setTheme(t); applyTheme(t); }} items={[{ v: 'system', label: 'System' }, { v: 'light', label: 'Light' }, { v: 'dark', label: 'Dark' }]} />
-      <h3>Notifications</h3>
-      <div className="grp">
-        <div className="rw"><div><b>New price alerts</b><small>{alerts.perm === 'granted' ? (alerts.on ? 'On. You will hear about each new NAV.' : 'Off') : alerts.perm === 'denied' ? 'Blocked. Allow notifications for Nivo in your phone settings.' : alerts.perm === 'unsupported' ? (isNative() ? 'Not available on this phone.' : 'Not available in this browser.') : 'Off. Tap to turn on.'}</small></div>
-          <Switch label="New price alerts" on={alerts.perm === 'granted' && alerts.on} disabled={alerts.perm === 'unsupported'} onChange={() => {
-            if (alerts.perm === 'granted') { const on = !alerts.on; save(KEYS.notif, on); setState({ alerts: { ...alerts, on } }); toast(on ? 'Price alerts are on' : 'Price alerts are off', on ? 'bell' : 'close'); syncBackground(); }
-            else if (alerts.perm === 'denied') toast('Allow notifications for Nivo in your phone settings');
-            else void enableAlerts();
-          }} /></div>
-        <div className="rw"><div><b>Send a test</b><small>Shows what an alert looks like on this phone</small></div><button type="button" className="btn sec" disabled={!(alerts.perm === 'granted' && alerts.on)} style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={async () => {
-          const s = getState(); const L = s.navs[s.navs.length - 1];
-          const ok = await send('New NAV for ' + (L ? dd(L.date) : 'today'), (L ? 'NAV ' + L.nav.toFixed(4) + '. ' : '') + 'This is a test.');
-          toast(ok ? 'Test alert sent' : 'Could not send a test here', ok ? 'check' : 'close');
-        }}>Test</button></div>
-        {alerts.power !== null && <div className="rw"><div><b>Alerts on time</b><small>{alerts.power ? 'On. Android lets Nivo check prices in the background.' : 'Off. Android is pausing background checks, so alerts can be late.'}</small></div>{!alerts.power && <button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={async () => { await askPower(); setTimeout(() => void refreshAlerts(), 1500); }}>Allow</button>}</div>}
-      </div>
-      <div className="k" style={{ marginTop: 8, lineHeight: 1.5 }}>In the installed app, Nivo checks Al Meezan in the background about every 15 minutes and alerts you when the NAV changes. Some phones (Xiaomi, Oppo, Vivo, Infinix, Tecno, Samsung) also need Autostart on, or Battery set to Unrestricted, for Nivo in the phone’s own settings.</div>
-      <h3>App lock</h3>
-      <div className="grp">
-        <div className="rw"><div><b>PIN</b><small>{has ? 'On. Nivo asks for it when you open the app.' : 'Off. Anyone with your phone can open Nivo.'}</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => { closeSheet(); lockFlow.setPin(afterLock); }}>{has ? 'Change' : 'Set PIN'}</button></div>
-        {has && <div className="rw"><div><b>Remove PIN</b><small>Turns the lock off</small></div><button type="button" className="btn ghost" style={{ minHeight: 38, padding: '8px 10px', fontSize: 13, color: 'var(--dn)' }} onClick={() => { closeSheet(); lockFlow.removePin(afterLock); }}>Remove</button></div>}
-        <div className="rw"><div><b>{bio ? bio.name : 'Fingerprint unlock'}</b><small>{!has ? 'Set a PIN first' : !bio ? (isNative() ? 'No fingerprint or face unlock set up on this phone' : 'Not available in this browser') : lockCfg?.bio ? 'On. PIN stays as a backup.' : 'Off'}</small></div>
-          <Switch label="Fingerprint unlock" disabled={!(has && bio)} on={!!(has && bio && lockCfg?.bio)} onChange={async () => {
-            const c = getLock(); if (!c) return;
-            if (c.bio) { setLock({ ...c, bio: false }); toast('Fingerprint unlock is off'); afterLock(); return; }
-            const ok = await bioEnroll(); const c2 = getLock();
-            if (ok && c2) { setLock({ ...c2, bio: true }); toast('Fingerprint unlock is on'); } else toast('Could not confirm your fingerprint');
-            afterLock();
-          }} /></div>
-        {has && <div className="rw"><div><b>Lock again after</b><small>Time away from the app</small></div><Seg label="Lock again after" style={{ margin: 0, width: 190 }} value={delay} onChange={(d: number) => { const c = getLock(); if (c) { setLock({ ...c, delay: d }); afterLock(); } }} items={[{ v: 0, label: 'Now' }, { v: 60, label: '1 min' }, { v: 300, label: '5 min' }]} /></div>}
-      </div>
-      <h3>Prices</h3>
-      <div className="grp"><div className="rw"><div><b>Check now</b><small>{lc.t ? 'Last checked ' + new Date(lc.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' via ' + lc.src : 'Not checked yet this session'}</small></div><RefreshButton /></div></div>
-      <div className="k" style={{ marginTop: 8, lineHeight: 1.5 }}>Prices are checked each time you open Nivo and every 5 minutes while it is open.</div>
-      <h3>Your data</h3>
-      <div className="grp">
-        <div className="rw"><div><b>Nivo 3 history</b><small>Bring over prices, purchases and your goal from the old app</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => openSheet('import')}>Bring over</button></div>
-        <div className="rw"><div><b>Backup and restore</b><small>Copy everything before you change phones</small></div><button type="button" className="btn sec" style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => { closeSheet(); push({ name: 'activity' }); }}>Open</button></div>
-      </div>
-      <div className="f" style={{ marginTop: 22 }}>Nivo 4.2 · data stays on your device</div>
-    </>
   );
 }
 

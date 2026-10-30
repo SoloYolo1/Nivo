@@ -39,10 +39,11 @@ test('balances are read as of a date', () => {
 });
 
 test('month change ignores accounts that were simply added this month', () => {
-  const r = monthChange(list, fund, '2026-10-29');
-  // Meezan Bank +25,000; HBL unchanged; UBL and the business are new this month (count from their first balance);
-  // the fund started this month too, so it counts from its first value: 194,443 − 196,000.
-  assert.equal(Math.round(r.change), 25000 + (194443 - 196000));
+  const r = monthChange(list, fund, '2026-10-29', [{ date: '2026-10-13', amount: 200000 }]);
+  // Meezan Bank +25,000; HBL unchanged; UBL and the business are new this month (count from their first balance).
+  // The fund was bought this month: 200,000 went in and it is worth 194,443, so it is down 5,557 (fee + market).
+  // (Before 4.2 the fund counted from its first value, and Insights then took the 200,000 off again: a 2 lakh "loss".)
+  assert.equal(Math.round(r.change), 25000 + (194443 - 200000));
 });
 
 test('end of previous month', () => {

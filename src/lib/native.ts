@@ -79,16 +79,24 @@ export async function call<T = unknown>(name: string, method: string, ...args: u
 // A number or a pattern still works (raw vibration), for the few places that want one.
 export type Haptic = 'tap' | 'select' | 'medium' | 'success' | 'error' | number | number[];
 
-const reduce = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lastAt = 0;
 let selecting = false; // the Haptics plugin only ticks for selectionChanged() after one selectionStart()
 
+// Note: haptics are deliberately NOT tied to "reduce motion". Android's "Remove animations" setting turns
+// on prefers-reduced-motion in the WebView, and gating on it switched off all feedback for those phones.
 export function haptic(kind: Haptic = 'tap'): void {
-  if (reduce()) return;
   // two ticks within a few ms would feel like one long buzz (a button inside a tappable row)
   const now = Date.now();
   if (typeof kind === 'string' && kind !== 'success' && kind !== 'error' && now - lastAt < 40) return;
   lastAt = now;
+  // 1. Nivo's own native code: the view's haptic engine (like the keyboard), falling back to the vibrator
+  //    when Android's touch feedback is switched off.
+  const n = plugin('NivoNative');
+  if (n && n.haptic) {
+    const type = typeof kind === 'string' ? kind : Array.isArray(kind) && kind.length > 1 ? 'error' : 'tap';
+    try { void Promise.resolve(n.haptic({ type })).catch(() => undefined); return; } catch { /* fall through */ }
+  }
+  // 2. Capacitor's Haptics plugin
   const h = plugin('Haptics');
   if (h) {
     try {

@@ -16,6 +16,9 @@ export function applyTheme(theme: Theme): void {
   const bg = dark ? '#0f111d' : '#f3f4fa';
   const m = document.querySelector('meta[name=theme-color]');
   if (m) m.setAttribute('content', bg);
+  // Behind the status and navigation bars (Android 15 draws apps edge to edge, so this is the app's own
+  // window colour there), and dark or light icons on them. StatusBar is kept for older Android versions.
+  void call('NivoNative', 'setSystemBars', { color: bg, dark });
   void call('StatusBar', 'setBackgroundColor', { color: bg });
   void call('StatusBar', 'setStyle', { style: dark ? 'DARK' : 'LIGHT' });
   notify();

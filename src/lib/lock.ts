@@ -1,6 +1,6 @@
 // App lock: a 4-digit PIN stored only as a salted hash, plus fingerprint or face unlock.
 import { load, save, KEYS } from './storage';
-import { plugin } from './native';
+import { isNative, plugin } from './native';
 
 export interface LockConfig { salt: string; hash: string; bio?: boolean; cred?: string; delay?: number }
 
@@ -48,6 +48,41 @@ export async function checkPin(pin: string): Promise<boolean> {
 export interface BioInfo { kind: 'native' | 'web'; name: string }
 
 const bioPlugin = () => plugin('BiometricAuthNative') || plugin('BiometricAuth');
+
+/** Why fingerprint unlock cannot be used, in words a person can act on. '' when it can be used. */
+export interface BioStatus { info: BioInfo | null; reason: string; native: boolean }
+
+/** Android's own answer (the biometric plugin's reason/code), translated. */
+function bioReason(r: { reason?: unknown; code?: unknown; deviceIsSecure?: unknown }): string {
+  // The reason text tells the cases apart; several of them share one generic code, so it comes second.
+  const why = String(r.reason || ''), code = String(r.code || '');
+  if (/enrol/i.test(why) || /NotEnrolled/i.test(code)) {
+    return r.deviceIsSecure === false
+      ? 'Set a screen lock (PIN, pattern or password) on your phone, add a fingerprint, then come back.'
+      : 'No fingerprint is set up on this phone yet. Add one in your phone’s Settings › Security, then come back.';
+  }
+  if (/currently unavailable/i.test(why)) return 'The fingerprint sensor is busy or unavailable right now. Try again in a moment.';
+  if (/no biometric hardware/i.test(why)) return 'This phone has no fingerprint or face sensor that apps can use.';
+  if (/vulnerab|security update/i.test(why)) return 'Android needs a security update before apps can use the fingerprint sensor.';
+  if (/incompatible/i.test(why)) return 'This Android version does not support the kind of fingerprint check Nivo asks for.';
+  return why || 'Android says fingerprint unlock is not available right now.';
+}
+
+export async function bioStatus(): Promise<BioStatus> {
+  const p = bioPlugin();
+  if (p && p.checkBiometry) {
+    try {
+      const r = (await p.checkBiometry()) as { isAvailable: boolean; biometryType: unknown; reason?: unknown; code?: unknown; deviceIsSecure?: unknown };
+      if (r.isAvailable) return { native: true, reason: '', info: { kind: 'native', name: /face|iris/i.test(String(r.biometryType)) || [2, 4, 5].includes(Number(r.biometryType)) ? 'Face unlock' : 'Fingerprint unlock' } };
+      return { native: true, info: null, reason: bioReason(r) };
+    } catch (e) {
+      return { native: true, info: null, reason: 'Android could not check the fingerprint sensor' + (e instanceof Error && e.message ? ' (' + e.message + ').' : '.') };
+    }
+  }
+  const web = await bioAvailable();
+  if (web) return { native: false, reason: '', info: web };
+  return { native: false, info: null, reason: isNative() ? 'This copy of Nivo was built without fingerprint support. Install the latest APK.' : 'Fingerprint unlock works in the Android app, not in this browser.' };
+}
 
 export async function bioAvailable(): Promise<BioInfo | null> {
   const p = bioPlugin();

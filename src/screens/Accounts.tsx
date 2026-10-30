@@ -18,7 +18,7 @@ export function subtitle(a: Account, today: string): React.ReactNode {
   return <>{stale && <span className="stale" />}{what} · {when}</>;
 }
 
-const DOT: Record<Group, string> = { banks: '#8f9cff', business: '#f3d99b', investments: '#4fd59c', assets: '#ff9f0a', loans: '#ff6961' };
+const DOT: Record<Group, string> = { banks: '#8f9cff', business: '#56c8f0', investments: '#4fd59c', assets: '#d68bf5', loans: '#ff6961' };
 const SHORT: Record<Group, string> = { banks: 'Banks', business: 'Business', investments: 'Invest', assets: 'Assets', loans: 'Loans' };
 
 /** A loan: what is left and how much has been paid off since it was added. */

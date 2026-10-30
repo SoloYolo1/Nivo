@@ -176,17 +176,55 @@ function earliestDate(list: Account[], fund: FundPoint[]): string {
 export const monthLabel = (d: string): string =>
   new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' });
 
-/** Change since the end of last month. Accounts created this month count from their first balance. */
-export function monthChange(list: Account[], fund: FundPoint[], today: string): { change: number; base: number } {
-  const e = endOfPrevMonth(today);
-  let base = fund.some((p) => p.date <= e) ? fundValueOn(fund, e) : (fund[0]?.val ?? 0);
-  let now = fundValueOn(fund, today);
+/** Money put into the fund on a day (a purchase). */
+export interface Flow { date: string; amount: number }
+
+export interface Growth {
+  /** What your money actually did over the period: value now − value at the start − money put in. */
+  change: number;
+  /** Net worth at the start plus the money put in. */
+  base: number;
+  /** What you owned at the start (loans not taken off) plus the money put in: the base for a percentage.
+   *  Net worth can be close to zero or negative with a loan, which would make any percentage meaningless. */
+  owned: number;
+  /** Money put into the fund during the period (not counted as growth). */
+  deposits: number;
+  /** The same, holding by holding, so the biggest movers can be named. */
+  parts: Array<{ id: string; name: string; change: number }>;
+  /** The first day Nivo has any data for, so the app can say "since you started tracking". */
+  started: string;
+}
+
+/**
+ * Growth from the end of `from` to `to`, without counting deposits or new accounts as gains:
+ * - an account that already had a balance at `from` counts from that balance;
+ * - an account added during the period counts from its first balance (adding it is not growth);
+ * - the fund counts from its value at `from` (0 if you did not hold it yet), and the money put in
+ *   during the period is taken off, so a purchase shows up as its fee and market move, not as a gain or a loss.
+ */
+export function growth(list: Account[], fund: FundPoint[], deposits: Flow[], from: string, to: string, fundName = 'Meezan fund'): Growth {
+  const parts: Growth['parts'] = [];
+  let start = 0, end = 0, owned = 0;
   for (const a of list) {
-    const before = snapshotOn(a, e) ?? a.history[0] ?? null;
-    base += worthOf(a, before);
-    now += worth(a);
+    const first = a.history.reduce<Snapshot | null>((m, s) => (!m || s.date < m.date ? s : m), null);
+    if (!first || first.date > to) continue;
+    const s0 = snapshotOn(a, from) ?? first;
+    const s1 = snapshotOn(a, to);
+    const v0 = worthOf(a, s0), v1 = worthOf(a, s1);
+    start += v0; end += v1; if (v0 > 0) owned += v0;
+    parts.push({ id: a.id, name: a.name, change: v1 - v0 });
   }
-  return { change: now - base, base };
+  const f0 = fundValueOn(fund, from), f1 = fundValueOn(fund, to);
+  const dep = deposits.filter((d) => d.date > from && d.date <= to).reduce((t, d) => t + d.amount, 0);
+  if (f0 || f1 || dep) parts.push({ id: 'fund', name: fundName, change: f1 - f0 - dep });
+  start += f0; end += f1;
+  return { change: end - start - dep, base: start + dep, owned: owned + f0 + dep, deposits: dep, parts, started: earliestDate(list, fund) };
+}
+
+/** Change since the end of last month (see growth). Pass the fund purchases so they are not counted as gains. */
+export function monthChange(list: Account[], fund: FundPoint[], today: string, deposits: Flow[] = []): { change: number; base: number } {
+  const g = growth(list, fund, deposits, endOfPrevMonth(today), today);
+  return { change: g.change, base: g.base };
 }
 
 // ---------- insights ----------

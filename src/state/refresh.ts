@@ -4,6 +4,7 @@ import { getState, setState, mergePrices, setPeers, toast } from './store';
 import { computeFund } from './derived';
 import { fetchDataJson, fetchSite, fromEmail, fromRunner, peersFrom, syncRunner } from '../lib/prices';
 import { send } from '../lib/notify';
+import { addInbox } from '../lib/inbox';
 import { KEYS, load } from '../lib/storage';
 import { dd, n0, pc, sg } from '../lib/format';
 
@@ -70,6 +71,11 @@ export async function refreshAll(auto: boolean): Promise<void> {
   if (!auto) setTimeout(() => { if (getState().refreshUi === 'ok' || getState().refreshUi === 'done') setState({ refreshUi: '' }); }, fresh ? 1600 : 400);
   if (fresh && f1.last) {
     toast('New price added: ' + dd(f1.last.date), 'check');
+    const L = f1.last, pv = f1.prev;
+    addInbox({
+      key: 'nav-' + L.date, kind: 'nav', go: 'fund', title: 'New NAV for ' + dd(L.date),
+      body: 'NAV ' + L.nav.toFixed(4) + (pv ? ' (' + pc((L.nav / pv.nav - 1) * 100) + ')' : '') + (L.u ? '. Your holding is Rs ' + n0(L.val) + (pv ? ', ' + sg(L.chg) + ' that day' : '') + '.' : '.'),
+    });
     if (prev) void notifyNew(prev);
   } else if (!auto) {
     toast(ok.length ? 'Checked ' + ok.join(' and ') + '. Nothing newer yet.' : 'Could not reach a price source. Add the price with the + button.', ok.length ? 'check' : 'close');

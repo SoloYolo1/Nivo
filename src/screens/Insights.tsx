@@ -6,7 +6,7 @@ import { Wordmark } from '../components/Wordmark';
 import { Donut } from '../components/Charts';
 import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, setNisab, setSpend, useStore } from '../state/store';
-import { emergency, endOfPrevMonth, fundValueOn, monthChange, netWorthSeries, snapshotOn, workingIdle, worth, worthOf, zakat, type Group } from '../lib/accounts';
+import { emergency, endOfPrevMonth, growth, netWorthSeries, workingIdle, zakat, type Group } from '../lib/accounts';
 import { compact, dd, iso, n0, parseAmount, sg } from '../lib/format';
 import { GROUP_COLOR } from './Home';
 
@@ -37,25 +37,23 @@ export function Insights() {
   const wi = useMemo(() => workingIdle(accounts, fundNow), [accounts, fundNow]);
   const em = useMemo(() => emergency(accounts, spend), [accounts, spend]);
   const z = useMemo(() => zakat(accounts, fundNow, nisab), [accounts, fundNow, nisab]);
-  const first = series[0], last = series[series.length - 1];
-  const growth = last && first ? last.value - first.value : 0;
+  const deposits = useMemo(() => buys.map((b) => ({ date: b.date, amount: b.sent })), [buys]);
   const hasHistory = series.length >= 2;
-  const groups = (['banks', 'business', 'investments', 'assets'] as Group[]).filter((g) => t.groups[g] > 0);
+  const first = series[0];
+  // Growth since the first month shown, and this month: money put into the fund and accounts that were
+  // simply added are not counted as gains or losses (see growth() in lib/accounts).
+  const since = useMemo(() => (hasHistory ? growth(accounts, f.points, deposits, first.date, today) : null), [hasHistory, accounts, f.points, deposits, first, today]);
+  const monthStart = endOfPrevMonth(today);
+  const g = useMemo(() => growth(accounts, f.points, deposits, monthStart, today), [accounts, f.points, deposits, monthStart, today]);
+  const groups = (['banks', 'business', 'investments', 'assets'] as Group[]).filter((x) => t.groups[x] > 0);
   const totalWI = wi.working + wi.idle;
   const keep = spend > 0 ? Math.min(wi.idle, spend) : 0;
-  // what moved this month, account by account
-  const movers = useMemo(() => {
-    const e = endOfPrevMonth(today);
-    const out: Array<{ name: string; d: number }> = accounts.map((a) => ({ name: a.name, d: worth(a) - worthOf(a, snapshotOn(a, e) ?? a.history[0] ?? null) }));
-    // money put into the fund this month is not growth, so it is taken out
-    if (f.last) out.push({ name: 'Meezan fund', d: fundValueOn(f.points, today) - (f.points.some((p) => p.date <= e) ? fundValueOn(f.points, e) : f.points[0]?.val ?? 0) - buys.filter((b) => b.date > e).reduce((t2, b) => t2 + b.sent, 0) });
-    return out.filter((x) => Math.abs(x.d) >= 1).sort((a, b) => b.d - a.d);
-  }, [accounts, f.points, f.last, today, buys]);
-  const mc0 = useMemo(() => monthChange(accounts, f.points, today), [accounts, f.points, today]);
-  const putIn = buys.filter((b) => b.date > endOfPrevMonth(today)).reduce((t2, b) => t2 + b.sent, 0);
-  const mc = { change: mc0.change - putIn };
-  const top = movers[0], worst = movers.length > 1 && movers[movers.length - 1].d < 0 ? movers[movers.length - 1] : null;
-  const fundMove = movers.find((m) => m.name === 'Meezan fund');
+  // what moved, holding by holding
+  const movers = g.parts.filter((x) => Math.abs(x.change) >= 1).sort((a, b) => b.change - a.change);
+  const top = movers[0], worst = movers.length > 1 && movers[movers.length - 1].change < 0 ? movers[movers.length - 1] : null;
+  const fundMove = g.parts.find((x) => x.id === 'fund');
+  // Nothing to compare with from before this month: say since when, rather than "this month".
+  const startedThisMonth = !!g.started && g.started > monthStart;
   const amt = (v: number) => (Math.abs(v) >= 1e5 ? 'Rs ' + (Math.abs(v) / 1e5).toFixed(2) + ' lakh' : 'Rs ' + n0(Math.abs(v)));
   const short = (v: number) => (v >= 0 ? '+' : '−') + (Math.abs(v) >= 1000 ? Math.round(Math.abs(v) / 1000) + 'k' : n0(Math.abs(v)));
   const working = totalWI > 0 ? Math.round((wi.working / totalWI) * 100) : 0;
@@ -63,15 +61,20 @@ export function Insights() {
   return (
     <section className="pg">
       <div className="cd hero story-card">
-        <div className="hh"><Wordmark className="cw" />{hasHistory && <span className="hd">{sg(growth).replace('+', '+Rs ').replace('−', '−Rs ')} since {first.label}</span>}</div>
+        <div className="hh"><Wordmark className="cw" />{since && <span className="hd">{sg(since.change).replace('+', '+Rs ').replace('−', '−Rs ')} since {first.label}</span>}</div>
         <p className="story-line">
-          {putIn > 0 ? <>Not counting the Rs {n0(putIn)} you put in, y</> : null}{mc.change >= 0 ? <>{putIn > 0 ? 'ou' : 'You'} grew <span className="pos">{amt(mc.change)}</span> this month</> : <>{putIn > 0 ? 'ou' : 'You'} are down <span className="neg">{amt(mc.change)}</span> this month</>}
-          {top && top.d > 0 && movers.length > 1 && mc.change > 0 ? <>, mostly from <span className="who">{top.name}</span></> : null}.
-          {fundMove && fundMove.d !== 0 && top && top.name !== 'Meezan fund' ? <> The fund {fundMove.d >= 0 ? 'added' : 'slipped'} <span className={fundMove.d >= 0 ? 'pos' : 'neg'}>{amt(fundMove.d)}</span>.</> : null}
+          {startedThisMonth ? <>Since you started on {dd(g.started)}, y</> : <>This month y</>}
+          {Math.abs(g.change) < 1 ? <>our money has not moved yet.</>
+            : g.change > 0 ? <>ou are up <span className="pos">{amt(g.change)}</span></> : <>ou are down <span className="neg">{amt(g.change)}</span></>}
+          {Math.abs(g.change) >= 1 && top && top.change > 0 && g.change > 0 && movers.length > 1 && top.change >= g.change / 2 ? <>, mostly from <span className="who">{top.name}</span></> : null}
+          {Math.abs(g.change) >= 1 ? '.' : null}
+          {fundMove && Math.abs(fundMove.change) >= 1 && top && top.id !== 'fund' && movers.length > 1
+            ? <> The fund is {fundMove.change >= 0 ? 'up' : 'down'} <span className={fundMove.change >= 0 ? 'pos' : 'neg'}>{amt(fundMove.change)}</span>{g.deposits > 0 && fundMove.change < 0 ? ', which includes the purchase fee' : ''}.</> : null}
         </p>
+        {g.deposits > 0 && <p className="story-note">The Rs {n0(g.deposits)} you put into the fund {startedThisMonth ? 'since then' : 'this month'} is your own money moving, so it is not counted as growth.</p>}
         {movers.length > 1 && <div className="story-chips">
-          {top && <span>Best: {top.name} {short(top.d)}</span>}
-          {worst && worst !== top && <span>Worst: {worst.name} {short(worst.d)}</span>}
+          {top && top.change > 0 && <span>Best: {top.name} {short(top.change)}</span>}
+          {worst && worst !== top && <span>Worst: {worst.name} {short(worst.change)}</span>}
         </div>}
       </div>
 

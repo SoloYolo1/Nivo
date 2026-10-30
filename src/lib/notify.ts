@@ -54,15 +54,20 @@ export async function send(title: string, body: string): Promise<boolean> {
   return false;
 }
 
+/** Open Nivo's notification settings (after Android stops asking, this is the only way to allow them). */
+export async function openNotificationSettings(): Promise<boolean> {
+  return (await call('NivoNative', 'openNotificationSettings')) !== null;
+}
+
 /** Whether Android lets Nivo run its background check freely. null = not the installed app. */
 export async function powerOk(): Promise<boolean | null> {
-  if (!plugin('NivoPower')) return null;
-  const r = await call<{ ignoring: boolean }>('NivoPower', 'status');
+  if (!plugin('NivoNative')) return null;
+  const r = await call<{ ignoring: boolean }>('NivoNative', 'status');
   return r ? !!r.ignoring : null;
 }
 
 export async function askPower(): Promise<void> {
-  await call('NivoPower', 'request');
+  await call('NivoNative', 'request');
 }
 
 /** A monthly reminder (1st of the month, 10 am) to update balances. Installed app only. */

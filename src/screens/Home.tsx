@@ -9,16 +9,18 @@ import { useColors } from '../components/theme';
 import { useFund, useTotals } from '../state/derived';
 import { goTab, openSheet, push, setState, useStore } from '../state/store';
 import { refreshAll } from '../state/refresh';
-import { dailyNetWorth, emergency, staleAccounts, workingIdle, worth, zakat, type Group } from '../lib/accounts';
+import { dailyNetWorth, emergency, endOfPrevMonth, growth, staleAccounts, workingIdle, worth, zakat, type Group } from '../lib/accounts';
+import { UpdateCard } from '../components/Update';
 import { cl, compact, dd, iso, n0, pc } from '../lib/format';
 import { save, KEYS } from '../lib/storage';
-import { requestPermission, askPower } from '../lib/notify';
+import { requestPermission, askPower, openNotificationSettings } from '../lib/notify';
+import { isNative } from '../lib/native';
 import { canBridge } from '../lib/legacy';
 import { load } from '../lib/storage';
 import { syncBackground } from '../state/refresh';
 import { toast } from '../state/store';
 
-export const GROUP_COLOR: Record<Group, string> = { banks: '#8f9cff', business: '#f3d99b', investments: '#4fd59c', assets: '#ff9f0a', loans: '#f2847b' };
+export const GROUP_COLOR: Record<Group, string> = { banks: '#8f9cff', business: '#56c8f0', investments: '#4fd59c', assets: '#d68bf5', loans: '#f2847b' };
 const GROUP_SHORT: Record<Group, string> = { banks: 'Banks', business: 'Business', investments: 'Invest', assets: 'Assets', loans: 'Loans' };
 
 export function Home() {
@@ -44,29 +46,61 @@ export function Home() {
   }, [accounts, f.last, spend, nisab]);
 
   const L = f.last;
+  const t = useTotals();
+  const buys = useStore((s) => s.buys);
   const top = useMemo(() => accounts.slice().sort((a, b) => Math.abs(worth(b)) - Math.abs(worth(a))).slice(0, 4), [accounts]);
+  // this month, without counting money put into the fund or accounts that were only added (see growth())
+  const month = useMemo(() => growth(accounts, f.points, buys.map((b) => ({ date: b.date, amount: b.sent })), endOfPrevMonth(today), today), [accounts, f.points, buys, today]);
+  const fresh = !!newSince && !!L && L.date > newSince;
   return (
     <section className="pg">
+      {/* 1. net worth */}
       <NetWorthHero />
 
-      <div className="qa qa-box">
+      {/* 2. accounts */}
+      <div className="cap"><span>Your accounts</span>{accounts.length > 0 && <button type="button" className="cap-link" onClick={() => goTab('accounts')}>See all</button>}</div>
+      <section className="cd list">
+        <FundRow f={f} />
+        {top.map((a) => <AccountRow key={a.id} a={a} today={today} />)}
+        {!accounts.length && (
+          <button type="button" className="acc" onClick={() => openSheet('add')}>
+            <span className="l"><span className="ai banks"><Icon name="plus" size={18} /></span><span><b>Add your bank accounts</b><small>Banks, a business, gold, property, loans</small></span></span>
+            <span className="r" style={{ color: 'var(--mu)' }}><Icon name="chevr" size={18} /></span>
+          </button>
+        )}
+      </section>
+
+      {/* 3. summary */}
+      <div className="cap"><span>At a glance</span></div>
+      <section className="cd glance">
+        <div className="gl3">
+          <button type="button" onClick={() => goTab('accounts')}><small>You own</small><b>{compact(t.assets)}</b></button>
+          <button type="button" onClick={() => goTab('accounts')}><small>You owe</small><b className={t.owed > 0 ? 'dn' : ''}>{t.owed > 0 ? compact(t.owed) : 'Nothing'}</b></button>
+          <button type="button" onClick={() => goTab('insights')}><small>{month.started && month.started > endOfPrevMonth(today) ? 'Since ' + dd(month.started) : 'This month'}</small><b className={Math.abs(month.change) >= 1 ? cl(month.change) : ''}>{Math.abs(month.change) < 1 ? 'No change' : (month.change >= 0 ? '+' : '−') + compact(Math.abs(month.change))}</b></button>
+        </div>
+        {L && (
+          <button type="button" className="navstrip" onClick={() => push({ name: 'fund', tab: 'overview' })}>
+            <span className={'pulse-dot' + (fresh ? ' new' : '')} aria-hidden="true" />
+            <span className="ns-t">
+              <b>{fresh ? 'New NAV ' : 'NAV '}{L.nav.toFixed(4)}{f.prev && <span className={cl(L.chg)}> {pc((L.nav / f.prev.nav - 1) * 100)}</span>}</b>
+              <small>{dd(L.date)} · your holding {f.prev ? (L.chg >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(L.chg)) : 'Rs ' + n0(L.val)}{f.prev ? ' that day' : ''}</small>
+            </span>
+            <Icon name="chevr" size={18} />
+          </button>
+        )}
+      </section>
+
+      {/* 4. the four actions, in one container */}
+      <div className="cap"><span>Quick actions</span></div>
+      <div className="qa qa-box" role="group" aria-label="Quick actions">
         <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
-        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update</button>
+        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
         <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
         <button type="button" onClick={() => goTab('insights')}><i><Icon name="qchart" size={21} /></i>Insights</button>
       </div>
 
-      {L && (
-        <button type="button" className="cd navstrip" onClick={() => push({ name: 'fund', tab: 'overview' })}>
-          <span className={'pulse-dot' + (newSince && L.date > newSince ? ' new' : '')} aria-hidden="true" />
-          <span className="ns-t">
-            <b>{newSince && L.date > newSince ? 'New NAV ' : 'NAV '}{L.nav.toFixed(4)}{f.prev && <span className={cl(L.chg)}> {pc((L.nav / f.prev.nav - 1) * 100)}</span>}</b>
-            <small>{dd(L.date)} · your holding {f.prev ? (L.chg >= 0 ? '+' : '−') + 'Rs ' + n0(Math.abs(L.chg)) : 'Rs ' + n0(L.val)}{f.prev ? ' that day' : ''}</small>
-          </span>
-          <Icon name="chevr" size={18} />
-        </button>
-      )}
-
+      {/* things that need you, then tips */}
+      <UpdateCard />
       <MigrateCard />
 
       {alerts.perm === 'prompt' && Date.now() > Number(localStorage.getItem(KEYS.notifPromptUntil) || 0) && (
@@ -87,18 +121,6 @@ export function Home() {
         </div>
       )}
 
-      <div className="cap"><span>Your accounts</span>{accounts.length > 0 && <button type="button" className="cap-link" onClick={() => goTab('accounts')}>See all</button>}</div>
-      <section className="cd list">
-        <FundRow f={f} />
-        {top.map((a) => <AccountRow key={a.id} a={a} today={today} />)}
-        {!accounts.length && (
-          <button type="button" className="acc" onClick={() => openSheet('add')}>
-            <span className="l"><span className="ai banks"><Icon name="plus" size={18} /></span><span><b>Add your bank accounts</b><small>Banks, a business, gold, property, loans</small></span></span>
-            <span className="r" style={{ color: 'var(--mu)' }}><Icon name="chevr" size={18} /></span>
-          </button>
-        )}
-      </section>
-
       {tips.length > 0 && <>
         <div className="cap">Good to know</div>
         <Card icon="bulb" title="Worth knowing" more="Across all accounts">
@@ -113,7 +135,7 @@ export async function enableAlerts(): Promise<void> {
   const r = await requestPermission();
   save(KEYS.notif, r === 'granted');
   if (r === 'granted') { toast('Price alerts are on', 'bell'); syncBackground(); setTimeout(() => void askPower(), 900); }
-  else if (r === 'denied') toast('Notifications are blocked in your phone settings');
+  else if (r === 'denied') toast('Notifications are blocked for Nivo', 'bell', isNative() ? { label: 'Open settings', fn: () => void openNotificationSettings() } : undefined);
   else toast('Notifications are not available here');
   setState((s) => ({ alerts: { ...s.alerts, perm: r, on: r === 'granted' } }));
 }
@@ -138,13 +160,20 @@ function MigrateCard() {
   );
 }
 
-const NW_RANGES = [{ v: 7, label: '1W', word: 'this week' }, { v: 30, label: '1M', word: 'this month' }, { v: 90, label: '3M', word: 'in 3 months' }, { v: 0, label: 'All', word: 'since you started' }];
+const NW_RANGES = [{ v: 7, label: '1W', word: 'past week' }, { v: 30, label: '1M', word: 'past 30 days' }, { v: 90, label: '3M', word: 'past 3 months' }, { v: 0, label: 'All', word: 'since you started' }];
+const daysBefore = (d: string, n: number): string => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - n); return t.toISOString().slice(0, 10); };
+const ALLOC: Group[] = ['banks', 'business', 'investments', 'assets'];
 
-/** The Home card: the nivo logo, net worth and a day-by-day chart you can drag across, edge to edge. */
+/**
+ * The Home card: net worth, how it changed (money you put in is not counted as growth), a day-by-day chart
+ * you can drag across, and what it is made of: one bar split by kind of account, with each kind's amount
+ * and share beneath it.
+ */
 function NetWorthHero() {
   const f = useFund();
   const t = useTotals();
   const accounts = useStore((s) => s.accounts);
+  const buys = useStore((s) => s.buys);
   const C = useColors();
   const [range, setRange] = useState(30);
   const [ix, setIx] = useState<number | null>(null);
@@ -152,15 +181,19 @@ function NetWorthHero() {
   const fmt = useCallback((v: number) => n0(v), []);
   const series = useMemo(() => dailyNetWorth(accounts, f.points, today, range), [accounts, f.points, today, range]);
   const pts = useMemo(() => series.map((p) => ({ date: p.date, label: p.date === today ? 'Today' : dd(p.date), value: p.value })), [series, today]);
-  const groups = (['banks', 'business', 'investments', 'assets'] as Group[]).filter((g) => t.groups[g] > 0).sort((a, b) => t.groups[b] - t.groups[a]);
-  const first = series[0], lastV = series.length ? series[series.length - 1].value : t.netWorth;
-  const ch = first ? lastV - first.value : 0;
-  const word = (NW_RANGES.find((r) => r.v === range) || NW_RANGES[1]).word;
+  const deposits = useMemo(() => buys.map((b) => ({ date: b.date, amount: b.sent })), [buys]);
+  const first = series[0];
   const sx = ix != null ? pts[ix] : null;
-  const shown = sx && first ? sx.value - first.value : ch;
-  const L = f.last;
+  // From the start of the range (not from the last update before it), or, while dragging, from the chart's first point.
+  const from = sx || !range ? (first ? first.date : today) : daysBefore(today, range);
+  const g = useMemo(() => (first ? growth(accounts, f.points, deposits, from, sx ? sx.date : today) : null), [first, accounts, f.points, deposits, from, sx, today]);
+  const shown = g ? g.change : 0;
+  const pct = g && g.owned >= 1000 ? (shown / g.owned) * 100 : null;
+  const word = (NW_RANGES.find((r) => r.v === range) || NW_RANGES[1]).word;
+  const kinds = ALLOC.filter((k) => t.groups[k] > 0).sort((a, b) => t.groups[b] - t.groups[a]);
+  const share = (k: Group) => (t.assets > 0 ? (t.groups[k] / t.assets) * 100 : 0);
   return (
-    <div className="cd hero nw">
+    <div className="cd hero nw nw2">
       <div className="hh">
         <Wordmark className="cw" />
         <div className="rp" role="tablist" aria-label="Chart range">
@@ -170,16 +203,24 @@ function NetWorthHero() {
       <div className="hl">{sx ? (sx.label === 'Today' ? 'Today' : longish(sx.date)) : 'Net worth'}</div>
       <div className="big"><span>Rs</span>{sx ? n0(sx.value) : <CountUp id="net-worth" value={t.netWorth} format={fmt} />}</div>
       <div className="chg-row">
-        <span className={'dl ' + cl(shown)}><Icon name={shown >= 0 ? 'up' : 'down'} size={12} stroke={3} />{'Rs ' + compact(Math.abs(shown)).replace('Rs ', '') + (first && first.value > 0 ? ' · ' + Math.abs((shown / first.value) * 100).toFixed(1) + '%' : '')}</span>
-        <span className="when">{sx && first ? 'since ' + dd(first.date) : word}</span>
+        {Math.abs(shown) >= 1
+          ? <span className={'dl ' + cl(shown)}><Icon name={shown >= 0 ? 'up' : 'down'} size={12} stroke={3} />{compact(Math.abs(shown))}{pct != null && Math.abs(pct) >= 0.05 ? ' · ' + Math.abs(pct).toFixed(1) + '%' : ''}</span>
+          : <span className="dl">No change</span>}
+        <span className="when">{sx && first ? 'since ' + dd(first.date) : word}{g && g.deposits > 0 ? ', not counting Rs ' + compact(g.deposits).replace('Rs ', '') + ' put in' : ''}</span>
       </div>
-      <AreaChart points={pts} height={150} bleed color={ch >= 0 ? C.upHero : C.dnHero} onDark ariaLabel={'Net worth ' + word} replay={String(range)} onScrub={setIx} tip={(p) => p.label + ' · Rs ' + compact(p.value).replace('Rs ', '')} />
-      <button type="button" className="nw-foot" onClick={() => goTab('accounts')}>
-        {groups.length > 1
-          ? groups.slice(0, 3).map((g) => <span key={g}><small>{GROUP_SHORT[g]}</small><b>{compact(t.groups[g]).replace('Rs ', '')}</b></span>)
-          : L ? <><span><small>Meezan fund</small><b>{L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })} units</b></span><span><small>NAV</small><b>{L.nav.toFixed(2)}</b></span><span><small>Accounts</small><b>{accounts.length + 1}</b></span></> : <span><small>Accounts</small><b>{accounts.length}</b></span>}
-        <Icon name="chevr" size={16} />
-      </button>
+      <AreaChart points={pts} height={118} bleed color={shown >= 0 ? C.upHero : C.dnHero} onDark ariaLabel={'Net worth ' + word} replay={String(range)} onScrub={setIx} tip={(p) => p.label + ' · ' + compact(p.value)} />
+      {kinds.length > 0 && (
+        <button type="button" className="nw-mix" onClick={() => goTab('accounts')} aria-label="What your net worth is made of. Open Accounts">
+          <span className="mix-head">
+            <span>Breakdown</span>
+            {t.owed > 0 && <span className="mix-owe">Loans −{compact(t.owed).replace('Rs ', '')}</span>}
+          </span>
+          <span className="mix-bar" aria-hidden="true">{kinds.map((k) => <i key={k} style={{ flex: Math.max(share(k), 1.5), background: GROUP_COLOR[k] }} />)}</span>
+          <span className="mix-key">
+            {kinds.map((k) => <span key={k}><i style={{ background: GROUP_COLOR[k] }} />{GROUP_SHORT[k]}<b>{Math.round(share(k))}%</b></span>)}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
