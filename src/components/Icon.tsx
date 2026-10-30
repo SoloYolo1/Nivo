@@ -26,7 +26,7 @@ const P: Record<string, string> = {
   pencil: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/>',
   bell: '<path d="M6 17V11a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21h4"/>',
   bio: '<path d="M5 10a7 7 0 0113-3M4 14a8 8 0 0116 0v2M8 13a4 4 0 018 0v4M12 13v7M10 21a9 9 0 01-4-4"/>',
-  back: '<path d="M20 6H9l-5 6 5 6h11z"/><path d="M12 9l6 6M18 9l-6 6"/>',
+  back: '<path d="M21 5H9.6a2 2 0 00-1.55.74L3 12l5.05 6.26A2 2 0 009.6 19H21a1 1 0 001-1V6a1 1 0 00-1-1z"/><path d="M17.5 9.5l-5 5M12.5 9.5l5 5"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z"/>',

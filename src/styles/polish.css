@@ -854,3 +854,8 @@ h2 .hi{box-shadow:none}
 .hdr .quip{order:3;flex:0 0 100%;margin:6px 0 0;font-size:13.5px;font-weight:500;color:var(--gold-mute,var(--mu));letter-spacing:-.05px;line-height:1.35;animation:quipin .5s .15s var(--ease,ease) both}
 @keyframes quipin{from{opacity:0;transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){.hdr .quip{animation:none}}
+/* PIN pad: every key's content centred (the delete icon sat to the left), and the delete key has no ring */
+.pad button{display:grid;place-items:center;padding:0;line-height:1}
+.pad button.fn{box-shadow:none;border:0;background:transparent}
+.pad button.fn svg{display:block;margin-right:2px}
+.pad button.fn:active{background:var(--tr)}
