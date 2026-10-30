@@ -25,7 +25,7 @@ import {
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
 import { KINDS, staleAccounts } from './lib/accounts';
 import { MILESTONES } from './lib/fund';
-import { big, dd, greeting, iso, n0, unmasked } from './lib/format';
+import { big, dd, greeting, iso, unmasked } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
 import { haptic, isNative } from './lib/native';
 import { installNativeBack, installWebBack } from './lib/back';
@@ -164,24 +164,6 @@ function Dock() {
 }
 function resetToTab(t: Tab) { setState({ tab: t, stack: [], dir: 'l' }); window.scrollTo(0, 0); }
 
-function TopBar() {
-  const tab = useStore((s) => s.tab);
-  const stack = useStore((s) => s.stack);
-  const t = useTotals();
-  const f = useFund();
-  const top = stack[stack.length - 1];
-  const title = top ? routeTitle(top) : TITLE[tab];
-  const showVal = !top && tab === 'home';
-  const today = f.last ? f.last.chg : 0;
-  return (
-    <div className="nb" id="nb" data-val={showVal ? '1' : ''}>
-      <span className="nbt">{title}</span>
-      <span className="nbv"><b>Rs {n0(t.netWorth)}</b><span className={today >= 0 ? 'up' : 'dn'}>{f.last ? (today >= 0 ? '▲ ' : '▼ ') + n0(Math.abs(today)) + ' today' : ''}</span></span>
-      <button type="button" className="rb" aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={19} /></button>
-    </div>
-  );
-}
-
 export function App() {
   const splash = useStore((s) => s.splash);
   // read here so the whole app redraws its amounts when they are hidden or shown
@@ -318,8 +300,7 @@ export function App() {
         if (window.scrollX) window.scrollTo(0, window.scrollY);
         const y = window.scrollY;
         const hdr = document.querySelector('.hdr') as HTMLElement | null;
-        nb?.classList.toggle('on', y > 54);
-        nb?.classList.toggle('val', nb?.dataset.val === '1' && y > 330);
+        nb?.classList.toggle('on', y > 8);
         hdr?.style.setProperty('--sy', String(Math.min(y, 140)));
         if (bg) bg.style.transform = 'translateY(' + -y * 0.06 + 'px)';
         const dy = y - lastY;
@@ -437,7 +418,8 @@ export function App() {
   return (
     <>
       <div className="bgfx" aria-hidden="true"><i /><i /></div>
-      <TopBar />
+      {/* behind the clock and battery once the page scrolls under them; no title or price */}
+      <div className="sbar" id="nb" aria-hidden="true" />
       <div className={'pbar' + (busy ? ' on' : '')} aria-hidden="true"><i /></div>
       <div className={'ptr' + (busy ? ' busy' : '') + (ptrDone ? ' done' : '')} id="ptr" aria-hidden="true">
         <svg className="ptr-ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" /></svg>
