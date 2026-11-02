@@ -189,8 +189,14 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .tile2 .t2l{pointer-events:none}
 
 /* 5. motion: the first summary card drifts slower than the page; rows rise into place one after another */
-.pg>.hero:first-child{translate:0 calc(var(--py,0) * 1px);will-change:translate}
+/* the summary card settles back (a little smaller, a little quieter) as it scrolls off the top; it never drifts over the section below */
+.pg>.hero:first-child{scale:calc(1 - var(--py,0) / 1800);opacity:calc(1 - var(--py,0) / 220);transform-origin:50% 100%;will-change:scale,opacity}
 @keyframes rowin{from{opacity:0;transform:translateY(8px)}}
 .pgw .cd.list>*{animation:rowin .5s var(--ease) both}
 .pgw .cd.list>*:nth-child(2){animation-delay:50ms}.pgw .cd.list>*:nth-child(3){animation-delay:100ms}.pgw .cd.list>*:nth-child(4){animation-delay:150ms}.pgw .cd.list>*:nth-child(5){animation-delay:200ms}.pgw .cd.list>*:nth-child(n+6){animation-delay:250ms}
-@media (prefers-reduced-motion:reduce){.pg>.hero:first-child{translate:none}.pgw .cd.list>*{animation:none}}
+@media (prefers-reduced-motion:reduce){.pg>.hero:first-child{scale:none;opacity:1}.pgw .cd.list>*{animation:none}}
+
+/* ---- nothing hides as you scroll: the header scrolls away like ordinary content instead of shrinking
+   and fading under the card, and the dock stays exactly where it is ---- */
+.hdr{transform:none!important;opacity:1!important}
+.dock.min{transform:translateX(-50%)!important;opacity:1!important}

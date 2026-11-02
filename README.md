@@ -4,6 +4,10 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.8.1
+
+- **Nothing hides as you scroll.** The page title, bell and gear used to shrink and fade as the card scrolled over them, and the dock shrank too; both now stay as they are and the header simply scrolls away with the page. The 4.8 parallax let the summary card drift over the section beneath it; it now settles back (a touch smaller and quieter) as it leaves the top instead.
+
 ## What is new in 4.8
 
 A polish pass over every screen.
