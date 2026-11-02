@@ -81,6 +81,50 @@ export function withSnapshot(a: Account, s: Snapshot): Account {
   return { ...a, history: h };
 }
 
+// ---------- adding or taking out money ----------
+
+/** How a balance changes: money in, money out, or a new total typed in. */
+export type Move = 'in' | 'out' | 'set';
+
+/** The words for each kind of move. Loans run the other way: money in is borrowing more, out is paying off. */
+export function moveWords(kind: Kind, m: Move): { title: string; field: string; note: string; done: string } {
+  if (kind === 'loan') {
+    if (m === 'in') return { title: 'Borrowed more', field: 'Amount borrowed (Rs)', note: 'e.g. Car repair', done: 'Added to what you owe' };
+    if (m === 'out') return { title: 'Paid off', field: 'Amount paid (Rs)', note: 'e.g. Monthly instalment', done: 'Taken off what you owe' };
+    return { title: 'Update what you owe', field: 'What you owe now (Rs)', note: 'e.g. Statement', done: 'Saved' };
+  }
+  if (m === 'in') return { title: 'Add money', field: 'Amount to add (Rs)', note: 'e.g. Salary in', done: 'Added' };
+  if (m === 'out') return { title: 'Take out', field: 'Amount to take out (Rs)', note: 'e.g. Groceries', done: 'Taken out' };
+  return { title: 'Update balance', field: 'New balance (Rs)', note: 'e.g. Statement', done: 'Saved' };
+}
+
+/** The update sheet's argument: the account id, optionally followed by :in or :out to start on that move. */
+export const updateArg = (id: string, m?: Move): string => (m && m !== 'set' ? id + ':' + m : id);
+export const parseUpdateArg = (arg: string): { id: string; mode: Move } => { const [id, m] = arg.split(':'); return { id, mode: m === 'in' || m === 'out' ? m : 'set' }; };
+
+/**
+ * The snapshot that records a move, worked out from the latest balance: in adds, out takes off, set replaces.
+ * An error string instead when the move does not make sense (more out than there is, a negative amount).
+ * A second move on the same day keeps the notes of both, so nothing typed that day is lost.
+ */
+export function moveSnapshot(a: Account, m: Move, amount: number, date: string, note = ''): Snapshot | string {
+  if (!Number.isFinite(amount) || amount < 0) return m === 'set' ? (a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.') : 'Enter an amount.';
+  if (m !== 'set' && amount === 0) return 'Enter an amount.';
+  const last = snapshotOn(a);
+  const base = last ? last.value : 0;
+  let value = amount;
+  if (m === 'in') value = base + amount;
+  if (m === 'out') {
+    if (amount > base + 0.005) return a.kind === 'loan' ? 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' you owe.' : 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' in this account.';
+    value = Math.max(0, base - amount);
+  }
+  value = Math.round(value * 100) / 100;
+  const same = a.history.find((h) => h.date === date);
+  const notes = [same && m !== 'set' ? same.note : '', note.trim()].filter(Boolean);
+  const n = notes.join(' · ');
+  return { date, value, ...(n ? { note: n } : {}) };
+}
+
 export const businessValue = (s: Pick<Snapshot, 'bank' | 'cash' | 'receivable' | 'payable'>): number =>
   (s.bank || 0) + (s.cash || 0) + (s.receivable || 0) - (s.payable || 0);
 
@@ -254,14 +298,15 @@ export interface ZakatLine { label: string; amount: number }
 /**
  * A planning estimate: 2.5% of zakatable wealth (cash, bank balances, fund, business at your share, gold,
  * shares and certificates, plus anything you marked zakatable), minus loans and cards due.
+ * The fund is left out when fundIncluded is false (the person pays zakat on it separately, or does not count it).
  */
-export function zakat(list: Account[], fundNow: number, nisab: number | null): { lines: ZakatLine[]; base: number; due: number; aboveNisab: boolean | null } {
+export function zakat(list: Account[], fundNow: number, nisab: number | null, fundIncluded = true): { lines: ZakatLine[]; base: number; due: number; aboveNisab: boolean | null } {
   const lines: ZakatLine[] = [];
   const sum = (f: (a: Account) => boolean) => list.filter(f).reduce((s, a) => s + Math.max(0, worth(a)), 0);
   const zk = (a: Account) => a.zakatable ?? KINDS[a.kind].zakatDefault;
   const banks = sum((a) => (a.kind === 'bank' || a.kind === 'cash') && zk(a));
   if (banks) lines.push({ label: 'Bank balances and cash', amount: banks });
-  if (fundNow) lines.push({ label: 'Meezan Balanced Fund', amount: fundNow });
+  if (fundNow && fundIncluded) lines.push({ label: 'Meezan Balanced Fund', amount: fundNow });
   const biz = sum((a) => a.kind === 'business' && zk(a));
   if (biz) lines.push({ label: 'Business (your share)', amount: biz });
   const other = sum((a) => a.kind !== 'bank' && a.kind !== 'cash' && a.kind !== 'business' && a.kind !== 'loan' && zk(a));

@@ -32,6 +32,8 @@ export interface State {
   accounts: Account[];
   goal: Goal; checklist: number[];
   name: string; theme: Theme; spend: number; nisab: number | null;
+  /** Count the Meezan fund in the zakat estimate (off when the person pays zakat on it separately or does not consider it zakatable). */
+  fundZakat: boolean;
   lastCheck: LastCheck; refreshing: boolean; refreshUi: '' | 'busy' | 'ok' | 'done';
   // navigation and UI
   tab: Tab; stack: Route[]; dir: 'l' | 'r' | '';
@@ -76,6 +78,7 @@ function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'e
     theme: th === 'light' || th === 'dark' ? th : 'system',
     spend: Number(load<number>(KEYS.spend, 0)) || 0,
     nisab: Number(load<number | null>(KEYS.nisab, null)) || null,
+    fundZakat: load<boolean>(KEYS.fundZakat, true) !== false,
     lastCheck: { t: 0, src: '', latest: '' },
   };
 }
@@ -216,12 +219,13 @@ export function upsertAccount(a: Account): void {
 export function addSnapshot(id: string, s: Snapshot): void {
   saveAccounts(state.accounts.map((a) => (a.id === id ? withSnapshot(a, s) : a)));
 }
-export function removeSnapshot(id: string, date: string): void {
+/** Remove one update. `quiet` skips the toast (used when undoing a move the person just made). */
+export function removeSnapshot(id: string, date: string, quiet = false): void {
   const a = state.accounts.find((x) => x.id === id);
-  if (!a || a.history.length < 2) { toast('An account keeps at least one balance'); return; }
+  if (!a || a.history.length < 2) { if (!quiet) toast('An account keeps at least one balance'); return; }
   const s = a.history.find((x) => x.date === date);
   saveAccounts(state.accounts.map((x) => (x.id === id ? { ...x, history: x.history.filter((h) => h.date !== date) } : x)));
-  if (s) toast('Update removed', 'trash', { label: 'Undo', fn: () => { addSnapshot(id, s); toast('Restored', 'check'); } });
+  if (s && !quiet) toast('Update removed', 'trash', { label: 'Undo', fn: () => { addSnapshot(id, s); toast('Restored', 'check'); } });
 }
 export function deleteAccount(id: string): void {
   const i = state.accounts.findIndex((x) => x.id === id);
@@ -249,11 +253,12 @@ export function setTheme(theme: Theme): void { save(KEYS.theme, theme); setState
 export function setPaletteId(palette: string): void { save(KEYS.palette, palette); setState({ palette }); }
 export function setSpend(spend: number): void { save(KEYS.spend, spend); setState({ spend }); }
 export function setNisab(nisab: number | null): void { if (nisab) save(KEYS.nisab, nisab); else remove(KEYS.nisab); setState({ nisab }); }
+export function setFundZakat(fundZakat: boolean): void { save(KEYS.fundZakat, fundZakat); setState({ fundZakat }); }
 
 // ---------------- backup ----------------
-export interface Backup { navs?: Nav[]; buys?: Buy[]; goal?: Goal; accounts?: Account[]; v?: number }
+export interface Backup { navs?: Nav[]; buys?: Buy[]; goal?: Goal; accounts?: Account[]; v?: number; fundZakat?: boolean }
 export function backupJson(): string {
-  return JSON.stringify({ v: 4, navs: state.navs, buys: state.buys, goal: state.goal, accounts: state.accounts });
+  return JSON.stringify({ v: 4, navs: state.navs, buys: state.buys, goal: state.goal, accounts: state.accounts, fundZakat: state.fundZakat });
 }
 /** Restore a backup from Nivo 3 or 4. Returns false when the text is not a backup. */
 export function restore(text: string): boolean {
@@ -268,6 +273,7 @@ export function restore(text: string): boolean {
   }
   if (j.goal && j.goal.amount > 0 && j.goal.years > 0) { setGoal({ amount: +j.goal.amount, years: Math.round(+j.goal.years) }); any = true; }
   if (Array.isArray(j.accounts)) { const acc = cleanAccounts(j.accounts); saveAccounts(acc); any = true; }
+  if (typeof j.fundZakat === 'boolean') setFundZakat(j.fundZakat);
   return any;
 }
 

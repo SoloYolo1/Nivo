@@ -36,3 +36,6 @@ export const PALETTES: Palette[] = [
 
 export const paletteOf = (id: string | null | undefined): Palette => PALETTES.find((p) => p.id === id) || PALETTES[0];
 export const heroGradient = (p: Palette): string => 'linear-gradient(155deg,' + p.hero[0] + ' 0%,' + p.hero[1] + ' 38%,' + p.hero[2] + ' 70%,' + p.hero[3] + ' 100%)';
+/** The start-up screen's gradient: the deep end of the hero colours, into near black. index.html carries the
+ *  same table of hero colours so it can paint the first frame before any script runs. */
+export const splashGradient = (p: Palette): string => 'linear-gradient(155deg,' + p.hero[2] + ' 0%,' + p.hero[3] + ' 55%,#0b0b0e 100%)';

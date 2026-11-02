@@ -1,15 +1,16 @@
 // Every bottom sheet in the app, driven by state.sheet.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon, KIND_ICON } from './Icon';
 import { Sheet } from './Sheet';
+import { Seg } from './ui';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, celebrate, closeSheet, importLegacy, openEntry, push, savePrice, setState, toast, useStore,
+  addBuy, addSnapshot, celebrate, closeSheet, importLegacy, openEntry, push, removeSnapshot, savePrice, setState, toast, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
-import { KINDS, businessValue, snapshotOn, type Kind } from '../lib/accounts';
+import { KINDS, businessValue, moveSnapshot, moveWords, parseUpdateArg as parseArg, snapshotOn, type Kind, type Move } from '../lib/accounts';
 import { navOn } from '../lib/fund';
-import { amountsHidden, cl, dd, iso, longDate, n0, parseAmount, pc, rawN0, sg } from '../lib/format';
+import { amountsHidden, calcAmount, cl, dd, isSum, iso, longDate, n0, parseAmount, pc, rawN0, sg } from '../lib/format';
 import { haptic } from '../lib/native';
 import { KEYS, load, save } from '../lib/storage';
 import { permission, powerOk } from '../lib/notify';
@@ -180,56 +181,89 @@ function DaySheet() {
   );
 }
 
-// ---------------- quick balance update ----------------
+// ---------------- quick balance update: add money, take out, or set the balance ----------------
+/** Tells the sheet's title which move is chosen, without re-rendering the rest. */
+const modeSubs = new Set<() => void>();
+let curMode: Move = 'set';
+const setCurMode = (m: Move) => { curMode = m; modeSubs.forEach((f) => f()); };
+
+const MOVES: Array<{ v: Move; label: string }> = [{ v: 'in', label: 'Add money' }, { v: 'out', label: 'Take out' }, { v: 'set', label: 'Set balance' }];
+const LOAN_MOVES: Array<{ v: Move; label: string }> = [{ v: 'out', label: 'Paid off' }, { v: 'in', label: 'Borrowed' }, { v: 'set', label: 'Set total' }];
+
 function UpdateTitle() {
-  const a = useStore((s) => s.accounts.find((x) => x.id === s.sheetArg));
-  return <>{a ? (a.kind === 'business' ? 'Update ' + a.name : 'Update balance') : 'Update'}</>;
+  const a = useStore((s) => s.accounts.find((x) => x.id === parseArg(s.sheetArg).id));
+  const m = useSyncExternalStore((f) => { modeSubs.add(f); return () => { modeSubs.delete(f); }; }, () => curMode, () => curMode);
+  if (!a) return <>Update</>;
+  if (a.kind === 'business') return <>Update {a.name}</>;
+  return <>{moveWords(a.kind, m).title}</>;
 }
 function UpdateSheet() {
-  const id = useStore((s) => s.sheetArg);
+  const arg = useStore((s) => s.sheetArg);
+  const { id, mode: mode0 } = parseArg(arg);
   const a = useStore((s) => s.accounts.find((x) => x.id === id));
   const last = a ? snapshotOn(a) : null;
-  const [val, setVal] = useState(last ? rawN0(last.value) : '');
+  const [mode, setModeS] = useState<Move>(mode0);
+  const setMode = (m: Move) => { setModeS(m); setCurMode(m); setVal(m === 'set' && last ? rawN0(last.value) : ''); setErr(''); };
+  useEffect(() => { setCurMode(mode0); return () => setCurMode('set'); }, [mode0]);
+  const [val, setVal] = useState(mode0 === 'set' && last ? rawN0(last.value) : '');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(iso());
   const [b, setB] = useState({ bank: last?.bank != null ? rawN0(last.bank) : '', cash: last?.cash != null ? rawN0(last.cash) : '', receivable: last?.receivable != null ? rawN0(last.receivable) : '', payable: last?.payable != null ? rawN0(last.payable) : '', sales: last?.sales != null ? rawN0(last.sales) : '', costs: last?.costs != null ? rawN0(last.costs) : '' });
   const [err, setErr] = useState('');
+  const amountRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { const t = window.setTimeout(() => amountRef.current?.focus(), 380); return () => clearTimeout(t); }, []);
   if (!a) return null;
-  const isBiz = a.kind === 'business';
+  const isBiz = a.kind === 'business', isLoan = a.kind === 'loan';
   const n = (s: string) => (s.trim() ? parseAmount(s) : 0);
-  const newVal = isBiz ? businessValue({ bank: n(b.bank), cash: n(b.cash), receivable: n(b.receivable), payable: n(b.payable) }) : parseAmount(val);
+  const amount = calcAmount(val);
+  const preview = !isBiz && Number.isFinite(amount) ? moveSnapshot(a, mode, amount, date, note) : null;
+  const newVal = isBiz ? businessValue({ bank: n(b.bank), cash: n(b.cash), receivable: n(b.receivable), payable: n(b.payable) }) : typeof preview === 'object' && preview ? preview.value : NaN;
   const diff = last && Number.isFinite(newVal) ? newVal - last.value : null;
+  const words = moveWords(a.kind, mode);
   const saveIt = () => {
     if (date > iso()) return setErr('That date is in the future.');
     if (isBiz) {
       if (Object.values(b).some((x) => x.trim() && !(parseAmount(x) >= 0))) return setErr('Numbers only, please.');
       addSnapshot(a.id, { date, value: newVal, bank: n(b.bank), cash: n(b.cash), receivable: n(b.receivable), payable: n(b.payable), ...(b.sales.trim() && b.costs.trim() ? { sales: n(b.sales), costs: n(b.costs) } : {}), ...(note.trim() ? { note: note.trim() } : {}) });
-    } else {
-      if (!(newVal >= 0)) return setErr(a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.');
-      addSnapshot(a.id, { date, value: newVal, ...(note.trim() ? { note: note.trim() } : {}) });
+      haptic('success'); closeSheet(); toast('Saved', 'check');
+      return;
     }
-    haptic('success'); closeSheet(); toast('Saved', 'check');
+    const s = moveSnapshot(a, mode, amount, date, note);
+    if (typeof s === 'string') return setErr(s);
+    const before = a.history.find((h) => h.date === date);
+    addSnapshot(a.id, s);
+    haptic('success'); closeSheet();
+    const undo = () => { if (before) addSnapshot(a.id, before); else removeSnapshot(a.id, date, true); toast('Undone', 'check'); };
+    if (mode === 'set') toast('Saved', 'check', { label: 'Undo', fn: undo });
+    else toast(words.done + ' Rs ' + n0(amount) + ' · now Rs ' + n0(s.value), 'check', { label: 'Undo', fn: undo });
   };
+  const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); saveIt(); } };
   const field = (k: keyof typeof b, label: string) => (
-    <label className="lab" htmlFor={'u-' + k}>{label}<input id={'u-' + k} className="in" inputMode="decimal" value={b[k]} onChange={(e) => setB({ ...b, [k]: e.target.value.replace(/[^\d.,]/g, '') })} /></label>
+    <label className="lab" htmlFor={'u-' + k}>{label}<input id={'u-' + k} className="in" inputMode="decimal" value={b[k]} onChange={(e) => setB({ ...b, [k]: e.target.value.replace(/[^\d.,]/g, '') })} onKeyDown={onKey} /></label>
   );
   return (
     <div className="form">
-      <div className="hint" style={{ marginTop: -8 }}>{a.name}{last ? ' · last ' + n0(last.value) + ' on ' + dd(last.date) : ''}</div>
+      <div className="hint" style={{ marginTop: -8 }}>{a.name}{last ? ' · ' + (isLoan ? 'owe' : 'balance') + ' Rs ' + n0(last.value) + ' on ' + dd(last.date) : ''}</div>
       {isBiz ? <>
         <div className="two2">{field('bank', 'In the bank')}{field('cash', 'Cash in hand')}</div>
         <div className="two2">{field('receivable', 'Owed to you')}{field('payable', 'You owe')}</div>
         <div className="two2">{field('sales', 'Sales this month')}{field('costs', 'Costs this month')}</div>
-      </> : (
-        <label className="lab" htmlFor="u-val">{a.kind === 'loan' ? 'What you owe now (Rs)' : 'New balance (Rs)'}<input id="u-val" className="in money" inputMode="decimal" value={val} onChange={(e) => setVal(e.target.value.replace(/[^\d.,]/g, ''))} onFocus={(e) => e.target.select()} /></label>
-      )}
+      </> : <>
+        <Seg<Move> label="What happened" style={{ margin: '0 0 2px' }} value={mode} onChange={setMode} items={isLoan ? LOAN_MOVES : MOVES} />
+        <label className="lab" htmlFor="u-val">{words.field}
+          <input id="u-val" ref={amountRef} className="in money" inputMode="decimal" placeholder={mode === 'set' ? '' : 'e.g. 5,000 or 12,500+800'} value={val} onChange={(e) => { setVal(e.target.value.replace(/[^\d.,+\-*/()×÷a-zA-Z\s]/g, '')); setErr(''); }} onFocus={(e) => e.target.select()} onKeyDown={onKey} />
+        </label>
+        {isSum(val) && Number.isFinite(amount) && <div className="hint" style={{ marginTop: -6 }}>= Rs {n0(amount)}</div>}
+      </>}
       <div className="two2">
         <label className="lab" htmlFor="u-date">Date<input id="u-date" className="in" type="date" max={iso()} value={date} onChange={(e) => setDate(e.target.value)} /></label>
-        <label className="lab" htmlFor="u-note">Note (optional)<input id="u-note" className="in" maxLength={40} placeholder="e.g. Salary in" value={note} onChange={(e) => setNote(e.target.value)} /></label>
+        <label className="lab" htmlFor="u-note">Note (optional)<input id="u-note" className="in" maxLength={40} placeholder={isBiz ? 'e.g. Eid rush' : words.note} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} /></label>
       </div>
-      {diff != null && diff !== 0 && <div className={'hint ' + cl(a.kind === 'loan' ? -diff : diff)} style={{ fontWeight: 700 }}>{sg(diff)} since your last update</div>}
+      {!isBiz && mode !== 'set' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : 'New balance'} Rs {n0(preview.value)}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
+      {!isBiz && typeof preview === 'string' && val.trim() && mode === 'out' && <div className="hint dn" style={{ fontWeight: 700 }}>{preview}</div>}
+      {diff != null && diff !== 0 && (isBiz || mode === 'set') && <div className={'hint ' + cl(isLoan ? -diff : diff)} style={{ fontWeight: 700 }}>{sg(diff)} since your last update</div>}
       <div className="err" role="alert">{err}</div>
-      <button type="button" className="btn gold big full" onClick={saveIt}>Save</button>
+      <button type="button" className="btn gold big full" onClick={saveIt}>{mode === 'set' || isBiz ? 'Save' : words.title}</button>
       <button type="button" className="btn ghost full" onClick={() => { closeSheet(); push({ name: 'account', id: a.id }); }}>Open {a.name}</button>
     </div>
   );

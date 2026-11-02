@@ -32,6 +32,8 @@ export const KEYS = {
   swipeHint: 'nv_swipe_hint',
   goalHit: 'nv_goal_hit',
   palette: 'nv_palette',
+  // new in 4.6
+  fundZakat: 'nv_fund_zakat',
 } as const;
 
 /** Read a JSON value, falling back when it is missing or unreadable. */

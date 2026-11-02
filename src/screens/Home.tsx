@@ -28,6 +28,7 @@ export function Home() {
   const accounts = useStore((s) => s.accounts);
   const spend = useStore((s) => s.spend);
   const nisab = useStore((s) => s.nisab);
+  const fundZakat = useStore((s) => s.fundZakat);
   const newSince = useStore((s) => s.newSince);
   const alerts = useStore((s) => s.alerts);
   const busy = useStore((s) => s.refreshUi === 'busy');
@@ -40,10 +41,10 @@ export function Home() {
     const em = emergency(accounts, spend);
     if (em.months != null) out.push(['shield', 'Your emergency money covers about ' + em.months.toFixed(1) + ' months of spending. 6 months is a common safety target.']);
     else if (accounts.some((a) => a.kind === 'bank')) out.push(['shield', 'Add your monthly spending in Insights to see how many months your savings would last.']);
-    const z = zakat(accounts, f.last ? f.last.val : 0, nisab);
+    const z = zakat(accounts, f.last ? f.last.val : 0, nisab, fundZakat);
     if (z.base > 0) out.push(['scale', 'Estimated zakat this year: Rs ' + n0(z.due) + ' (2.5% of zakatable wealth). See the breakdown in Insights.']);
     return out.slice(0, 3);
-  }, [accounts, f.last, spend, nisab]);
+  }, [accounts, f.last, spend, nisab, fundZakat]);
 
   const L = f.last;
   const t = useTotals();

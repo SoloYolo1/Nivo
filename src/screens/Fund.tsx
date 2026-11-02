@@ -1,13 +1,13 @@
 // The Meezan Balanced Fund screen: everything that was on the Portfolio, Insights and History pages in 3.x.
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
-import { Card, Tabs } from '../components/ui';
+import { Card, Switch, Tabs } from '../components/ui';
 import { FundHero } from '../components/FundHero';
 import { AreaChart } from '../components/AreaChart';
 import { HeroHead } from '../components/Wordmark';
 import { useColors } from '../components/theme';
 import { useFund, type Fund } from '../state/derived';
-import { deletePrice, getState, openEntry, openSheet, removeBuy, replaceTop, toast, useStore, type FundTab } from '../state/store';
+import { deletePrice, getState, openEntry, openSheet, removeBuy, replaceTop, setFundZakat, toast, useStore, type FundTab } from '../state/store';
 import { refreshAll } from '../state/refresh';
 import { dealing, expectedDate, feeOf, windowPL, type Row, type Stats } from '../lib/fund';
 import { amountsHidden, cl, dd, iso, n0, pc, sg } from '../lib/format';
@@ -62,6 +62,16 @@ export function fundInsights(st: Stats, be: number, L: Row, peers: { items: Arra
   out.push(['scale', 'Money market funds are up ' + mm.toFixed(1) + '% since July, your fund ' + pc(me) + '. That gap is the price of stock exposure.']);
   out.push(['compass', 'Daily moves of about ' + st.vol.toFixed(1) + '% are normal for this fund. Check weekly, not daily.']);
   return out;
+}
+
+/** Whether the fund counts in the zakat estimate on Insights. */
+function ZakatRow() {
+  const on = useStore((s) => s.fundZakat);
+  return (
+    <section className="cd" style={{ paddingTop: 4, paddingBottom: 4 }}>
+      <div className="rw"><span>Include in zakat estimate<small>{on ? 'Counted at today’s value on Insights' : 'Left out of the estimate'}</small></span><Switch label="Include the fund in the zakat estimate" on={on} onChange={setFundZakat} /></div>
+    </section>
+  );
 }
 
 function DealingCard() {
@@ -144,6 +154,7 @@ function Overview({ f }: { f: Fund }) {
       </Card>
       <div className="cap">Good to know</div>
       <DealingCard />
+      <ZakatRow />
       <Card icon="bulb" title="Worth knowing" more="Three quick reads" onClick={() => go('analysis')}>
         {fundInsights(st, f.be, L, peers).slice(0, 3).map((x) => <div className="ln" key={x[1]}><i><Icon name={x[0]} size={16} /></i><span>{x[1]}</span></div>)}
       </Card>

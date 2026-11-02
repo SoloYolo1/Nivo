@@ -7,7 +7,7 @@ import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
 import { deleteAccount, openSheet, pop, push, removeSnapshot, upsertAccount, useStore } from '../state/store';
-import { KINDS, businessStats, monthLabel, snapshotOn, worth, worthOf, type Account } from '../lib/accounts';
+import { KINDS, businessStats, monthLabel, snapshotOn, updateArg, worth, worthOf, type Account } from '../lib/accounts';
 import { cl, compact, dd, iso, n0, sg } from '../lib/format';
 import { setMonthlyReminder } from '../lib/notify';
 import { subtitle } from './Accounts';
@@ -58,7 +58,15 @@ export function AccountDetail({ id }: { id: string }) {
         {a.kind === 'business' && (a.share ?? 100) !== 100 && <div className="k" style={{ marginTop: 10 }}>Your {a.share}% share counts as Rs {n0(w)} in your net worth.</div>}
       </div>
 
-      <button type="button" className="btn gold big full" style={{ margin: '0 0 12px' }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={18} />{a.kind === 'business' ? 'Update this month’s numbers' : isLoan ? 'Update what you owe' : 'Update balance'}</button>
+      {a.kind === 'business'
+        ? <button type="button" className="btn gold big full" style={{ margin: '0 0 12px' }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={18} />Update this month’s numbers</button>
+        : <>
+          <div className="two" style={{ marginBottom: 8 }}>
+            <button type="button" className="btn gold big" onClick={() => openSheet('update', updateArg(a.id, isLoan ? 'out' : 'in'))}><Icon name={isLoan ? 'down' : 'plus'} size={18} />{isLoan ? 'Paid off' : 'Add money'}</button>
+            <button type="button" className="btn sec big" onClick={() => openSheet('update', updateArg(a.id, isLoan ? 'in' : 'out'))}><Icon name={isLoan ? 'up' : 'minus'} size={18} />{isLoan ? 'Borrowed more' : 'Take out'}</button>
+          </div>
+          <button type="button" className="btn ghost full" style={{ margin: '0 0 12px', minHeight: 40 }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={16} />{isLoan ? 'Set what you owe' : 'Set the balance'}</button>
+        </>}
 
       {biz && biz.latest && biz.profit != null && (
         <Card icon="cal" title={monthLabel(biz.latest.date) + ' figures'} more="Sales minus costs">

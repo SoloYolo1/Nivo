@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from 'react';
 import { call } from '../lib/native';
 import type { Theme } from '../state/store';
-import { heroGradient, paletteOf, type Palette } from '../lib/palettes';
+import { heroGradient, paletteOf, splashGradient, type Palette } from '../lib/palettes';
 
 let current: Palette = paletteOf(null);
 const rgb = (h: string) => { const n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); };
@@ -12,6 +12,8 @@ const TOKENS = ['--bg', '--cd', '--cd2', '--cdg', '--bd', '--mu', '--mu2', '--a'
 function paint(p: Palette, dark: boolean): void {
   const r = document.documentElement, st = r.style;
   TOKENS.forEach((t) => st.removeProperty(t));
+  // the start-up screen (index.html paints the same before any script runs, from the saved theme)
+  st.setProperty('--sp-bg', splashGradient(p)); st.setProperty('--sp-glow', rgb(p.hero[0])); st.setProperty('--sp-ink', p.hero[3]); st.setProperty('--sp-a', p.dark.a);
   if (p.id === 'midnight') { delete r.dataset.palette; return; }
   r.dataset.palette = p.id;
   const set = (k: string, v: string) => st.setProperty(k, v);
@@ -53,7 +55,9 @@ export function applyTheme(theme: Theme): void {
   if (m) m.setAttribute('content', bg);
   // Behind the status and navigation bars (Android 15 draws apps edge to edge, so this is the app's own
   // window colour there), and dark or light icons on them. StatusBar is kept for older Android versions.
-  void call('NivoNative', 'setSystemBars', { color: bg, dark });
+  // splash: the colour the installed app paints behind the page on its next cold start, so the launch
+  // screen is already in this theme before the page has loaded
+  void call('NivoNative', 'setSystemBars', { color: bg, dark, splash: current.hero[3] });
   void call('StatusBar', 'setBackgroundColor', { color: bg });
   void call('StatusBar', 'setStyle', { style: dark ? 'DARK' : 'LIGHT' });
   notify();

@@ -1,5 +1,6 @@
 package com.mywealth.app;
 
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 /**
@@ -35,6 +37,25 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NivoNativePlugin.class);
         super.onCreate(savedInstanceState);
+
+        // ---------- launch colours ----------
+        // The page paints its own start-up screen in the chosen colour theme, but the window and the web view
+        // show through for a moment before it has loaded. Paint them in the colours the app saved the last
+        // time its theme was applied, so a cold start is in that theme from the first frame.
+        try {
+            SharedPreferences lp = getSharedPreferences(NivoNativePlugin.LAUNCH_PREFS, MODE_PRIVATE);
+            String splash = lp.getString("splash", null);
+            if (splash != null) {
+                int c = Color.parseColor(splash);
+                getWindow().getDecorView().setBackgroundColor(c);
+                WebView wv = bridge != null ? bridge.getWebView() : null;
+                if (wv != null) wv.setBackgroundColor(c);
+                WindowInsetsControllerCompat ic = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                boolean dark = lp.getBoolean("dark", true);
+                ic.setAppearanceLightStatusBars(!dark);
+                ic.setAppearanceLightNavigationBars(!dark);
+            }
+        } catch (Exception ignored) { }
 
         // ---------- edge to edge ----------
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);

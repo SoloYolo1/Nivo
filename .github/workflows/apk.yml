@@ -1,6 +1,19 @@
 name: Build APK
+# Every push to main builds, signs and publishes an APK as a release, which the installed app offers as an
+# update (Settings › Updates, and a notification). The NAV bot's pushes only change data.json and are left out;
+# so are pushes that touch nothing the app is built from. It can still be started by hand.
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data.json'
+      - 'README.md'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/update.yml'
   workflow_dispatch:
+concurrency:
+  group: apk
+  cancel-in-progress: false
 permissions:
   contents: write   # to publish the APK as a GitHub release, which the app's "Update Nivo" reads
 env:

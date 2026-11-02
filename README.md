@@ -4,6 +4,14 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.6
+
+- **Add money, take money out.** An account's screen now has **Add money** and **Take out** (a loan has **Paid off** and **Borrowed more**); Nivo works out the new balance from the latest one and shows it before you save. The amount box does sums: `12,500+800`, `2.5 lakh`, `4 × 25k`. Every change can be undone from the toast, and two moves on the same day keep both notes. **Set the balance** is still there for typing a statement figure.
+- **Zakat without the fund.** If Meezan deducts zakat on the fund itself, or you do not count it, switch *Include in zakat estimate* off on the fund's screen (or in the zakat card on Insights). The setting is kept in backups.
+- **Fixed: the start-up screen is in your colour theme.** Every theme painted the launch screen navy; now the boot screen, the app's splash and the window behind them use the theme's colours (Oxblood launches maroon, Racing green launches green) from the first frame of a cold start.
+- **Fixed: page titles vanishing.** After scrolling down, opening an account or a menu and coming back, the *Home*, *Accounts* or *Insights* title stayed invisible until the page was scrolled. The header's scroll fade was left over on the reused element; it now starts from the real scroll position every time.
+- Smaller things: the amount box is focused when a sheet opens and Enter saves; the wordmark's accent follows the theme on the splash and cards; every push to the repository now builds and publishes the APK, so updates reach the phone through Settings › Updates without anyone starting the workflow by hand.
+
 ## What is new in 4.5
 
 - **Accounts grow into their screen**: tapping an account turns its row into the summary card (name into the title, balance into the big number) and shrinks back into the row on the way back.

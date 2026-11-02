@@ -1,11 +1,11 @@
 // Insights across everything: growth, mix, money working vs idle, emergency cushion, zakat.
 import { useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
-import { Card } from '../components/ui';
+import { Card, Switch } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
 import { Donut } from '../components/Charts';
 import { useFund, useTotals } from '../state/derived';
-import { openSheet, push, setNisab, setSpend, useStore } from '../state/store';
+import { openSheet, push, setFundZakat, setNisab, setSpend, useStore } from '../state/store';
 import { emergency, endOfPrevMonth, growth, netWorthSeries, workingIdle, zakat, type Group } from '../lib/accounts';
 import { amountsHidden, compact, dd, iso, n0, parseAmount, rawN0, sg } from '../lib/format';
 import { GROUP_COLOR } from './Home';
@@ -36,7 +36,8 @@ export function Insights() {
   const series = useMemo(() => netWorthSeries(accounts, f.points, today, 6), [accounts, f.points, today]);
   const wi = useMemo(() => workingIdle(accounts, fundNow), [accounts, fundNow]);
   const em = useMemo(() => emergency(accounts, spend), [accounts, spend]);
-  const z = useMemo(() => zakat(accounts, fundNow, nisab), [accounts, fundNow, nisab]);
+  const fundZakat = useStore((s) => s.fundZakat);
+  const z = useMemo(() => zakat(accounts, fundNow, nisab, fundZakat), [accounts, fundNow, nisab, fundZakat]);
   const deposits = useMemo(() => buys.map((b) => ({ date: b.date, amount: b.sent })), [buys]);
   const hasHistory = series.length >= 2;
   const first = series[0];
@@ -140,6 +141,7 @@ export function Insights() {
         <div className="rw"><span>Nisab (silver)</span><b style={{ color: nisab ? undefined : 'var(--mu)' }}>{nisab ? n0(nisab) : 'Not set'}</b></div>
         <div className="rw" style={{ paddingTop: 12 }}><span style={{ fontWeight: 700 }}>Zakat at 2.5%</span><b style={{ fontSize: 20, color: 'var(--gold)' }}>{z.aboveNisab === false ? 'Below nisab' : 'Rs ' + n0(z.due)}</b></div>
         <InlineAmount id="nisab" label="Today’s nisab in rupees (from your mosque or a scholar)" placeholder="Enter to compare" value={nisab} onSave={setNisab} />
+        {fundNow > 0 && <div className="rw" style={{ marginTop: 6 }}><span>Include the Meezan fund<small>{fundZakat ? 'Rs ' + n0(fundNow) + ' counted at today’s value' : 'Left out, for instance if Meezan deducts zakat itself'}</small></span><Switch label="Include the Meezan fund in the zakat estimate" on={fundZakat} onChange={setFundZakat} /></div>}
         <div className="hint" style={{ marginTop: 8 }}>An estimate to plan with. Rules differ on business stock, funds and property, so check with a scholar you trust. You can include or leave out any account on its own screen.</div>
       </Card>
 

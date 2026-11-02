@@ -124,17 +124,28 @@ public class NivoNativePlugin extends Plugin {
 
     // ---------- system bars ----------
 
-    /** Paint the area behind the status and navigation bars, and pick dark or light icons for them. */
+    /** Where the colours of the chosen theme are kept for the next cold start (read by MainActivity). */
+    static final String LAUNCH_PREFS = "nivo_launch";
+
+    /** Paint the area behind the status and navigation bars, and pick dark or light icons for them.
+     *  Also remembers the theme's colours, so the next launch paints the window in them before the
+     *  page has loaded (the launch screen then matches the theme instead of flashing navy). */
     @PluginMethod
     @SuppressWarnings("deprecation")
     public void setSystemBars(PluginCall call) {
         final String color = call.getString("color", "#0f111d");
         final boolean dark = Boolean.TRUE.equals(call.getBoolean("dark", true));
+        final String splash = call.getString("splash", color);
+        try {
+            getContext().getSharedPreferences(LAUNCH_PREFS, Context.MODE_PRIVATE).edit()
+                .putString("bg", color).putString("splash", splash).putBoolean("dark", dark).apply();
+        } catch (Exception ignored) { }
         getActivity().runOnUiThread(() -> {
             try {
                 int c = Color.parseColor(color);
                 Window w = getActivity().getWindow();
                 w.getDecorView().setBackgroundColor(c);
+                if (bridge != null && bridge.getWebView() != null) bridge.getWebView().setBackgroundColor(c);
                 if (Build.VERSION.SDK_INT < 35) {
                     w.setStatusBarColor(c);
                     w.setNavigationBarColor(c);

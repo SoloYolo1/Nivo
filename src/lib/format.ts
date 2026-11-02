@@ -91,6 +91,46 @@ export const parseAmount = (s: string): number => {
   return Number.isFinite(v) ? v : NaN;
 };
 
+/**
+ * Work out an amount typed as a sum: "12,500 + 3000", "2.5 lakh", "4 × 25k", "(1500-200)*3".
+ * Supports + − × ÷ (also * and /), brackets, commas, and the shorthands k, lakh/lac/l and crore/cr.
+ * NaN when the text is not a sum. A plain number comes back as itself.
+ */
+export function calcAmount(s: string): number {
+  const src = String(s).toLowerCase().replace(/^rs\.?/, '').replace(/[,\s]/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-');
+  if (!src) return NaN;
+  let i = 0;
+  const peek = () => src[i];
+  const num = (): number => {
+    const m = /^(\d+\.?\d*|\.\d+)(k|lakh|lac|l|crore|cr)?/.exec(src.slice(i));
+    if (!m) return NaN;
+    i += m[0].length;
+    const v = parseFloat(m[1]);
+    return m[2] === 'k' ? v * 1e3 : m[2] === 'crore' || m[2] === 'cr' ? v * 1e7 : m[2] ? v * 1e5 : v;
+  };
+  const factor = (): number => {
+    if (peek() === '(') { i++; const v = expr(); if (peek() !== ')') return NaN; i++; return v; }
+    if (peek() === '-') { i++; return -factor(); }
+    if (peek() === '+') { i++; return factor(); }
+    return num();
+  };
+  const term = (): number => {
+    let v = factor();
+    while (peek() === '*' || peek() === '/') { const op = src[i++]; const r = factor(); v = op === '*' ? v * r : v / r; }
+    return v;
+  };
+  const expr = (): number => {
+    let v = term();
+    while (peek() === '+' || peek() === '-') { const op = src[i++]; const r = term(); v = op === '+' ? v + r : v - r; }
+    return v;
+  };
+  const v = expr();
+  return i === src.length && Number.isFinite(v) ? v : NaN;
+}
+
+/** True when the text is a sum rather than one number (so the result is worth showing). */
+export const isSum = (s: string): boolean => /[-+*/×÷()]|k|lakh|lac|crore|cr|\dl\b/i.test(String(s).replace(/^rs\.?/i, '').trim().replace(/^[-+]/, ''));
+
 /** Escape text for the few places that build HTML strings (none in React views). */
 export const esc = (s: unknown): string =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);

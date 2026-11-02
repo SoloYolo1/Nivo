@@ -86,6 +86,16 @@ function Header({ stack: over }: { stack?: Route[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onHome]);
   const top = stack[stack.length - 1];
+  // The tab header fades with scrolling through --sy, set on its element by the scroll handler. React keeps
+  // the same <header> element when the tab header is swapped for a screen's header and back, so the value
+  // from before (fully faded, when the person had scrolled down) would stay on it and the title would come
+  // back invisible until the next scroll. Start every header from the real scroll position instead.
+  const hdrRef = useRef<HTMLElement>(null);
+  const onTab = !top;
+  useLayoutEffect(() => {
+    if (over) return;
+    hdrRef.current?.style.setProperty('--sy', String(Math.min(window.scrollY, 140)));
+  }, [onTab, tab, over]);
   if (top) {
     let sub: React.ReactNode = '';
     if (top.name === 'fund' && f.last) sub = <>NAV {f.last.nav.toFixed(4)} · {dd(f.last.date)} · <span className="up">live</span></>;
@@ -93,7 +103,7 @@ function Header({ stack: over }: { stack?: Route[] }) {
     if (top.name === 'activity') sub = 'Everything you have logged';
     if (top.name === 'settings' && !top.page) sub = 'Nivo ' + (getState().name ? 'for ' + getState().name : 'on this phone');
     return (
-      <header className="phdr phdr-sm">
+      <header className="phdr phdr-sm" key="screen" ref={hdrRef}>
         <div className="dhdr">
           <button type="button" className="ib" aria-label="Back" onClick={() => { goBack(); }}><Icon name="chevl" size={24} /></button>
           <div className="t"><b style={top.name === 'account' && !over ? ({ viewTransitionName: 'm-name' } as React.CSSProperties) : undefined}>{routeTitle(top)}</b>{sub && <small>{sub}</small>}</div>
@@ -107,7 +117,7 @@ function Header({ stack: over }: { stack?: Route[] }) {
     : tab === 'accounts' ? (() => { const c = accounts.length + (f.last ? 1 : 0); return c + (c === 1 ? ' account' : ' accounts'); })()
     : tab === 'insights' ? new Date().toLocaleDateString('en-GB', { month: 'long' }) + ' so far' : 'Where your money is headed';
   return (
-    <header className="hdr phdr">
+    <header className="hdr phdr" key="tab" ref={hdrRef}>
       <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
       <div className="hdr-acts">
         {tab === 'accounts' && <button type="button" className="hdr-ib" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
@@ -364,7 +374,7 @@ export function App() {
       requestAnimationFrame(() => {
         if (window.scrollX) window.scrollTo(0, window.scrollY);
         const y = window.scrollY;
-        const hdr = document.querySelector('.hdr') as HTMLElement | null;
+        const hdr = document.querySelector('.w.main > .hdr') as HTMLElement | null;
         hdr?.style.setProperty('--sy', String(Math.min(y, 140)));
         const dy = y - lastY;
         if (dy > 6 && y > 160) dock?.classList.add('min'); else if (dy < -6 || y < 120) dock?.classList.remove('min');
