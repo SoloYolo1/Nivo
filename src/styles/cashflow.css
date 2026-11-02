@@ -162,3 +162,35 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 
 /* ---- page footers sit lighter ---- */
 .f{opacity:.8}
+
+/* ======================================================================
+   4.8 polish pass: the monogram, account row accents, grain on every
+   hero, the Insights month tiles, parallax and row stagger.
+   ====================================================================== */
+
+/* 1. a monogram beside the greeting: your initial in a gold ring */
+.hdr-l{display:flex;align-items:center;gap:12px;min-width:0}
+.mono{width:44px;height:44px;border-radius:50%;flex:none;border:0;display:grid;place-items:center;font:800 17px var(--f);letter-spacing:-.3px;color:var(--gold-ink,var(--gold));background:var(--cdg);box-shadow:var(--sh),0 0 0 2px color-mix(in srgb,var(--gold) 55%,transparent),0 6px 16px color-mix(in srgb,var(--gold) 18%,transparent);transition:transform .15s var(--ease)}
+.mono:active{transform:scale(.94)}
+:root[data-mode="dark"] .mono{color:var(--gold2)}
+
+/* 2. account rows: a coloured accent per kind, the balance a touch larger */
+.acc{position:relative;--gc:var(--a)}
+.acc[data-g="banks"]{--gc:#8f9cff}.acc[data-g="business"]{--gc:#56c8f0}.acc[data-g="investments"]{--gc:#4fd59c}.acc[data-g="assets"]{--gc:#d68bf5}.acc[data-g="loans"]{--gc:#f2847b}
+.acc::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px;background:var(--gc);opacity:.85}
+.acc .r b{font-size:16px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.acc .l>.ai{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gc) 35%,transparent)}
+
+/* 3. a fine grain on every hero card (the leather themes already carry one in their background) */
+:root:not([data-palette="oxblood"]):not([data-palette="racing"]):not([data-palette="cognac"]) .cd.hero::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:.5;mix-blend-mode:overlay;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),linear-gradient(115deg,rgba(255,255,255,0) 28%,rgba(255,255,255,.08) 44%,rgba(255,255,255,0) 60%)}
+
+/* 4. the Insights month tiles */
+.tile2 .zk.up{color:var(--up)}
+.tile2 .t2l{pointer-events:none}
+
+/* 5. motion: the first summary card drifts slower than the page; rows rise into place one after another */
+.pg>.hero:first-child{translate:0 calc(var(--py,0) * 1px);will-change:translate}
+@keyframes rowin{from{opacity:0;transform:translateY(8px)}}
+.pgw .cd.list>*{animation:rowin .5s var(--ease) both}
+.pgw .cd.list>*:nth-child(2){animation-delay:50ms}.pgw .cd.list>*:nth-child(3){animation-delay:100ms}.pgw .cd.list>*:nth-child(4){animation-delay:150ms}.pgw .cd.list>*:nth-child(5){animation-delay:200ms}.pgw .cd.list>*:nth-child(n+6){animation-delay:250ms}
+@media (prefers-reduced-motion:reduce){.pg>.hero:first-child{translate:none}.pgw .cd.list>*{animation:none}}

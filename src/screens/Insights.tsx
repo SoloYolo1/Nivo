@@ -78,6 +78,10 @@ export function Insights() {
   const em = useMemo(() => emergency(accounts, spend), [accounts, spend]);
   const fundZakat = useStore((s) => s.fundZakat);
   const z = useMemo(() => zakat(accounts, fundNow, nisab, fundZakat), [accounts, fundNow, nisab, fundZakat]);
+  const txns = useStore((s) => s.txns);
+  const budget = useStore((s) => s.budget);
+  const mf = useMemo(() => monthFlow(txns, today.slice(0, 7), accounts), [txns, today, accounts]);
+  const monthWord = new Date().toLocaleDateString('en-GB', { month: 'long' });
   const deposits = useMemo(() => buys.map((b) => ({ date: b.date, amount: b.sent })), [buys]);
   const hasHistory = series.length >= 2;
   const first = series[0];
@@ -127,6 +131,18 @@ export function Insights() {
       )}
 
       <div className="g2">
+        <section className="cd tile2 tap" onClick={() => push({ name: 'cashflow' })} role="button" tabIndex={0}>
+          <small>Money in</small>
+          <b className="zk up">{mf.in ? 'Rs ' + n0(mf.in) : '–'}</b>
+          <span className="t2s">{mf.in ? monthWord + ' so far' : 'Nothing logged ' + monthWord.toLowerCase()}</span>
+          <span className="t2l">Cash flow</span>
+        </section>
+        <section className="cd tile2 tap" onClick={() => push({ name: 'cashflow' })} role="button" tabIndex={0}>
+          <small>Money out</small>
+          <b className="zk">{mf.out ? 'Rs ' + n0(mf.out) : '–'}</b>
+          <span className="t2s">{mf.out ? (budget > 0 ? (mf.out <= budget ? 'Rs ' + n0(budget - mf.out) + ' of target left' : 'Over target by Rs ' + n0(mf.out - budget)) : 'Most on ' + (spendingByCat(mf)[0] ? CATS[spendingByCat(mf)[0].cat].label.toLowerCase() : 'nothing yet')) : 'Use Take out to log spending'}</span>
+          <span className="t2l">{mf.out ? 'Where it went' : 'Log spending'}</span>
+        </section>
         <section className="cd tile2">
           <small>Savings would last</small>
           <svg viewBox="0 0 120 68" aria-hidden="true" className="gauge">

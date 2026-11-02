@@ -4,6 +4,16 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.8
+
+A polish pass over every screen.
+
+- **Your initial** sits in a gold ring beside the greeting on every tab (tap it for your profile).
+- **Account rows** carry a coloured accent for their kind (indigo banks, green investments, blue business, purple assets, coral loans) and a slightly larger balance, so the list reads at a glance.
+- **Every hero card has the fine grain** the leather themes had, so Midnight, Plum, Petrol and Onyx feel as rich; a warm sheen sits in the corner of each.
+- **Insights opens with the month**: money in and money out (with the target or the biggest category), then savings-would-last and zakat, in four tiles.
+- **Motion**: the summary card drifts a little slower than the page as you scroll; list rows rise into place one after another when a tab opens. Both are off when Android's "Remove animations" is on.
+
 ## What is new in 4.7.2
 
 - The + button's shortcuts are back to four (Spend, Money in, Price, Invest) so none of the labels touch; adding an account is on the Accounts header and Home's quick actions.

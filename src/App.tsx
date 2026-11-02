@@ -125,7 +125,10 @@ function Header({ stack: over }: { stack?: Route[] }) {
     : tab === 'insights' ? new Date().toLocaleDateString('en-GB', { month: 'long' }) + ' so far' : 'Where your money is headed';
   return (
     <header className="hdr phdr" key="tab" ref={hdrRef}>
-      <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
+      <div className="hdr-l">
+        {name && <button type="button" className="mono" aria-label={'Your profile, ' + name} onClick={() => openSettings('profile')}>{name.trim().charAt(0).toUpperCase()}</button>}
+        <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
+      </div>
       <div className="hdr-acts">
         {tab === 'accounts' && <button type="button" className="hdr-ib" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
         <BellButton />
@@ -387,6 +390,9 @@ export function App() {
         const y = window.scrollY;
         const hdr = document.querySelector('.w.main > .hdr') as HTMLElement | null;
         hdr?.style.setProperty('--sy', String(Math.min(y, 140)));
+        // the summary card drifts a little slower than the page (parallax), only while it is on screen
+        const hero = document.querySelector('.w.main .pgw > .pg > .hero:first-child') as HTMLElement | null;
+        hero?.style.setProperty('--py', String(Math.min(y, 420) * 0.16));
         const dy = y - lastY;
         if (dy > 6 && y > 160) dock?.classList.add('min'); else if (dy < -6 || y < 120) dock?.classList.remove('min');
         lastY = y; tick = false;

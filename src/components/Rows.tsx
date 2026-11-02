@@ -90,7 +90,7 @@ export function AccountRow({ a, today, hint = false }: { a: Account; today: stri
   const flash = useFlash(a.id, s ? worthOf(a, s) : 0);
   return (
     <SwipeRow left={sw.left} right={sw.right} hint={hint}>
-    <button type="button" className={'acc' + (flash ? ' flash ' + flash : '')} data-acc={a.id} onClick={(e) => openAccount(a.id, e.currentTarget)}>
+    <button type="button" className={'acc' + (flash ? ' flash ' + flash : '')} data-acc={a.id} data-g={g} onClick={(e) => openAccount(a.id, e.currentTarget)}>
       <span className="l"><span className={'ai ' + g}>{ini || <Icon name={KIND_ICON[a.kind]} size={18} />}</span><span><b>{a.name}</b><small className={note.tone}>{note.text}</small></span></span>
       {a.kind !== 'loan' && vals.length > 1 && <MiniSpark values={vals} color={good ? C.up : C.dn} />}
       <span className="r"><b>{a.kind === 'loan' ? '−' : ''}{n0(Math.abs(s ? s.value : 0))}</b>{diff != null && diff !== 0 && <small className={good ? 'up' : 'dn'}>{a.kind === 'loan' ? (diff > 0 ? n0(diff) + ' paid' : '+' + n0(-diff) + ' owed') : sg(diff)}</small>}</span>
@@ -106,7 +106,7 @@ export function FundRow({ f }: { f: Fund }) {
   const vals = f.rows.slice(-10).map((r) => r.val);
   const trend = vals.length > 1 ? vals[vals.length - 1] - vals[0] : 0;
   return (
-    <button type="button" className="acc" onClick={() => push({ name: 'fund', tab: 'overview' })}>
+    <button type="button" className="acc" data-g="investments" onClick={() => push({ name: 'fund', tab: 'overview' })}>
       <span className="l"><span className="ai investments"><Icon name="trend" size={18} /></span><span><b>Meezan Balanced</b><small><span className="livedot" />Live · {amountsHidden() ? '••••' : L.u.toLocaleString('en-PK', { maximumFractionDigits: 0 })} units</small></span></span>
       <MiniSpark values={vals} color={trend >= 0 ? C.up : C.dn} />
       <span className="r"><b>{n0(L.val)}</b>{f.prev && <small className={L.chg >= 0 ? 'up' : 'dn'}>{sg(L.chg)}</small>}</span>
