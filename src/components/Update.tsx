@@ -82,8 +82,7 @@ export function UpdatePanel() {
   const when = u.s === 'current' ? 'Up to date · checked ' + new Date(u.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : u.s === 'checking' ? 'Checking…' : 'Checks GitHub twice a day';
   return (
     <>
-      <h3>Updates</h3>
-      <div className="grp">
+      <div className="grp set-card">
         <div className="rw"><div><b>Nivo {b.versionName}</b><small>Build {b.versionCode} · {when}</small></div>
           <button type="button" className="btn sec" disabled={u.s === 'checking' || u.s === 'downloading'} style={{ minHeight: 38, padding: '8px 14px', fontSize: 13 }} onClick={() => void checkForUpdate(false)}>{u.s === 'checking' ? 'Checking' : 'Check'}</button></div>
         {!['idle', 'checking', 'current'].includes(u.s) && <div className="rw upd-in"><div style={{ flex: 1, minWidth: 0 }}><Body u={u} /></div></div>}

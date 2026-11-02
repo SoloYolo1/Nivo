@@ -92,3 +92,57 @@
 @keyframes popin{from{opacity:0;transform:translateY(6px) scale(.98)}}
 .txr,.bill,.catl{animation:popin .35s var(--ease,ease) both}
 @media (prefers-reduced-motion:reduce){.txr,.bill,.catl{animation:none}}
+
+/* ---- Settings › Updates: the panel sits in a card with side padding like every other settings page ---- */
+.set-card .rw{padding:12px 0}
+.set-card .upd-in{display:block}
+.set-card .upd-in p{margin:4px 0 10px}
+.set-card .upd-in .acts{padding-bottom:6px}
+
+/* ======================================================================
+   Gold through every theme: a soft glow behind the page, warm captions,
+   gold edges on the things you press. Subtle by design; the theme's own
+   colours still carry each screen.
+   ====================================================================== */
+:root{--glow:color-mix(in srgb,var(--gold) 11%,transparent);--glow2:color-mix(in srgb,var(--gold) 6%,transparent);--glow-a:color-mix(in srgb,var(--a) 7%,transparent)}
+:root[data-mode="dark"]{--glow:color-mix(in srgb,var(--gold) 21%,transparent);--glow2:color-mix(in srgb,var(--gold) 9%,transparent);--glow-a:color-mix(in srgb,var(--a) 12%,transparent)}
+body{background:transparent}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(56% 34% at 88% -6%,var(--glow),transparent 72%),
+  radial-gradient(42% 30% at -8% 62%,var(--glow2),transparent 70%),
+  radial-gradient(46% 28% at 70% 108%,var(--glow-a),transparent 70%)}
+/* the under-page during a back gesture paints its own background, so it keeps the glow too */
+.bk-drag .w.main{background:var(--bg)}
+
+/* captions warm up: the gold that titles, tabs and buttons already use */
+.cap{color:color-mix(in srgb,var(--gold) 62%,var(--mu2))}
+.cap em{background:color-mix(in srgb,var(--gold) 14%,transparent);color:var(--gold)}
+
+/* cards: a hair of gold on the top edge, more on the ones you can tap */
+.cd:not(.hero){box-shadow:var(--sh),inset 0 1px 0 color-mix(in srgb,var(--gold) 9%,transparent)!important}
+.cd.tap:not(.hero):active{box-shadow:var(--sh),0 0 0 1.5px color-mix(in srgb,var(--gold) 40%,transparent)!important}
+
+/* the gold button glows a little; fields glow when focused */
+.btn.gold{box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 24px color-mix(in srgb,var(--gold) 30%,transparent)!important}
+.btn.gold:active{box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 4px 12px color-mix(in srgb,var(--gold) 24%,transparent)!important}
+.in:focus,.in:focus-visible{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent)}
+.seg i{box-shadow:0 2px 8px rgba(0,0,0,.14),0 0 0 1px color-mix(in srgb,var(--gold) 22%,transparent)}
+.dock{box-shadow:inset 0 1px 0 var(--hl),0 18px 44px rgba(0,0,0,.34),0 3px 10px rgba(0,0,0,.16),0 0 0 1px color-mix(in srgb,var(--gold) 14%,transparent)!important}
+.dock .sel{box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 28%,transparent),0 6px 16px color-mix(in srgb,var(--gold) 18%,transparent)}
+.fab{box-shadow:0 10px 26px color-mix(in srgb,var(--gold) 38%,transparent),0 2px 6px rgba(0,0,0,.2)!important}
+
+/* hero cards: a warm sheen on the top-right corner, over the leather or the gradient */
+.cd.hero{position:relative;overflow:hidden}
+.cd.hero::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 50% at 100% 0%,rgba(243,217,155,.16),transparent 70%)}
+.cd.hero>*{position:relative}
+
+/* the page header's subtitle and the active tab pick up the same gold they already had; make the title breathe */
+.hdr b{letter-spacing:-.4px}
+.phdr-sm .t b{letter-spacing:-.3px}
+
+/* the sheet handle and the sheet's top edge */
+.sheet.on{box-shadow:0 -20px 60px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--gold) 16%,transparent)}
+
+/* rows and tiles: a gold wash on press instead of a grey one */
+.acc:active,.tile:active,.rw.tap:active,.qa button:active{background:color-mix(in srgb,var(--gold) 8%,var(--cd))}
+.ai{box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 14%,transparent)}
