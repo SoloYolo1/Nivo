@@ -173,7 +173,10 @@ function Screen({ stack: over }: { stack?: Route[] }) {
     el = tab === 'home' ? <Home /> : tab === 'accounts' ? <Accounts /> : tab === 'insights' ? <Insights /> : <Plan />;
   }
   const ref = useRef<HTMLDivElement>(null);
-  useReveal(ref, top ? JSON.stringify(top) : tab);
+  // Keyed exactly like the page element, so the cards and headings rise in only when a page opens. Keying on the
+  // whole route re-ran it when a screen changed its own route (picking a month on Cash flow, say): everything
+  // was hidden again and anything below the fold stayed invisible until the next scroll brought it into view.
+  useReveal(ref, key);
   return <div key={key} ref={ref} className={'pgw ' + dir}>{el}</div>;
 }
 

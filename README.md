@@ -10,6 +10,7 @@ Built with **TypeScript and React**, bundled with **esbuild**, packaged for Andr
 - **Money dated earlier counts now.** Adding or taking out money on a day before your latest update used to be worked out from the latest balance and then never reach it. It is now worked out from the balance as it stood that day, and every balance after that day moves by the same amount, so today's figure, the net worth chart, the account chart, Growth and the tiles all show it. The same goes for a move between accounts and a bill paid on an earlier day. Removing a transaction already put balances back this way.
 - **Home:** the Add, Update, Prices and Cash flow buttons sit under *Your accounts* instead of under the net worth. The Add button's icon is a tinted chip like the other three.
 - **Accounts:** the three tiles on the hero (cash on hand, earning, up to date) no longer cut their words or figures off on narrow phones; they wrap instead, and the figure scales with the screen. The same for every three-up tile row.
+- **Fixed:** section headings and cards sometimes vanished after a tap (picking a month on Cash flow, for one) and only came back once the page was scrolled. The rise-in now runs only when a page opens, and anything still out of view is shown after a moment regardless.
 - **Lock screen:** the big "Unlock with fingerprint" button is gone. A gold fingerprint sits in the keypad's empty key, where a phone's own lock screen puts it.
 
 ## What is new in 4.12

@@ -51,7 +51,8 @@ export function useReveal(ref: RefObject<HTMLElement | null>, key: string): void
     };
     const io = new IntersectionObserver((es) => es.forEach((en) => { if (en.isIntersecting) { io.unobserve(en.target); show(en.target as HTMLElement); } }), { threshold: 0.08, rootMargin: '0px 0px -4% 0px' });
     kids.forEach((c) => io.observe(c));
-    timers.push(window.setTimeout(() => kids.forEach(show), 3500));
+    // whatever has not come into view by then is shown anyway, so nothing stays hidden
+    timers.push(window.setTimeout(() => kids.forEach(show), 1800));
     return () => { io.disconnect(); timers.forEach(clearTimeout); kids.forEach((c) => { c.classList.remove('rvw', 'rv'); c.style.removeProperty('--d'); }); };
   }, [key]);
 }
