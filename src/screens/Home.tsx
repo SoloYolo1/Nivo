@@ -62,15 +62,7 @@ export function Home() {
       {/* 1. net worth */}
       <NetWorthHero />
 
-      {/* 2. the four actions, right under the number */}
-      <div className="qa qa-box" role="group" aria-label="Quick actions">
-        <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
-        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
-        <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
-        <button type="button" onClick={() => push({ name: 'cashflow' })}><i><Icon name="qchart" size={21} /></i>Cash flow</button>
-      </div>
-
-      {/* 3. accounts */}
+      {/* 2. accounts */}
       <div className="cap"><span>Your accounts</span>{accounts.length > 0 && <button type="button" className="cap-link" onClick={() => goTab('accounts')}>See all</button>}</div>
       <section className="cd list">
         <FundRow f={f} />
@@ -83,11 +75,19 @@ export function Home() {
         )}
       </section>
 
-      {/* 3. money in and out this month, and what is due */}
+      {/* 3. the four actions, under the accounts */}
+      <div className="qa qa-box" role="group" aria-label="Quick actions">
+        <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
+        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
+        <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
+        <button type="button" onClick={() => push({ name: 'cashflow' })}><i><Icon name="qchart" size={21} /></i>Cash flow</button>
+      </div>
+
+      {/* 4. money in and out this month, and what is due */}
       <CashFlowCard />
       <DueSoon />
 
-      {/* 4. summary: four tiles, then the fund's latest price */}
+      {/* 5. summary: four tiles, then the fund's latest price */}
       <div className="cap"><span>At a glance</span></div>
       <GlanceTiles t={t} month={month} today={today} />
       {L && (

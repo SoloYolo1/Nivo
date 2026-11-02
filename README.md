@@ -4,6 +4,14 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.13
+
+- **Starts from nothing.** The first time 4.13 opens it erases everything Nivo kept on the phone (accounts, transactions, prices, settings, the PIN) and begins with the welcome screens. This happens once; updates after this keep your data. (`FRESH_START` in `src/lib/fresh.ts` names the version that starts clean.)
+- **Money dated earlier counts now.** Adding or taking out money on a day before your latest update used to be worked out from the latest balance and then never reach it. It is now worked out from the balance as it stood that day, and every balance after that day moves by the same amount, so today's figure, the net worth chart, the account chart, Growth and the tiles all show it. The same goes for a move between accounts and a bill paid on an earlier day. Removing a transaction already put balances back this way.
+- **Home:** the Add, Update, Prices and Cash flow buttons sit under *Your accounts* instead of under the net worth. The Add button's icon is a tinted chip like the other three.
+- **Accounts:** the three tiles on the hero (cash on hand, earning, up to date) no longer cut their words or figures off on narrow phones; they wrap instead, and the figure scales with the screen. The same for every three-up tile row.
+- **Lock screen:** the big "Unlock with fingerprint" button is gone. A gold fingerprint sits in the keypad's empty key, where a phone's own lock screen puts it.
+
 ## What is new in 4.12
 
 - **Money moves on every account.** A business now has *Add money* and *Take out* like everything else: money in lands in its bank, money out comes from the bank first and then cash, and what customers owe, what you owe, and the month's sales and costs carry over. *Update the numbers* is still there for typing the full set. Any account, a business included, can be the destination of a *Move*.

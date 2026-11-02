@@ -6,7 +6,7 @@ import { SEED_BUYS, SEED_NAVS, SEED_PEERS, mergeNavs, type Buy, type Nav, type P
 import { DEFAULT_GOAL, type Goal } from '../lib/plan';
 import type { Legacy } from '../lib/legacy';
 import { setAmountsHidden } from '../lib/format';
-import { cleanAccounts, moveSnapshot, newId, snapshotOn, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
+import { applyMove, cleanAccounts, newId, snapshotOn, type Account, type Move, type Snapshot, withSnapshot } from '../lib/accounts';
 import { cleanBills, cleanTxns, reverseTxn, type Bill, type Cat, type Txn } from '../lib/cashflow';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -231,6 +231,16 @@ export function upsertAccount(a: Account): void {
 export function addSnapshot(id: string, s: Snapshot): void {
   saveAccounts(state.accounts.map((a) => (a.id === id ? withSnapshot(a, s) : a)));
 }
+/** Add money, take it out, or set the balance on a day. Every balance recorded after that day moves with it
+ *  (see applyMove), so the figure today, the charts and the tiles all show it. Returns the account before. */
+export function recordMove(id: string, m: Move, amount: number, date: string, note = ''): { before: Account; after: Account } | { error: string } {
+  const a = state.accounts.find((x) => x.id === id);
+  if (!a) return { error: 'That account is gone.' };
+  const after = applyMove(a, m, amount, date, note);
+  if (typeof after === 'string') return { error: after };
+  saveAccounts(state.accounts.map((x) => (x.id === id ? after : x)));
+  return { before: a, after };
+}
 /** Remove one update. `quiet` skips the toast (used when undoing a move the person just made). */
 export function removeSnapshot(id: string, date: string, quiet = false): void {
   const a = state.accounts.find((x) => x.id === id);
@@ -274,14 +284,14 @@ export function moveMoney(from: string, to: string, amount: number, date: string
   if (!a || !b || !(amount > 0)) return { error: 'Pick both accounts and an amount.' };
   const n = note.trim();
   // on a loan the money runs the other way: moving money out of a loan borrows more, moving money in pays it off
-  const sa = moveSnapshot(a, a.kind === 'loan' ? 'in' : 'out', amount, date, n || 'To ' + b.name);
-  if (typeof sa === 'string') return { error: sa };
+  const a2 = applyMove(a, a.kind === 'loan' ? 'in' : 'out', amount, date, n || 'To ' + b.name);
+  if (typeof a2 === 'string') return { error: a2 };
   // paying more than is owed just clears the loan
-  const lb = snapshotOn(b);
+  const lb = snapshotOn(b, date);
   const toAmt = b.kind === 'loan' ? Math.min(amount, lb ? lb.value : 0) : amount;
-  const sb = b.kind === 'loan' && toAmt <= 0 ? { date, value: 0, note: n || 'From ' + a.name } : moveSnapshot(b, b.kind === 'loan' ? 'out' : 'in', toAmt, date, n || 'From ' + a.name);
-  if (typeof sb === 'string') return { error: sb };
-  saveAccounts(state.accounts.map((x) => (x.id === from ? withSnapshot(x, sa) : x.id === to ? withSnapshot(x, sb) : x)));
+  const b2 = b.kind === 'loan' && toAmt <= 0 ? withSnapshot(b, { date, value: 0, note: n || 'From ' + a.name }) : applyMove(b, b.kind === 'loan' ? 'out' : 'in', toAmt, date, n || 'From ' + a.name);
+  if (typeof b2 === 'string') return { error: b2 };
+  saveAccounts(state.accounts.map((x) => (x.id === from ? a2 : x.id === to ? b2 : x)));
   const t1 = addTxn({ acct: from, to, date, amount: a.kind === 'loan' ? amount : -amount, cat: 'transfer', ...(n ? { note: n } : {}) });
   addTxn({ acct: to, to: from, date, amount: b.kind === 'loan' ? -amount : amount, cat: 'transfer', ...(n ? { note: n } : {}) });
   return { id: t1.id };
@@ -302,11 +312,12 @@ export function payBill(id: string, acct: string, date: string, amount?: number)
   const b = state.bills.find((x) => x.id === id), a = state.accounts.find((x) => x.id === acct);
   if (!b || !a) return { error: 'Pick the account it was paid from.' };
   const amt = amount && amount > 0 ? amount : b.amount;
-  const last = snapshotOn(a), base = last ? last.value : 0;
+  const last = snapshotOn(a, date), base = last ? last.value : 0;
   if (a.kind !== 'loan' && amt > base + 0.005) return { error: 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' in ' + a.name + '.' };
-  const value = a.kind === 'loan' ? base + amt : base - amt;
   const before = state.accounts, beforeBills = state.bills;
-  saveAccounts(state.accounts.map((x) => (x.id === acct ? withSnapshot(x, { date, value: Math.round(value * 100) / 100, note: b.name }) : x)));
+  const a2 = applyMove(a, a.kind === 'loan' ? 'in' : 'out', amt, date, b.name);
+  if (typeof a2 === 'string') return { error: a2 };
+  saveAccounts(state.accounts.map((x) => (x.id === acct ? a2 : x)));
   const t = addTxn({ acct, date, amount: a.kind === 'loan' ? amt : -amt, cat: b.cat as Cat, note: b.name });
   saveBills(state.bills.map((x) => (x.id === id ? { ...x, lastPaid: date, acct } : x)));
   toast(b.name + ' paid · Rs ' + Math.round(amt).toLocaleString('en-PK') + ' from ' + a.name, 'check', { label: 'Undo', fn: () => { saveAccounts(before); saveBills(beforeBills); forgetTxn(t.id); toast('Undone', 'check'); } });

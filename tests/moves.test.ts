@@ -1,7 +1,7 @@
 // Adding or taking out money from an account, and the sums the amount box accepts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moveSnapshot, moveWords, zakat, type Account } from '../src/lib/accounts';
+import { applyMove, moveSnapshot, moveWords, snapshotOn, zakat, type Account } from '../src/lib/accounts';
 import { calcAmount, isSum } from '../src/lib/format';
 
 const acc = (a: Partial<Account> & Pick<Account, 'id' | 'kind' | 'history'>): Account => ({ name: a.id, created: '2026-05-01', ...a });
@@ -71,4 +71,33 @@ test('business: money out comes from the bank first, then cash, and cannot excee
   const s = moveSnapshot(a, 'out', 120, '2026-10-05');
   if (typeof s === 'object') { assert.equal(s.bank, 0); assert.equal(s.cash, 30); assert.equal(s.value, 30); } else assert.equal(s, 'a snapshot');
   assert.equal(typeof moveSnapshot(a, 'out', 151, '2026-10-05'), 'string');
+});
+
+// 4.13: money dated before the latest update is worked out from that day's balance and carries forward
+
+test('a backdated add is worked out from that day, and every later balance moves with it', () => {
+  assert.deepEqual(moveSnapshot(bank, 'in', 5000, '2026-10-10', 'Eidi'), { date: '2026-10-10', value: 105000, note: 'Eidi' });
+  const a = applyMove(bank, 'in', 5000, '2026-10-10', 'Eidi');
+  assert.equal(typeof a, 'object');
+  if (typeof a === 'object') {
+    assert.deepEqual(a.history.map((h) => [h.date, h.value]), [['2026-10-01', 100000], ['2026-10-10', 105000], ['2026-10-20', 125000]]);
+    assert.equal(snapshotOn(a)!.value, 125000);
+  }
+  const o = applyMove(bank, 'out', 30000, '2026-10-05');
+  if (typeof o === 'object') assert.deepEqual(o.history.map((h) => h.value), [100000, 70000, 90000]); else assert.equal(o, 'an account');
+  // more than there was on that day is refused, even if there is more now
+  assert.equal(typeof applyMove(bank, 'out', 110000, '2026-10-05'), 'string');
+  // setting a balance only records that day
+  const s = applyMove(bank, 'set', 50000, '2026-10-05');
+  if (typeof s === 'object') assert.deepEqual(s.history.map((h) => h.value), [100000, 50000, 120000]);
+  // before the first balance: just a point, the typed balances already include it
+  const e = applyMove(bank, 'in', 1000, '2026-09-20');
+  if (typeof e === 'object') assert.deepEqual(e.history.map((h) => h.value), [1000, 100000, 120000]);
+});
+
+test('a backdated move on a loan and a business carries forward too', () => {
+  const l = applyMove(acc({ id: 'l', kind: 'loan', history: [{ date: '2026-10-01', value: 50000 }, { date: '2026-10-20', value: 45000 }] }), 'out', 5000, '2026-10-10');
+  if (typeof l === 'object') assert.deepEqual(l.history.map((h) => h.value), [50000, 45000, 40000]); else assert.equal(l, 'an account');
+  const b = applyMove({ id: 'b', kind: 'business', name: 'Shop', created: '2026-01-01', history: [{ date: '2026-10-01', value: 150, bank: 100, cash: 50 }, { date: '2026-10-20', value: 160, bank: 110, cash: 50 }] }, 'out', 120, '2026-10-10');
+  if (typeof b === 'object') { const h = b.history[2]; assert.equal(h.bank, 0); assert.equal(h.cash, 40); assert.equal(h.value, 40); } else assert.equal(b, 'an account');
 });

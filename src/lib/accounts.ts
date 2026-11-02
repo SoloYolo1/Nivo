@@ -117,7 +117,9 @@ export function moveSnapshot(a: Account, m: Move, amount: number, date: string, 
   if (m === 'move') return 'Use moveMoney for transfers.';
   if (!Number.isFinite(amount) || amount < 0) return m === 'set' ? (a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.') : 'Enter an amount.';
   if (m !== 'set' && amount === 0) return 'Enter an amount.';
-  const last = snapshotOn(a);
+  // Money in or out on a day is worked out from the balance as it stood that day (a move dated before the
+  // latest update used to be worked out from the latest balance, so it never reached today's figure).
+  const last = m === 'set' ? snapshotOn(a) : snapshotOn(a, date);
   const same = a.history.find((h) => h.date === date);
   const notes = [same && m !== 'set' ? same.note : '', note.trim()].filter(Boolean);
   const n = notes.join(' · ');
@@ -146,6 +148,33 @@ export function moveSnapshot(a: Account, m: Move, amount: number, date: string, 
   }
   value = Math.round(value * 100) / 100;
   return { date, value, ...(n ? { note: n } : {}) };
+}
+
+/**
+ * The account after a move: the snapshot for that day, and every balance recorded after it moved by the
+ * same amount, so money added or taken out on an earlier day still shows in today's balance, the net worth
+ * chart and the tiles. Setting a balance only records that day. The opposite of reverseTxn in lib/cashflow.
+ */
+export function applyMove(a: Account, m: Move, amount: number, date: string, note = ''): Account | string {
+  const s = moveSnapshot(a, m, amount, date, note);
+  if (typeof s === 'string') return s;
+  // a move dated before the first balance only records that day: the balances typed in later already include it
+  if (m === 'set' || !snapshotOn(a, date)) return withSnapshot(a, s);
+  const d = m === 'in' ? amount : -amount;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const history = a.history.map((h) => {
+    if (h.date <= date) return h;
+    if (a.kind === 'business') {
+      // in: the bank; out: the bank first, then cash (as moveSnapshot does on the day itself)
+      let bank = h.bank || 0, cash = h.cash || 0;
+      if (d >= 0) bank += d;
+      else { const fromBank = Math.min(bank, -d); bank -= fromBank; cash = Math.max(0, cash - (-d - fromBank)); }
+      const b = { ...h, bank: r2(bank), cash: r2(cash) };
+      return { ...b, value: r2(businessValue(b)) };
+    }
+    return { ...h, value: Math.max(0, r2(h.value + d)) };
+  });
+  return withSnapshot({ ...a, history }, s);
 }
 
 export const businessValue = (s: Pick<Snapshot, 'bank' | 'cash' | 'receivable' | 'payable'>): number =>

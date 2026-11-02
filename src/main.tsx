@@ -1,3 +1,5 @@
+// the clean-start check runs first, before the store reads what is saved
+import './lib/fresh';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { installInsets } from './lib/insets';

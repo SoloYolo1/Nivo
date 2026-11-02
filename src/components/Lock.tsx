@@ -33,7 +33,7 @@ function open(mode: Exclude<Mode, ''>, done?: (ok: boolean) => void) {
   cb = done || null;
   const c = getLock();
   const t = TEXT[mode];
-  set({ mode, buf: '', tmp: '', title: t[0], sub: mode === 'unlock' && c?.bio ? 'Enter your PIN, or tap the fingerprint button' : t[1], err: false, forgot: false, out: false });
+  set({ mode, buf: '', tmp: '', title: t[0], sub: mode === 'unlock' && c?.bio ? 'Enter your PIN, or tap the fingerprint' : t[1], err: false, forgot: false, out: false });
   // The fingerprint prompt opens only when the fingerprint button is tapped; the PIN pad comes first.
 }
 function close(ok: boolean) {
@@ -116,10 +116,12 @@ export function LockScreen() {
           <div className={'dots' + (s.err ? ' err' : '')} aria-hidden="true">{[0, 1, 2, 3].map((i) => <i key={i} className={i < s.buf.length ? 'on' : ''} />)}</div>
           <div className="pad">
             {keys.map((k) => k === 'none'
-              ? <button key={k} type="button" data-k="none" className="fn" disabled aria-hidden="true" />
+              // the spare key bottom-left is the fingerprint, as on a phone's own lock screen
+              ? (s.mode === 'unlock' && bioOn
+                ? <button key={k} type="button" className={'fn lk-bio' + (s.scanning ? ' busy' : '')} aria-label="Unlock with fingerprint" onClick={() => void bio()}><Icon name="bio" size={30} /></button>
+                : <button key={k} type="button" data-k="none" className="fn" disabled aria-hidden="true" />)
               : <button key={k} type="button" className={k === 'del' ? 'fn' : ''} aria-label={k === 'del' ? 'Delete' : k} onClick={() => void key(k)}>{k === 'del' ? <Icon name="back" size={26} /> : k}</button>)}
           </div>
-          {s.mode === 'unlock' && bioOn && <button type="button" className={'btn gold lk-bio' + (s.scanning ? ' busy' : '')} onClick={() => void bio()}><Icon name="bio" size={22} />Unlock with fingerprint</button>}
           <button type="button" className="lk-f" onClick={() => { if (s.mode === 'unlock') set({ forgot: true }); else close(false); }}>{s.mode === 'unlock' ? 'Forgot your PIN?' : 'Cancel'}</button>
         </>}
       </div>

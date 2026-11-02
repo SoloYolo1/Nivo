@@ -119,7 +119,7 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;filter:invert(.5)
 #lock{height:100vh;height:100dvh;overflow-y:auto;scrollbar-width:none;padding:calc(var(--sat,env(safe-area-inset-top,0px)) + 16px) 20px calc(var(--sab,env(safe-area-inset-bottom,0px)) + 16px)}
 #lock::-webkit-scrollbar{display:none}
 .pad button{box-shadow:var(--sh)}
-@media (max-height:640px){.pad{grid-template-columns:repeat(3,58px);gap:9px}.pad button{width:58px;height:58px;font-size:22px}.lk-logo{width:76px}.dots{margin:12px 0 14px}.lk-t{margin-top:8px;font-size:19px}.lk-bio{margin-top:14px;min-height:46px}}
+@media (max-height:640px){.pad{grid-template-columns:repeat(3,58px);gap:9px}.pad button{width:58px;height:58px;font-size:22px}.lk-logo{width:76px}.dots{margin:12px 0 14px}.lk-t{margin-top:8px;font-size:19px}}
 
 /* ---------- toast above the dock ---------- */
 .toast{box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -457,14 +457,14 @@ span.msp{display:inline-block}
 .qa.qa-box button{color:var(--tx);font-size:12px;font-weight:600;gap:9px}
 /* one square per action, tinted in its own colour (the same language as the account icons) */
 .qa.qa-box i,.qa.qa-box button:nth-child(n) i{width:54px;height:54px;border-radius:17px;box-shadow:inset 0 1px 0 var(--hl)!important;transition:transform .2s var(--spring),filter .2s}
-.qa.qa-box button:nth-child(1) i,:root[data-theme="dark"] .qa.qa-box button:nth-child(1) i{background:linear-gradient(135deg,var(--gold2),var(--gold))!important;color:#171a35!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 16px color-mix(in srgb,var(--gold) 35%,transparent)!important}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qa.qa-box button:nth-child(1) i{background:linear-gradient(135deg,var(--gold2),var(--gold))!important;color:#171a35!important}}
+/* 4.13: Add is a tinted chip like the other three (it was a solid gold block) */
+.qa.qa-box button:nth-child(1) i,:root[data-theme="dark"] .qa.qa-box button:nth-child(1) i{background:color-mix(in srgb,var(--gold) 15%,transparent)!important;color:var(--gold-ink,var(--gold))!important;box-shadow:inset 0 1px 0 var(--hl)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qa.qa-box button:nth-child(1) i{background:color-mix(in srgb,var(--gold) 15%,transparent)!important;color:var(--gold)!important}}
 .qa.qa-box button:nth-child(2) i{background:color-mix(in srgb,var(--a) 15%,transparent)!important;color:var(--a)!important}
 .qa.qa-box button:nth-child(3) i{background:color-mix(in srgb,var(--up) 15%,transparent)!important;color:var(--up)!important}
 .qa.qa-box button:nth-child(4) i{background:color-mix(in srgb,var(--org) 15%,transparent)!important;color:var(--org)!important}
 .qa.qa-box button:active i{transform:scale(.9);filter:brightness(1.08)}
-.qa.qa-box i svg{width:24px;height:24px;stroke-width:2}
-.qa.qa-box button:nth-child(1) i svg{stroke-width:2.4}
+.qa.qa-box i svg{width:24px;height:24px;stroke-width:2}.qa.qa-box button:nth-child(1) i svg{width:24px;height:24px}
 
 /* the dock: solid enough to read over any card, raised a little higher, still slides and bounces */
 .dock{bottom:calc(var(--sab,env(safe-area-inset-bottom,0px)) + 18px);padding:6px;background:var(--cd);background:color-mix(in srgb,var(--cd) 96%,transparent);-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);box-shadow:inset 0 1px 0 var(--hl),0 0 0 1px var(--bd),0 16px 40px rgba(20,24,80,.22),0 4px 12px rgba(20,24,80,.12)}

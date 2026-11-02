@@ -61,3 +61,14 @@ button.dt:active{transform:scale(.97)}
 .tile2 .dt-d{margin-top:2px}
 .dt-swap .dt-d.up{background:color-mix(in srgb,var(--dn) 15%,transparent);color:var(--dn)}
 .dt-swap .dt-d.dn{background:color-mix(in srgb,var(--up) 15%,transparent);color:var(--up)}
+
+/* 4.13: nothing in a three-up tile is cut off. Labels and the line underneath wrap instead of being
+   clipped, the figure shrinks with the screen, and the tiles sit tighter so three fit on a narrow phone. */
+.dt-grid.three{gap:7px}
+.dt-grid.three .dt{padding:10px 9px 9px;gap:3px}
+.dt-grid.three .dt-h small,.dt-grid.three .dt-s{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25}
+.dt-grid.three .dt-h small{font-size:11px}
+.dt-grid.three .dt-s{font-size:11px}
+.dt-grid.three .dt-v{font-size:clamp(14px,4.6vw,17px);letter-spacing:-.4px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.dt-grid.three .dt-v em{font-size:11px}
+.hero .dt-grid.three{margin:12px 0 0}

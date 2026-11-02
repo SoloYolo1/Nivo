@@ -5,7 +5,7 @@ import { Sheet } from './Sheet';
 import { Seg } from './ui';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore,
+  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, payBill, push, recordMove, savePrice, setState, toast, updateTxn, upsertAccount, upsertBill, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, moveSnapshot, moveWords, newId, parseUpdateArg as parseArg, snapshotOn, worth, type Kind, type Move } from '../lib/accounts';
@@ -251,15 +251,14 @@ function UpdateSheet() {
       toast('Moved Rs ' + n0(amount) + ' to ' + dest.name, 'check', { label: 'Undo', fn: () => { deleteTxn(r.id, true); toast('Undone', 'check'); } });
       return;
     }
-    const s = moveSnapshot(a, mode, amount, date, note);
-    if (typeof s === 'string') return setErr(s);
-    const before = a.history.find((h) => h.date === date);
-    addSnapshot(a.id, s);
+    const r = recordMove(a.id, mode, amount, date, note);
+    if ('error' in r) return setErr(r.error);
     const txn = mode === 'set' ? null : addTxn({ acct: a.id, date, amount: mode === 'in' ? amount : -amount, cat: isLoan ? 'loan' : chosen, ...(note.trim() ? { note: note.trim() } : {}) });
     haptic('success'); closeSheet();
-    const undo = () => { if (before) addSnapshot(a.id, before); else removeSnapshot(a.id, date, true); if (txn) forgetTxn(txn.id); toast('Undone', 'check'); };
+    const undo = () => { upsertAccount(r.before); if (txn) forgetTxn(txn.id); toast('Undone', 'check'); };
+    const now = snapshotOn(r.after);
     if (mode === 'set') toast('Saved', 'check', { label: 'Undo', fn: undo });
-    else toast(words.done + ' Rs ' + n0(amount) + ' · now Rs ' + n0(s.value), 'check', { label: 'Undo', fn: undo });
+    else toast(words.done + ' Rs ' + n0(amount) + ' · now Rs ' + n0(now ? now.value : 0), 'check', { label: 'Undo', fn: undo });
   };
   const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); saveIt(); } };
   const field = (k: keyof typeof b, label: string) => (
@@ -298,7 +297,7 @@ function UpdateSheet() {
           </div>
         </div>
       )}
-      {!isBiz && mode !== 'set' && mode !== 'move' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : a.kind === 'business' ? 'Net position' : 'New balance'} Rs {n0(preview.value)}{a.kind === 'business' && preview.bank != null ? ' · bank Rs ' + n0(preview.bank) + (preview.cash ? ', cash Rs ' + n0(preview.cash) : '') : ''}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
+      {!isBiz && mode !== 'set' && mode !== 'move' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : a.kind === 'business' ? 'Net position' : 'New balance'} Rs {n0(preview.value)}{a.kind === 'business' && preview.bank != null ? ' · bank Rs ' + n0(preview.bank) + (preview.cash ? ', cash Rs ' + n0(preview.cash) : '') : ''}{last && date < last.date ? ' that day · later ' + (isLoan ? 'figures' : 'balances') + ' move too' : ''}</div>}
       {mode === 'move' && dest && amount > 0 && last && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{a.name} {isLoan ? 'owes' : ''} Rs {n0(isLoan ? last.value + amount : last.value - amount)} · {dest.name} {dest.kind === 'loan' ? 'owes' : ''} Rs {n0(dest.kind === 'loan' ? Math.max(0, worth(dest) * -1 - amount) : worth(dest) + amount)}</div>}
       {!isBiz && typeof preview === 'string' && val.trim() && mode === 'out' && <div className="hint dn" style={{ fontWeight: 700 }}>{preview}</div>}
       {diff != null && diff !== 0 && (isBiz || mode === 'set') && <div className={'hint ' + cl(isLoan ? -diff : diff)} style={{ fontWeight: 700 }}>{sg(diff)} since your last update</div>}
