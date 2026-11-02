@@ -279,7 +279,7 @@ function UpdateSheet() {
         {mode === 'move' && (
           <div className="lab">To
             <div className="catrow" role="radiogroup" aria-label="Move to">
-              {others.map((x) => <button key={x.id} type="button" role="radio" aria-checked={to === x.id} className={'catc' + (to === x.id ? ' on' : '')} onClick={() => { setTo(x.id); setErr(''); }}><i className={'ai ' + KINDS[x.kind].group}><Icon name={KIND_ICON[x.kind]} size={15} /></i>{x.name}</button>)}
+              {others.map((x) => <button key={x.id} type="button" role="radio" aria-checked={to === x.id} className={'catc' + (to === x.id ? ' on' : '')} onClick={() => { setTo(x.id); setErr(''); haptic('select'); }}><i className={'ai ' + KINDS[x.kind].group}><Icon name={KIND_ICON[x.kind]} size={15} /></i>{x.name}</button>)}
             </div>
           </div>
         )}
@@ -291,7 +291,7 @@ function UpdateSheet() {
       {!isBiz && !isLoan && (mode === 'in' || mode === 'out') && (
         <div className="lab"><span>Category{!cat && note.trim() && guessed !== (dir === 'in' ? 'income' : 'spend') ? <span className="lab-k"> · from your note</span> : ''}</span>
           <div className="catrow" role="radiogroup" aria-label="Category">
-            {(dir === 'in' ? IN_CATS : OUT_CATS).map((c) => <button key={c} type="button" role="radio" aria-checked={chosen === c} className={'catc' + (chosen === c ? ' on' : '')} style={{ ['--cc' as string]: CATS[c].color } as React.CSSProperties} onClick={() => setCat(c)}><i><Icon name={CATS[c].icon} size={14} /></i>{CATS[c].label}</button>)}
+            {(dir === 'in' ? IN_CATS : OUT_CATS).map((c) => <button key={c} type="button" role="radio" aria-checked={chosen === c} className={'catc' + (chosen === c ? ' on' : '')} style={{ ['--cc' as string]: CATS[c].color } as React.CSSProperties} onClick={() => { setCat(c); haptic('select'); }}><i><Icon name={CATS[c].icon} size={14} /></i>{CATS[c].label}</button>)}
           </div>
         </div>
       )}

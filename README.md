@@ -4,6 +4,11 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.7.2
+
+- The + button's shortcuts are back to four (Spend, Money in, Price, Invest) so none of the labels touch; adding an account is on the Accounts header and Home's quick actions.
+- Chip rows fade at their edges to show they scroll; category and account chips tick when picked; settings rows get a little more air; footers sit lighter.
+
 ## What is new in 4.7.1
 
 - **A little gold everywhere.** A soft gold glow sits behind every page in every theme (top right, with a hint of the theme's accent at the bottom), section titles are warm gold, cards carry a hair of gold on their top edge, the gold button and the + button glow, fields glow gold when focused, and rows wash gold when pressed. Subtle on purpose: the theme's own colours still carry each screen.

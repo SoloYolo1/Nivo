@@ -230,14 +230,14 @@ function Fan() {
   const bank = accounts.find((a) => a.kind === 'bank' || a.kind === 'cash') || target;
   const items: Array<{ icon: string; label: string; fn: () => void }> = [
     ...(bank ? [{ icon: 'minus', label: 'Spend', fn: () => openSheet('update', updateArg(bank.id, 'out')) }, { icon: 'qin', label: 'Money in', fn: () => openSheet('update', updateArg(bank.id, 'in')) }] : []),
-    { icon: 'qadd', label: 'Account', fn: () => openSheet('add') },
+    ...(bank ? [] : [{ icon: 'qadd', label: 'Account', fn: () => openSheet('add') }]),
     { icon: 'tag', label: 'Price', fn: () => openEntry('nav', { date: iso() }) },
     { icon: 'coinplus', label: 'Invest', fn: () => openEntry('inv', { date: iso() }) },
   ];
   return (
     <>
       <div className={'fan-ov' + (fan ? ' on' : '')} onClick={close} aria-hidden="true" />
-      <div className={'fan' + (fan ? ' on' : '')} role="menu" aria-hidden={!fan}>
+      <div className={'fan' + (fan ? ' on' : '')} role="menu" aria-hidden={!fan} data-n={items.length}>
         {items.map((it, i) => (
           <button key={it.label} type="button" role="menuitem" tabIndex={fan ? 0 : -1} style={{ ['--i' as string]: i, ['--n' as string]: items.length } as React.CSSProperties} onClick={pick(it.fn)}>
             <span><Icon name={it.icon} size={21} /></span><b>{it.label}</b>

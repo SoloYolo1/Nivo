@@ -146,3 +146,19 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 /* rows and tiles: a gold wash on press instead of a grey one */
 .acc:active,.tile:active,.rw.tap:active,.qa button:active{background:color-mix(in srgb,var(--gold) 8%,var(--cd))}
 .ai{box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 14%,transparent)}
+
+/* ---- the + fan: labels never wrap ---- */
+.fan button>b{white-space:nowrap}
+
+/* ---- horizontal chip rows fade at the edges so it is clear they scroll ---- */
+.catrow,.mons,.due-strip{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent);padding-right:18px}
+
+/* ---- settings rows and list rows: a touch more air, icons on a soft gold tile ---- */
+.set-grp .rw,.set-card .rw{min-height:56px}
+.set-grp .rw .ai{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 16%,transparent)}
+
+/* ---- hero chips (the pill in the corner of every summary card) ---- */
+.hero .hd{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* ---- page footers sit lighter ---- */
+.f{opacity:.8}
