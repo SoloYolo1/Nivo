@@ -8,7 +8,7 @@ import { Bars } from '../components/Charts';
 import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
-import { deleteAccount, openSheet, pop, push, removeSnapshot, upsertAccount, useStore } from '../state/store';
+import { deleteAccount, pop, push, removeSnapshot, upsertAccount, useStore } from '../state/store';
 import { KINDS, businessStats, monthLabel, snapshotOn, worth, worthOf, type Account } from '../lib/accounts';
 import { cl, compact, dd, iso, n0, sg } from '../lib/format';
 import { CATS, monthFlow, spendingByCat, type Txn } from '../lib/cashflow';
@@ -64,9 +64,7 @@ export function AccountDetail({ id }: { id: string }) {
         {a.kind === 'business' && (a.share ?? 100) !== 100 && <div className="k" style={{ marginTop: 10 }}>Your {a.share}% share counts as Rs {n0(w)} in your net worth.</div>}
       </div>
 
-      {a.kind === 'business'
-        ? <button type="button" className="btn gold big full" style={{ margin: '0 0 12px' }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={18} />Update this month’s numbers</button>
-        : <MoveActions a={a} />}
+      <MoveActions a={a} />
 
       <AccountTiles a={a} txns={txns} today={today} />
 

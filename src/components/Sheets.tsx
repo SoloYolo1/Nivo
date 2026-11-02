@@ -191,13 +191,14 @@ let curMode: Move = 'set';
 const setCurMode = (m: Move) => { curMode = m; modeSubs.forEach((f) => f()); };
 
 const MOVES: Array<{ v: Move; label: string }> = [{ v: 'in', label: 'Add money' }, { v: 'out', label: 'Take out' }, { v: 'set', label: 'Set balance' }];
+const BIZ_MOVES: Array<{ v: Move; label: string }> = [{ v: 'in', label: 'Add money' }, { v: 'out', label: 'Take out' }, { v: 'set', label: 'Numbers' }];
 const LOAN_MOVES: Array<{ v: Move; label: string }> = [{ v: 'out', label: 'Paid off' }, { v: 'in', label: 'Borrowed' }, { v: 'set', label: 'Set total' }];
 
 function UpdateTitle() {
   const a = useStore((s) => s.accounts.find((x) => x.id === parseArg(s.sheetArg).id));
   const m = useSyncExternalStore((f) => { modeSubs.add(f); return () => { modeSubs.delete(f); }; }, () => curMode, () => curMode);
   if (!a) return <>Update</>;
-  if (a.kind === 'business') return <>Update {a.name}</>;
+  if (a.kind === 'business' && m === 'set') return <>Update {a.name}</>;
   return <>{moveWords(a.kind, m).title}</>;
 }
 function UpdateSheet() {
@@ -219,7 +220,9 @@ function UpdateSheet() {
   const amountRef = useRef<HTMLInputElement>(null);
   useEffect(() => { const t = window.setTimeout(() => (amount0 ? document.getElementById('u-note') : amountRef.current)?.focus(), 380); return () => clearTimeout(t); }, [amount0]);
   if (!a) return null;
-  const isBiz = a.kind === 'business', isLoan = a.kind === 'loan';
+  const isLoan = a.kind === 'loan';
+  // a business types its figures in when setting; adding, taking out and moving work like any account
+  const isBiz = a.kind === 'business' && mode === 'set';
   const n = (s: string) => (s.trim() ? parseAmount(s) : 0);
   const amount = calcAmount(val);
   const preview = !isBiz && mode !== 'move' && Number.isFinite(amount) ? moveSnapshot(a, mode, amount, date, note) : null;
@@ -229,7 +232,7 @@ function UpdateSheet() {
   const dir: 'in' | 'out' = mode === 'in' ? 'in' : 'out';
   const guessed = guessCat(note, dir);
   const chosen: Cat = cat || guessed;
-  const others = accounts.filter((x) => x.id !== a.id && x.kind !== 'business');
+  const others = accounts.filter((x) => x.id !== a.id);
   const dest = others.find((x) => x.id === to);
   const saveIt = () => {
     if (date > iso()) return setErr('That date is in the future.');
@@ -262,16 +265,16 @@ function UpdateSheet() {
   const field = (k: keyof typeof b, label: string) => (
     <label className="lab" htmlFor={'u-' + k}>{label}<input id={'u-' + k} className="in" inputMode="decimal" value={b[k]} onChange={(e) => setB({ ...b, [k]: e.target.value.replace(/[^\d.,]/g, '') })} onKeyDown={onKey} /></label>
   );
-  const segItems = (isLoan ? LOAN_MOVES : MOVES).concat(others.length ? [{ v: 'move', label: 'Move' }] : []);
+  const segItems = (isLoan ? LOAN_MOVES : a.kind === 'business' ? BIZ_MOVES : MOVES).concat(others.length ? [{ v: 'move', label: 'Move' }] : []);
   return (
     <div className="form">
       <div className="hint" style={{ marginTop: -8 }}>{a.name}{last ? ' · ' + (isLoan ? 'owe' : 'balance') + ' Rs ' + n0(last.value) + ' on ' + dd(last.date) : ''}</div>
+      <Seg<Move> label="What happened" style={{ margin: '0 0 2px' }} value={mode} onChange={setMode} items={segItems} />
       {isBiz ? <>
         <div className="two2">{field('bank', 'In the bank')}{field('cash', 'Cash in hand')}</div>
         <div className="two2">{field('receivable', 'Owed to you')}{field('payable', 'You owe')}</div>
         <div className="two2">{field('sales', 'Sales this month')}{field('costs', 'Costs this month')}</div>
       </> : <>
-        <Seg<Move> label="What happened" style={{ margin: '0 0 2px' }} value={mode} onChange={setMode} items={segItems} />
         <label className="lab" htmlFor="u-val">{mode === 'move' ? 'Amount to move (Rs)' : words.field}
           <input id="u-val" ref={amountRef} className="in money" inputMode="decimal" placeholder={mode === 'set' ? '' : 'e.g. 5,000 or 12,500+800'} value={val} onChange={(e) => { setVal(e.target.value.replace(/[^\d.,+\-*/()×÷a-zA-Z\s]/g, '')); setErr(''); }} onFocus={(e) => e.target.select()} onKeyDown={onKey} />
         </label>
@@ -288,14 +291,14 @@ function UpdateSheet() {
         <label className="lab" htmlFor="u-date">Date<input id="u-date" className="in" type="date" max={iso()} value={date} onChange={(e) => setDate(e.target.value)} /></label>
         <label className="lab" htmlFor="u-note">Note (optional)<input id="u-note" className="in" maxLength={40} placeholder={isBiz ? 'e.g. Eid rush' : mode === 'move' ? 'e.g. Savings' : words.note} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} /></label>
       </div>
-      {!isBiz && !isLoan && (mode === 'in' || mode === 'out') && (
+      {!isLoan && (mode === 'in' || mode === 'out') && (
         <div className="lab"><span>Category{!cat && note.trim() && guessed !== (dir === 'in' ? 'income' : 'spend') ? <span className="lab-k"> · from your note</span> : ''}</span>
           <div className="catrow" role="radiogroup" aria-label="Category">
             {(dir === 'in' ? IN_CATS : OUT_CATS).map((c) => <button key={c} type="button" role="radio" aria-checked={chosen === c} className={'catc' + (chosen === c ? ' on' : '')} style={{ ['--cc' as string]: CATS[c].color } as React.CSSProperties} onClick={() => { setCat(c); haptic('select'); }}><i><Icon name={CATS[c].icon} size={14} /></i>{CATS[c].label}</button>)}
           </div>
         </div>
       )}
-      {!isBiz && mode !== 'set' && mode !== 'move' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : 'New balance'} Rs {n0(preview.value)}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
+      {!isBiz && mode !== 'set' && mode !== 'move' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : a.kind === 'business' ? 'Net position' : 'New balance'} Rs {n0(preview.value)}{a.kind === 'business' && preview.bank != null ? ' · bank Rs ' + n0(preview.bank) + (preview.cash ? ', cash Rs ' + n0(preview.cash) : '') : ''}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
       {mode === 'move' && dest && amount > 0 && last && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{a.name} {isLoan ? 'owes' : ''} Rs {n0(isLoan ? last.value + amount : last.value - amount)} · {dest.name} {dest.kind === 'loan' ? 'owes' : ''} Rs {n0(dest.kind === 'loan' ? Math.max(0, worth(dest) * -1 - amount) : worth(dest) + amount)}</div>}
       {!isBiz && typeof preview === 'string' && val.trim() && mode === 'out' && <div className="hint dn" style={{ fontWeight: 700 }}>{preview}</div>}
       {diff != null && diff !== 0 && (isBiz || mode === 'set') && <div className={'hint ' + cl(isLoan ? -diff : diff)} style={{ fontWeight: 700 }}>{sg(diff)} since your last update</div>}

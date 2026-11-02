@@ -57,3 +57,18 @@ test('the Meezan fund can be left out of the zakat estimate', () => {
   assert.equal(off.base, 120000);
   assert.ok(!off.lines.some((l) => l.label === 'Meezan Balanced Fund'));
 });
+
+// 4.12: a business can add and take out money like any account; the figures carry over
+
+test('business: money in goes to the bank, the other figures stay', () => {
+  const a = { id: 'b', kind: 'business' as const, name: 'Shop', created: '2026-01-01', history: [{ date: '2026-10-01', value: 150, bank: 100, cash: 50, receivable: 30, payable: 30, sales: 500, costs: 400 }] };
+  const s = moveSnapshot(a, 'in', 25, '2026-10-05');
+  assert.equal(typeof s, 'object');
+  if (typeof s === 'object') { assert.equal(s.bank, 125); assert.equal(s.cash, 50); assert.equal(s.receivable, 30); assert.equal(s.payable, 30); assert.equal(s.sales, 500); assert.equal(s.value, 175); }
+});
+test('business: money out comes from the bank first, then cash, and cannot exceed both', () => {
+  const a = { id: 'b', kind: 'business' as const, name: 'Shop', created: '2026-01-01', history: [{ date: '2026-10-01', value: 150, bank: 100, cash: 50, receivable: 0, payable: 0 }] };
+  const s = moveSnapshot(a, 'out', 120, '2026-10-05');
+  if (typeof s === 'object') { assert.equal(s.bank, 0); assert.equal(s.cash, 30); assert.equal(s.value, 30); } else assert.fail(s);
+  assert.equal(typeof moveSnapshot(a, 'out', 151, '2026-10-05'), 'string');
+});

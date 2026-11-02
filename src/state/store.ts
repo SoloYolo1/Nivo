@@ -6,7 +6,7 @@ import { SEED_BUYS, SEED_NAVS, SEED_PEERS, mergeNavs, type Buy, type Nav, type P
 import { DEFAULT_GOAL, type Goal } from '../lib/plan';
 import type { Legacy } from '../lib/legacy';
 import { setAmountsHidden } from '../lib/format';
-import { cleanAccounts, newId, snapshotOn, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
+import { cleanAccounts, moveSnapshot, newId, snapshotOn, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
 import { cleanBills, cleanTxns, reverseTxn, type Bill, type Cat, type Txn } from '../lib/cashflow';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -272,14 +272,16 @@ export function forgetTxn(id: string): void { saveTxns(state.txns.filter((x) => 
 export function moveMoney(from: string, to: string, amount: number, date: string, note = ''): { id: string } | { error: string } {
   const a = state.accounts.find((x) => x.id === from), b = state.accounts.find((x) => x.id === to);
   if (!a || !b || !(amount > 0)) return { error: 'Pick both accounts and an amount.' };
-  const la = snapshotOn(a), lb = snapshotOn(b);
-  const base = la ? la.value : 0;
-  if (a.kind !== 'loan' && amount > base + 0.005) return { error: 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' in ' + a.name + '.' };
-  // on a loan, moving money in pays it off; moving money out of a loan borrows more
-  const outVal = a.kind === 'loan' ? base + amount : base - amount;
-  const inVal = b.kind === 'loan' ? Math.max(0, (lb ? lb.value : 0) - amount) : (lb ? lb.value : 0) + amount;
   const n = note.trim();
-  saveAccounts(state.accounts.map((x) => (x.id === from ? withSnapshot(x, { date, value: Math.round(outVal * 100) / 100, note: n || 'To ' + b.name }) : x.id === to ? withSnapshot(x, { date, value: Math.round(inVal * 100) / 100, note: n || 'From ' + a.name }) : x)));
+  // on a loan the money runs the other way: moving money out of a loan borrows more, moving money in pays it off
+  const sa = moveSnapshot(a, a.kind === 'loan' ? 'in' : 'out', amount, date, n || 'To ' + b.name);
+  if (typeof sa === 'string') return { error: sa };
+  // paying more than is owed just clears the loan
+  const lb = snapshotOn(b);
+  const toAmt = b.kind === 'loan' ? Math.min(amount, lb ? lb.value : 0) : amount;
+  const sb = b.kind === 'loan' && toAmt <= 0 ? { date, value: 0, note: n || 'From ' + a.name } : moveSnapshot(b, b.kind === 'loan' ? 'out' : 'in', toAmt, date, n || 'From ' + a.name);
+  if (typeof sb === 'string') return { error: sb };
+  saveAccounts(state.accounts.map((x) => (x.id === from ? withSnapshot(x, sa) : x.id === to ? withSnapshot(x, sb) : x)));
   const t1 = addTxn({ acct: from, to, date, amount: a.kind === 'loan' ? amount : -amount, cat: 'transfer', ...(n ? { note: n } : {}) });
   addTxn({ acct: to, to: from, date, amount: b.kind === 'loan' ? -amount : amount, cat: 'transfer', ...(n ? { note: n } : {}) });
   return { id: t1.id };

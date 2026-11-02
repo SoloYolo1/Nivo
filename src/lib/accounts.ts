@@ -89,6 +89,11 @@ export type Move = 'in' | 'out' | 'set' | 'move';
 /** The words for each kind of move. Loans run the other way: money in is borrowing more, out is paying off. */
 export function moveWords(kind: Kind, m: Move): { title: string; field: string; note: string; done: string } {
   if (m === 'move') return { title: 'Move money', field: 'Amount to move (Rs)', note: 'e.g. Savings', done: 'Moved' };
+  if (kind === 'business') {
+    if (m === 'in') return { title: 'Add money', field: 'Amount to add (Rs)', note: 'e.g. Customer paid', done: 'Added' };
+    if (m === 'out') return { title: 'Take out', field: 'Amount to take out (Rs)', note: 'e.g. Supplier', done: 'Taken out' };
+    return { title: 'Update the numbers', field: '', note: 'e.g. Eid rush', done: 'Saved' };
+  }
   if (kind === 'loan') {
     if (m === 'in') return { title: 'Borrowed more', field: 'Amount borrowed (Rs)', note: 'e.g. Car repair', done: 'Added to what you owe' };
     if (m === 'out') return { title: 'Paid off', field: 'Amount paid (Rs)', note: 'e.g. Monthly instalment', done: 'Taken off what you owe' };
@@ -113,6 +118,23 @@ export function moveSnapshot(a: Account, m: Move, amount: number, date: string, 
   if (!Number.isFinite(amount) || amount < 0) return m === 'set' ? (a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.') : 'Enter an amount.';
   if (m !== 'set' && amount === 0) return 'Enter an amount.';
   const last = snapshotOn(a);
+  const same = a.history.find((h) => h.date === date);
+  const notes = [same && m !== 'set' ? same.note : '', note.trim()].filter(Boolean);
+  const n = notes.join(' · ');
+  // A business: money in goes to its bank; money out comes from the bank first, then cash. The other
+  // figures (owed to you, you owe, sales, costs) carry over from the latest update.
+  if (a.kind === 'business' && m !== 'set') {
+    const base = { bank: last?.bank || 0, cash: last?.cash || 0, receivable: last?.receivable || 0, payable: last?.payable || 0, ...(last?.sales != null ? { sales: last.sales } : {}), ...(last?.costs != null ? { costs: last.costs } : {}) };
+    let bank = base.bank, cash = base.cash;
+    if (m === 'in') bank += amount;
+    else {
+      if (amount > bank + cash + 0.005) return 'That is more than the Rs ' + Math.round(bank + cash).toLocaleString('en-PK') + ' in the bank and cash.';
+      const fromBank = Math.min(bank, amount);
+      bank -= fromBank; cash -= amount - fromBank;
+    }
+    const b = { ...base, bank: Math.round(bank * 100) / 100, cash: Math.round(cash * 100) / 100 };
+    return { date, value: Math.round(businessValue(b) * 100) / 100, ...b, ...(n ? { note: n } : {}) };
+  }
   const base = last ? last.value : 0;
   let value = amount;
   if (m === 'in') value = base + amount;
@@ -121,9 +143,6 @@ export function moveSnapshot(a: Account, m: Move, amount: number, date: string, 
     value = Math.max(0, base - amount);
   }
   value = Math.round(value * 100) / 100;
-  const same = a.history.find((h) => h.date === date);
-  const notes = [same && m !== 'set' ? same.note : '', note.trim()].filter(Boolean);
-  const n = notes.join(' · ');
   return { date, value, ...(n ? { note: n } : {}) };
 }
 
