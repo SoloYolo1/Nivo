@@ -62,7 +62,15 @@ export function Home() {
       {/* 1. net worth */}
       <NetWorthHero />
 
-      {/* 2. accounts */}
+      {/* 2. the four actions, right under the number */}
+      <div className="qa qa-box" role="group" aria-label="Quick actions">
+        <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
+        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
+        <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
+        <button type="button" onClick={() => push({ name: 'cashflow' })}><i><Icon name="qchart" size={21} /></i>Cash flow</button>
+      </div>
+
+      {/* 3. accounts */}
       <div className="cap"><span>Your accounts</span>{accounts.length > 0 && <button type="button" className="cap-link" onClick={() => goTab('accounts')}>See all</button>}</div>
       <section className="cd list">
         <FundRow f={f} />
@@ -94,15 +102,6 @@ export function Home() {
           </button>
         </section>
       )}
-
-      {/* 5. the four actions, in one container */}
-      <div className="cap"><span>Quick actions</span></div>
-      <div className="qa qa-box" role="group" aria-label="Quick actions">
-        <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
-        <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
-        <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
-        <button type="button" onClick={() => push({ name: 'cashflow' })}><i><Icon name="qchart" size={21} /></i>Cash flow</button>
-      </div>
 
       {/* things that need you, then tips */}
       <UpdateCard />

@@ -17,7 +17,7 @@ export function MoveActions({ a, compact = false }: { a: Account; compact?: bool
       <div className="mv-two">
         <button type="button" className="mv-btn in" onClick={() => open(addArg)}>
           <span className="mv-ic"><Icon name="cashin" size={22} /></span>
-          <span className="mv-t"><b>{isLoan ? 'Paid off' : 'Add money'}</b>{!compact && <small>{isLoan ? 'Lower the loan' : isBiz ? 'Sales, a customer' : 'Salary or profit'}</small>}</span>
+          <span className="mv-t"><b>{isLoan ? 'Paid off' : 'Add money'}</b>{!compact && <small>{isLoan ? 'Lower the loan' : isBiz ? 'Sales, customers' : 'Salary or profit'}</small>}</span>
         </button>
         <button type="button" className="mv-btn out" onClick={() => open(outArg)}>
           <span className="mv-ic"><Icon name="cashout" size={22} /></span>

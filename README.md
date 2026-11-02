@@ -4,6 +4,11 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.12
+
+- **Money moves on every account.** A business now has *Add money* and *Take out* like everything else: money in lands in its bank, money out comes from the bank first and then cash, and what customers owe, what you owe, and the month's sales and costs carry over. *Update the numbers* is still there for typing the full set. Any account, a business included, can be the destination of a *Move*.
+- **A design pass across the app.** One hierarchy of surfaces: the hero card is the one bold thing on a page, cards sit on a soft lift, lists and tiles are flat. Section titles are sentence case and read like headings. Radii step down with the tier. Page titles, figures and section headings are set a notch larger with tighter tracking; account rows get more air and a bigger balance; the sparkline makes room for the name. Home's quick actions sit right under the net worth. Labels inside cards and sheets are sentence case too.
+
 ## What is new in 4.11
 
 - **Add money and Take out are proper buttons.** On every account they are two tiles with their own icons: a green note with money going in, a coral one with money going out (a loan gets *Paid off* and *Borrowed*). *Move to another account* and *Set the balance* sit beneath them. Home's cash flow card has the same pair for your main bank, and the + button's *Spend* and *Money in* use the same icons.

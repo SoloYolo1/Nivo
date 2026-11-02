@@ -69,6 +69,6 @@ test('business: money in goes to the bank, the other figures stay', () => {
 test('business: money out comes from the bank first, then cash, and cannot exceed both', () => {
   const a = { id: 'b', kind: 'business' as const, name: 'Shop', created: '2026-01-01', history: [{ date: '2026-10-01', value: 150, bank: 100, cash: 50, receivable: 0, payable: 0 }] };
   const s = moveSnapshot(a, 'out', 120, '2026-10-05');
-  if (typeof s === 'object') { assert.equal(s.bank, 0); assert.equal(s.cash, 30); assert.equal(s.value, 30); } else assert.fail(s);
+  if (typeof s === 'object') { assert.equal(s.bank, 0); assert.equal(s.cash, 30); assert.equal(s.value, 30); } else assert.equal(s, 'a snapshot');
   assert.equal(typeof moveSnapshot(a, 'out', 151, '2026-10-05'), 'string');
 });

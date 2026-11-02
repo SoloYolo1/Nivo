@@ -1,0 +1,83 @@
+/* 4.12: the design pass. One hierarchy for the whole app, loaded last so it wins.
+   Three tiers of surface: the hero card (gradient, deep shadow, the one bold thing on a page), cards
+   (solid, a soft lift) and lists and tiles (flat, a hairline). Section titles are sentence case and
+   read like headings rather than shouted labels. Radii step down with the tier: 26 / 20 / 16 / 12. */
+
+:root{--r-hero:26px;--r-card:20px;--r-tile:16px;--r-chip:12px;--sh-card:0 1px 0 var(--hl) inset,0 6px 20px rgba(0,0,0,.22),0 1px 3px rgba(0,0,0,.14)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--sh-card:0 1px 0 rgba(255,255,255,.7) inset,0 6px 18px rgba(30,35,80,.08),0 1px 2px rgba(30,35,80,.06)}}
+:root[data-theme="light"]{--sh-card:0 1px 0 rgba(255,255,255,.7) inset,0 6px 18px rgba(30,35,80,.08),0 1px 2px rgba(30,35,80,.06)}
+
+/* ---- section titles ---- */
+.cap{font-family:var(--fd);font-size:15px;font-weight:800;letter-spacing:-.3px;text-transform:none;color:var(--tx);margin:26px 4px 10px;align-items:baseline}
+.cap>span:first-child{color:var(--tx)}
+.cap b,.cap>span+span{font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:0;color:var(--mu);text-transform:none}
+.cap em{font-size:11px;padding:2px 8px;vertical-align:2px;letter-spacing:0}
+.cap .cap-link{font-size:13px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--gold-ink,var(--gold))}
+.cap .gdot{vertical-align:1px}
+
+/* ---- the page title ---- */
+.hdr b{font-size:32px;letter-spacing:-1.1px}
+.hdr small{font-size:13.5px}
+.quip{font-size:13.5px}
+
+/* ---- surfaces ---- */
+.cd{border-radius:var(--r-card);padding:18px;margin-bottom:14px}
+.cd:not(.hero){box-shadow:var(--sh-card)!important}
+.cd.list,.cd.glance,.cd.tile2{box-shadow:none!important;background:var(--cd);border:1px solid var(--bd)}
+.cd.list{padding:4px 14px}
+.hero,.cd.hero{border-radius:var(--r-hero)}
+.cd.tile2{border-radius:var(--r-tile);padding:15px}
+.dt{border-radius:var(--r-tile);box-shadow:none;background:var(--cd)}
+.dt::after{display:none}
+.dt-grid{gap:9px;margin-bottom:14px}
+.g2{gap:9px;margin-bottom:14px}
+.ht{font-family:var(--fd);font-size:15px;font-weight:800;letter-spacing:-.3px}
+.ht i{width:30px;height:30px;border-radius:10px}
+
+/* ---- rows ---- */
+.acc{padding:13px 8px}
+.acc b{font-size:15px;letter-spacing:-.2px}
+.acc small{font-size:12px}
+.acc .r b{font-size:17px;letter-spacing:-.4px}
+.acc .ai{width:42px;height:42px;border-radius:14px}
+.rw{padding:12px 0;font-size:14px}
+.rw small{font-size:12px}
+
+/* ---- controls ---- */
+.btn{border-radius:15px}
+.btn.big{min-height:54px;border-radius:17px;font-size:16px}
+.in{min-height:52px;border-radius:14px;font-size:16px}
+.mv-btn{border-radius:var(--r-tile);box-shadow:var(--sh-card)}
+.mv-sm{border-radius:var(--r-chip);min-height:42px}
+.qa{margin:8px 0 10px}
+.qa i{border-radius:18px}
+.dash{border-radius:var(--r-tile)}
+.linkrow{border-radius:var(--r-tile)}
+.tile{border-radius:var(--r-tile)}
+.catc{border-radius:var(--r-chip)}
+
+/* ---- hero: quieter chrome, louder number ---- */
+.hero .hl{font-size:14px;font-weight:600;color:rgba(255,255,255,.72)}
+.hero .big{font-size:46px;letter-spacing:-2.2px}
+.hero .hd{font-size:12px;font-weight:700;border-radius:999px;padding:5px 11px}
+.hero .dl{font-size:13px;font-weight:700}
+.story-line{font-size:22px;letter-spacing:-.5px}
+
+/* ---- reading text ---- */
+.hint{font-size:13px;line-height:1.5}
+.f{font-size:12px;line-height:1.5}
+.empty b{font-family:var(--fd);font-size:17px;letter-spacing:-.3px}
+.empty p{font-size:13.5px;line-height:1.5}
+
+/* ---- sheets ---- */
+.sh-h{font-family:var(--fd);font-size:22px;letter-spacing:-.6px}
+.lab{font-size:12.5px;font-weight:700;color:var(--mu);text-transform:none;letter-spacing:0}
+
+/* ---- dock: a touch lighter ---- */
+.dock button span{font-size:10.5px;font-weight:700;letter-spacing:0}
+
+@media (prefers-reduced-motion:reduce){.dt-bar i,.gauge-v,.work-bar i{animation:none}}
+
+/* the row's sparkline sits tight so names get the room */
+.acc .msp{width:44px;height:18px;flex:none;margin:0 6px 0 2px}
+.flow small,.hx small,.tri small,.dy small{text-transform:none;letter-spacing:0;font-size:12px}

@@ -121,10 +121,12 @@ export function moveSnapshot(a: Account, m: Move, amount: number, date: string, 
   const same = a.history.find((h) => h.date === date);
   const notes = [same && m !== 'set' ? same.note : '', note.trim()].filter(Boolean);
   const n = notes.join(' · ');
-  // A business: money in goes to its bank; money out comes from the bank first, then cash. The other
-  // figures (owed to you, you owe, sales, costs) carry over from the latest update.
+  // A business: money in goes to its bank; money out comes from the bank first, then cash. What is owed
+  // both ways carries over from the latest update; sales and costs do too, within the same month.
   if (a.kind === 'business' && m !== 'set') {
-    const base = { bank: last?.bank || 0, cash: last?.cash || 0, receivable: last?.receivable || 0, payable: last?.payable || 0, ...(last?.sales != null ? { sales: last.sales } : {}), ...(last?.costs != null ? { costs: last.costs } : {}) };
+    // sales and costs are a month's figures, so they only carry over within the same month
+    const sameMonth = !!last && last.date.slice(0, 7) === date.slice(0, 7);
+    const base = { bank: last?.bank || 0, cash: last?.cash || 0, receivable: last?.receivable || 0, payable: last?.payable || 0, ...(sameMonth && last.sales != null ? { sales: last.sales } : {}), ...(sameMonth && last.costs != null ? { costs: last.costs } : {}) };
     let bank = base.bank, cash = base.cash;
     if (m === 'in') bank += amount;
     else {

@@ -6,6 +6,7 @@ import './styles/accounts.css';
 import './styles/polish.css';
 import './styles/cashflow.css';
 import './styles/tiles.css';
+import './styles/design.css';
 
 try { history.scrollRestoration = 'manual'; } catch { /* older browsers */ }
 installInsets();

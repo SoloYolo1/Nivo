@@ -53,9 +53,9 @@ export function Plan() {
           const onTime = eta >= 0 && eta <= Y * 12;
           return (
             <div className="dt-grid three">
-              <DataTile label="Goal in" value={eta === 0 ? 'Reached' : eta < 0 ? '50+ yr' : duration(eta)} tone={eta === 0 || onTime ? 'up' : ''} sub={eta === 0 ? 'well done' : onTime ? 'on time at this SIP' : 'later than planned'} />
-              <DataTile label="SIP needed" value={need > 0 ? shortAmt(need) : '0'} unit="/mo" tone={need <= sip ? 'up' : ''} sub={need <= sip ? 'your Rs ' + n0(sip) + ' covers it' : 'Rs ' + n0(need - sip) + ' more than now'} bar={{ pct: need > 0 ? (sip / need) * 100 : 100, tone: need <= sip ? 'up' : 'org' }} />
-              <DataTile label="Next stop" value={next ? (next >= 1e7 ? next / 1e7 + ' Cr' : next / 1e5 + ' L') : 'Top'} tone="gold" sub={next ? Math.floor((v / next) * 100) + '% there, ' + duration(monthsTo(v, sip, r, next)) : 'past every milestone'} bar={next ? { pct: (v / next) * 100 } : undefined} />
+              <DataTile label="Goal in" value={eta === 0 ? 'Reached' : eta < 0 ? '50+ yr' : duration(eta)} tone={eta === 0 || onTime ? 'up' : ''} sub={eta === 0 ? 'well done' : onTime ? 'on time' : 'later than planned'} />
+              <DataTile label="SIP needed" value={need > 0 ? shortAmt(need) : '0'} unit="/mo" tone={need <= sip ? 'up' : ''} sub={need <= sip ? 'you set ' + shortAmt(sip) : shortAmt(need - sip) + ' more than set'} bar={{ pct: need > 0 ? (sip / need) * 100 : 100, tone: need <= sip ? 'up' : 'org' }} />
+              <DataTile label="Next stop" value={next ? (next >= 1e7 ? next / 1e7 + ' Cr' : next / 1e5 + ' L') : 'Top'} tone="gold" sub={next ? Math.floor((v / next) * 100) + '% there' : 'past every milestone'} bar={next ? { pct: (v / next) * 100 } : undefined} />
             </div>
           );
         })()}
