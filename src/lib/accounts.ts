@@ -101,7 +101,7 @@ export function moveWords(kind: Kind, m: Move): { title: string; field: string; 
 
 /** The update sheet's argument: the account id, optionally followed by :in or :out to start on that move. */
 export const updateArg = (id: string, m?: Move): string => (m && m !== 'set' ? id + ':' + m : id);
-export const parseUpdateArg = (arg: string): { id: string; mode: Move } => { const [id, m] = arg.split(':'); return { id, mode: m === 'in' || m === 'out' || m === 'move' ? m : 'set' }; };
+export const parseUpdateArg = (arg: string): { id: string; mode: Move; amount?: number } => { const [id, m, a] = arg.split(':'); const n = Number(a); return { id, mode: m === 'in' || m === 'out' || m === 'move' ? m : 'set', ...(n > 0 ? { amount: n } : {}) }; };
 
 /**
  * The snapshot that records a move, worked out from the latest balance: in adds, out takes off, set replaces.

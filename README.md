@@ -4,6 +4,11 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.10
+
+- **Search: find anything, do anything.** The magnifier on every tab opens one box. Type a word and Nivo finds it everywhere at once: "careem" lists every Careem transaction, "hbl" or the last four digits opens the account, "rent" shows the bill and its payments, "groceries" every grocery run, "23 oct" or "october" that day's or month's transactions and prices, "26.4174" the price itself, "zakat" the estimate, "backup" the data page, "theme" Appearance. Type an amount and the first results are actions: **Take out Rs 5,000** or **Add Rs 5,000**, which open the sheet with the amount filled in and the cursor on the note. "add bill", "price" and "invest" open their sheets. Enter picks the first result.
+- The header fits its three buttons on one line beside your initial and the title.
+
 ## What is new in 4.9.1
 
 - Chip rows (months on Cash flow, categories and accounts in sheets, bills due on Home) no longer fade their left edge, so the first chip is never cut off; they fade only on the right where more chips wait.

@@ -24,7 +24,7 @@ export type Route =
   | { name: 'cashflow'; month?: string }
   | { name: 'bills' };
 export type SettingsPage = 'profile' | 'appearance' | 'notifications' | 'security' | 'prices' | 'data' | 'updates' | 'phone' | 'about';
-export type SheetName = '' | 'add' | 'entry' | 'day' | 'notif' | 'update' | 'import' | 'txn' | 'bill';
+export type SheetName = '' | 'add' | 'entry' | 'day' | 'notif' | 'update' | 'import' | 'txn' | 'bill' | 'search';
 
 export interface Toast { id: number; text: string; icon?: string; action?: { label: string; fn: () => void } }
 export interface LastCheck { t: number; src: string; latest: string }

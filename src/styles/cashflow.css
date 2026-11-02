@@ -237,3 +237,33 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .cd.hero{box-shadow:var(--hero-sh),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.25)!important}
 .hero .cw{filter:drop-shadow(0 1px 0 rgba(255,255,255,.16)) drop-shadow(0 -1px 0 rgba(0,0,0,.28))}
 
+
+/* ---- search ---- */
+.srch-box{position:relative;display:flex;align-items:center}
+.srch-box>svg:first-child{position:absolute;left:14px;color:var(--gold-ink,var(--gold));pointer-events:none}
+.srch-box .in{padding-left:42px;padding-right:44px;font-family:var(--fd);font-weight:700;font-size:17px;min-height:54px}
+.srch-box .in::-webkit-search-cancel-button,.srch-box .in::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.srch-box .x{position:absolute;right:8px}
+.srch-list{display:flex;flex-direction:column}
+.srch-cap{font-family:var(--fd);font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:color-mix(in srgb,var(--gold) 62%,var(--mu2));padding:12px 2px 4px}
+.srch-cap:first-child{padding-top:2px}
+.srch-r{display:flex;align-items:center;gap:12px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--bd);background:none;color:var(--tx);font:inherit;text-align:left;transition:transform .18s var(--ease);animation:popin .3s var(--ease) both}
+.srch-r:last-child{border-bottom:0}
+.srch-r:active{transform:scale(.985);background:color-mix(in srgb,var(--gold) 8%,transparent);border-radius:12px}
+.srch-r .ci{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--cc,var(--gold)) 18%,transparent);color:var(--cc,var(--gold))}
+.srch-r .ci.plain{background:var(--gold-soft);color:var(--gold-ink,var(--gold))}
+.srch-r .tt{flex:1;min-width:0}
+.srch-r .tt b{display:block;font-family:var(--fd);font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch-r .tt small{display:block;color:var(--mu);font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch-r>svg:last-child{color:var(--mu2)}
+.srch-r .ta{font-family:var(--fd);font-weight:800;font-variant-numeric:tabular-nums}
+.srch-r .ta.up{color:var(--up)}
+/* three actions in the header fit on one line beside the monogram and title */
+.hdr.phdr{gap:8px}
+.hdr-l{flex:1 1 0;min-width:0}
+.hdr-l>div{min-width:0}
+.hdr-l small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.hdr .hdr-acts{gap:6px;flex:none}
+.hdr .hdr-ib{width:40px;height:40px;border-radius:13px}
+.hdr .quip{flex-basis:100%}
+.mono{width:40px;height:40px;font-size:16px}
