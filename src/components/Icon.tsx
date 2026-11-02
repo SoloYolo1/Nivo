@@ -14,6 +14,11 @@ const P: Record<string, string> = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M6 12h12"/>',
+  // money moves: in, out, between accounts (one grid, same weight)
+  cashin: '<rect x="3" y="9" width="18" height="11" rx="2.5"/><circle cx="12" cy="14.5" r="2.2"/><path d="M12 2.5v5M9.6 5.1L12 7.5l2.4-2.4"/>',
+  cashout: '<rect x="3" y="9" width="18" height="11" rx="2.5"/><circle cx="12" cy="14.5" r="2.2"/><path d="M12 7.5v-5M9.6 4.9L12 2.5l2.4 2.4"/>',
+  move: '<path d="M4 8h13M14 5l3 3-3 3"/><path d="M20 16H7M10 13l-3 3 3 3"/>',
+  setbal: '<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13 6l4 4"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   refresh: '<path d="M20 11a8 8 0 00-14-4M4 4v4h4M4 13a8 8 0 0014 4M20 20v-4h-4"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',

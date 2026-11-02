@@ -1,5 +1,7 @@
 // One account in detail: bank, business, or any other asset or loan.
 import { Icon, KIND_ICON } from '../components/Icon';
+import { MoveActions } from '../components/MoveActions';
+import { DataTile } from '../components/DataTile';
 import { Card, Switch } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { Bars } from '../components/Charts';
@@ -7,8 +9,9 @@ import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
 import { deleteAccount, openSheet, pop, push, removeSnapshot, upsertAccount, useStore } from '../state/store';
-import { KINDS, businessStats, monthLabel, snapshotOn, updateArg, worth, worthOf, type Account } from '../lib/accounts';
+import { KINDS, businessStats, monthLabel, snapshotOn, worth, worthOf, type Account } from '../lib/accounts';
 import { cl, compact, dd, iso, n0, sg } from '../lib/format';
+import { CATS, monthFlow, spendingByCat, type Txn } from '../lib/cashflow';
 import { setMonthlyReminder } from '../lib/notify';
 import { subtitle } from './Accounts';
 import { TxnRow } from './CashFlow';
@@ -63,13 +66,9 @@ export function AccountDetail({ id }: { id: string }) {
 
       {a.kind === 'business'
         ? <button type="button" className="btn gold big full" style={{ margin: '0 0 12px' }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={18} />Update this month’s numbers</button>
-        : <>
-          <div className="two" style={{ marginBottom: 8 }}>
-            <button type="button" className="btn gold big" onClick={() => openSheet('update', updateArg(a.id, isLoan ? 'out' : 'in'))}><Icon name={isLoan ? 'down' : 'plus'} size={18} />{isLoan ? 'Paid off' : 'Add money'}</button>
-            <button type="button" className="btn sec big" onClick={() => openSheet('update', updateArg(a.id, isLoan ? 'in' : 'out'))}><Icon name={isLoan ? 'up' : 'minus'} size={18} />{isLoan ? 'Borrowed more' : 'Take out'}</button>
-          </div>
-          <button type="button" className="btn ghost full" style={{ margin: '0 0 12px', minHeight: 40 }} onClick={() => openSheet('update', a.id)}><Icon name="pencil" size={16} />{isLoan ? 'Set what you owe' : 'Set the balance'}</button>
-        </>}
+        : <MoveActions a={a} />}
+
+      <AccountTiles a={a} txns={txns} today={today} />
 
       {biz && biz.latest && biz.profit != null && (
         <Card icon="cal" title={monthLabel(biz.latest.date) + ' figures'} more="Sales minus costs">
@@ -145,3 +144,55 @@ export function AccountDetail({ id }: { id: string }) {
     </section>
   );
 }
+
+/**
+ * Three tiles under the buttons: this month's in and out on the account (from its transactions), how the
+ * balance moved over the last 30 days, and how long it has been tracked. A loan shows what has been paid
+ * off instead; a business shows its margin and cushion.
+ */
+function AccountTiles({ a, txns, today }: { a: Account; txns: Txn[]; today: string }) {
+  const ym = today.slice(0, 7);
+  const flow = monthFlow(txns, ym, [a]);
+  const month = new Date().toLocaleDateString('en-GB', { month: 'short' });
+  const first = a.history[0];
+  const latest = snapshotOn(a);
+  const isLoan = a.kind === 'loan';
+  // the balance about a month ago: the last update on or before 30 days back
+  const cut = back30(today);
+  const old = a.history.filter((h) => h.date <= cut).pop() || null;
+  const move30 = old && latest ? worthOf(a, latest) - worthOf(a, old) : null;
+  const topCat = spendingByCat(flow)[0];
+  if (a.kind === 'business') {
+    const biz = businessStats(a);
+    if (!biz.latest) return null;
+    return (
+      <div className="dt-grid three">
+        <DataTile label="Margin" value={biz.margin != null ? Math.round(biz.margin) + '%' : '–'} tone={biz.margin != null ? (biz.margin >= 0 ? 'up' : 'dn') : ''} sub={biz.latest.sales ? 'Rs ' + n0(biz.latest.sales) + ' in sales' : 'Add sales and costs'} />
+        <DataTile label="Cushion" value={biz.runway != null ? biz.runway.toFixed(1) : '–'} unit={biz.runway != null ? 'mo' : ''} tone={biz.runway != null && biz.runway >= 3 ? 'up' : ''} sub="of costs, if sales paused" bar={biz.runway != null ? { pct: (biz.runway / 3) * 100, tone: biz.runway >= 3 ? 'up' : 'org' } : undefined} />
+        <DataTile label="Owed to you" value={compact(biz.latest.receivable || 0).replace('Rs ', '')} sub={biz.latest.payable ? 'you owe ' + compact(biz.latest.payable).replace('Rs ', '') : 'nothing owed by you'} />
+      </div>
+    );
+  }
+  if (isLoan) {
+    const start = first ? first.value : 0;
+    const left = latest ? latest.value : 0;
+    const paid = Math.max(0, start - left);
+    const pct = start > 0 ? (paid / start) * 100 : 0;
+    const paidMonth = txns.filter((t) => t.date.slice(0, 7) === ym && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+    return (
+      <div className="dt-grid three">
+        <DataTile label="Paid off" value={Math.round(pct) + '%'} tone="up" sub={'Rs ' + n0(paid) + ' of Rs ' + n0(start)} bar={{ pct, tone: 'up' }} />
+        <DataTile label={month} value={paidMonth ? 'Rs ' + n0(paidMonth) : '–'} tone={paidMonth ? 'up' : ''} sub={paidMonth ? 'paid this month' : 'nothing paid yet'} />
+        <DataTile label="Change" value={move30 != null ? (move30 >= 0 ? '−' : '+') + compact(Math.abs(move30)).replace('Rs ', '') : '–'} tone={move30 != null ? (move30 >= 0 ? 'up' : 'dn') : ''} sub={move30 != null ? (move30 >= 0 ? 'less owed since ' : 'more owed since ') + dd(old!.date) : 'needs a second update'} />
+      </div>
+    );
+  }
+  return (
+    <div className="dt-grid three">
+      <DataTile label={month + ' in'} value={flow.in ? compact(flow.in).replace('Rs ', '') : '–'} tone={flow.in ? 'up' : ''} sub={flow.in ? flow.count + (flow.count === 1 ? ' transaction' : ' transactions') : 'nothing added yet'} />
+      <DataTile label={month + ' out'} value={flow.out ? compact(flow.out).replace('Rs ', '') : '–'} tone={flow.out ? 'dn' : ''} sub={flow.out && topCat ? 'most on ' + CATS[topCat.cat].label.toLowerCase() : 'nothing taken out'} />
+      <DataTile label="Change" value={move30 != null ? (move30 >= 0 ? '+' : '−') + compact(Math.abs(move30)).replace('Rs ', '') : '–'} tone={move30 != null ? cl(move30) : ''} sub={move30 != null ? 'since ' + dd(old!.date) : first ? 'tracked since ' + dd(first.date) : 'no balance yet'} />
+    </div>
+  );
+}
+const back30 = (d: string): string => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - 30); return t.toISOString().slice(0, 10); };
