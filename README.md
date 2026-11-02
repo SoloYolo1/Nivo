@@ -4,6 +4,13 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.11
+
+- **Add money and Take out are proper buttons.** On every account they are two tiles with their own icons: a green note with money going in, a coral one with money going out (a loan gets *Paid off* and *Borrowed*). *Move to another account* and *Set the balance* sit beneath them. Home's cash flow card has the same pair for your main bank, and the + button's *Spend* and *Money in* use the same icons.
+- **Data tiles on every page.** Home's *At a glance* is four tiles: what you own (with the account count), what you owe (as a share of what you own), growth this month with its percentage, and what the month kept against your target (or how long savings would last, until something is logged). Accounts shows cash on hand, what is earning, and how many balances are up to date. Insights' money-in and money-out tiles compare with last month. Plan shows when the goal lands, the SIP it needs against the one you set, and the next milestone. Cash flow shows spending a day, the change from last month, and the target used. Bills shows paid so far, still to pay, and what is due this week. Each account's screen shows this month's in and out and the change since a month ago (margin, cushion and receivables for a business; paid-off share for a loan).
+- **Search is gone.** The magnifier and its sheet were removed everywhere; the header is the bell and the gear again.
+- **Fixed:** a loan that went down read as "▲ Rs 50,000" on its screen and "+50,000" in Activity; both now say how much less (or more) is owed. The Bills hero's first label was cut off.
+
 ## What is new in 4.10
 
 - **Search: find anything, do anything.** The magnifier on every tab opens one box. Type a word and Nivo finds it everywhere at once: "careem" lists every Careem transaction, "hbl" or the last four digits opens the account, "rent" shows the bill and its payments, "groceries" every grocery run, "23 oct" or "october" that day's or month's transactions and prices, "26.4174" the price itself, "zakat" the estimate, "backup" the data page, "theme" Appearance. Type an amount and the first results are actions: **Take out Rs 5,000** or **Add Rs 5,000**, which open the sheet with the amount filled in and the cursor on the note. "add bill", "price" and "invest" open their sheets. Enter picks the first result.

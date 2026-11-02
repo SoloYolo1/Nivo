@@ -45,7 +45,7 @@ export function AccountDetail({ id }: { id: string }) {
         <HeroHead icon={KIND_ICON[a.kind]} label={a.kind === 'business' ? 'Net position' : isLoan ? 'You owe' : a.kind === 'bank' ? (a.acctType === 'current' ? 'Current account' : a.acctType === 'term' ? 'Term deposit' : 'Savings account') : KINDS[a.kind].label} chip={pct != null && pct + '% of your assets'} />
         <div className="mh-v"><span>Rs</span><span className="mh-n" style={{ viewTransitionName: 'm-val' } as React.CSSProperties}>{n0(Math.abs(s ? s.value : 0))}</span></div>
         {diff != null && prev
-          ? <span className={'dl ' + cl(diff)}>{(diff >= 0 ? '▲ ' : '▼ ') + 'Rs ' + n0(Math.abs(diff)) + ' since ' + dd(prev.date)}</span>
+          ? <span className={'dl ' + cl(diff)}>{isLoan ? (diff >= 0 ? '▼ Rs ' + n0(Math.abs(diff)) + ' less owed' : '▲ Rs ' + n0(Math.abs(diff)) + ' more owed') : (diff >= 0 ? '▲ ' : '▼ ') + 'Rs ' + n0(Math.abs(diff))}{' since ' + dd(prev.date)}</span>
           : <span className="dl">Updated {s ? dd(s.date) : 'never'}</span>}
         {a.kind === 'bank' && (
           <div className="hx">

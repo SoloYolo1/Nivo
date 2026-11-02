@@ -19,7 +19,7 @@ export function Activity() {
   accounts.forEach((a) => a.history.forEach((h, i) => {
     const prev = a.history[i - 1];
     const d = prev ? worthOf(a, h) - worthOf(a, prev) : null;
-    ev.push({ key: a.id + h.date, d: h.date, t: a.name + ': Rs ' + n0(Math.abs(h.value)), s: (i === 0 ? 'Added' : 'Updated') + (d != null ? ' · ' + sg(d) : '') + (h.note ? ' · ' + h.note : ''), icon: KIND_ICON[a.kind], tone: i === 0 ? 'inv' : d != null ? cl(d) : 'inv', go: () => push({ name: 'account', id: a.id }) });
+    ev.push({ key: a.id + h.date, d: h.date, t: a.name + ': Rs ' + n0(Math.abs(h.value)), s: (i === 0 ? 'Added' : 'Updated') + (d != null ? ' · ' + (a.kind === 'loan' ? (d >= 0 ? n0(Math.abs(d)) + ' paid off' : n0(Math.abs(d)) + ' more owed') : sg(d)) : '') + (h.note ? ' · ' + h.note : ''), icon: KIND_ICON[a.kind], tone: i === 0 ? 'inv' : d != null ? cl(d) : 'inv', go: () => push({ name: 'account', id: a.id }) });
   }));
   ev.sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0));
   return (

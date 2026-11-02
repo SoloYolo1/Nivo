@@ -1,6 +1,7 @@
 // Bills: what comes round every month, when each is due, and one tap to mark it paid.
 import { useMemo } from 'react';
 import { Icon } from '../components/Icon';
+import { DataTile } from '../components/DataTile';
 import { Card } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { openSheet, payBill, useStore } from '../state/store';
@@ -33,10 +34,10 @@ export function Bills() {
         <div className="mh-v"><span>Rs</span><span className="mh-n">{n0(total)}</span></div>
         <span className="dl">{bills.length ? 'Fixed costs a month' : 'Add rent, utilities and subscriptions'}</span>
         {bills.length > 0 && (
-          <div className="hx">
-            <div><small>Paid this month</small><b>{compact(paidSum)}</b></div>
-            <div><small>Still to pay</small><b>{compact(Math.max(0, total - paidSum))}</b></div>
-            <div><small>Due this week</small><b>{due.length ? due.length : 'None'}</b></div>
+          <div className="dt-grid three">
+            <DataTile label="Paid so far" value={compact(paidSum).replace('Rs ', '')} tone={paidSum > 0 ? 'up' : ''} sub={total > 0 ? Math.round((paidSum / total) * 100) + '% of the month' : ''} bar={{ pct: total > 0 ? (paidSum / total) * 100 : 0, tone: 'up' }} />
+            <DataTile label="Still to pay" value={compact(Math.max(0, total - paidSum)).replace('Rs ', '')} sub={total - paidSum > 0 ? 'this month' : 'all paid'} />
+            <DataTile label="Due this week" value={due.length ? String(due.length) : 'None'} tone={due.some((d) => d.overdue) ? 'dn' : ''} sub={due.some((d) => d.overdue) ? 'one is overdue' : due.length ? 'tap Paid when done' : 'nothing due'} />
           </div>
         )}
       </div>
