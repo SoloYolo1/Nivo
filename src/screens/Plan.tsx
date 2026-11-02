@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { Card, Ring } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { AreaChart } from '../components/AreaChart';
+import { DataTile, shortAmt } from '../components/DataTile';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
 import { push, setGoal, toggleCheck, useStore } from '../state/store';
@@ -46,7 +47,18 @@ export function Plan() {
             <small>Goal</small><b className="gold">{big(goal.amount)}</b>
           </div>
         </div>
-        <div className="hx"><div><small>Goal in</small><b>{eta === 0 ? 'Reached' : duration(eta)}</b></div><div><small>Monthly SIP</small><b>Rs {n0(sip)}</b></div><div><small>In {Y} {Y > 1 ? 'years' : 'year'}</small><b>{big(pts[Y]).replace('Rs ', '')}</b></div></div>
+        {(() => {
+          const need = sipNeeded(v, r, goal.amount, Y);
+          const next = MILESTONES.find((m) => m > v);
+          const onTime = eta >= 0 && eta <= Y * 12;
+          return (
+            <div className="dt-grid three">
+              <DataTile label="Goal in" value={eta === 0 ? 'Reached' : eta < 0 ? '50+ yr' : duration(eta)} tone={eta === 0 || onTime ? 'up' : ''} sub={eta === 0 ? 'well done' : onTime ? 'on time at this SIP' : 'later than planned'} />
+              <DataTile label="SIP needed" value={need > 0 ? shortAmt(need) : '0'} unit="/mo" tone={need <= sip ? 'up' : ''} sub={need <= sip ? 'your Rs ' + n0(sip) + ' covers it' : 'Rs ' + n0(need - sip) + ' more than now'} bar={{ pct: need > 0 ? (sip / need) * 100 : 100, tone: need <= sip ? 'up' : 'org' }} />
+              <DataTile label="Next stop" value={next ? (next >= 1e7 ? next / 1e7 + ' Cr' : next / 1e5 + ' L') : 'Top'} tone="gold" sub={next ? Math.floor((v / next) * 100) + '% there, ' + duration(monthsTo(v, sip, r, next)) : 'past every milestone'} bar={next ? { pct: (v / next) * 100 } : undefined} />
+            </div>
+          );
+        })()}
       </div>
       {bills.length > 0 && <>
         <div className="cap"><span>Every month</span><button type="button" className="cap-link" onClick={() => push({ name: 'bills' })}>Bills</button></div>

@@ -17,7 +17,7 @@
 .mv-sm{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 12px;border-radius:13px;border:1px solid var(--bd);background:var(--tr);color:var(--tx);font:600 12.5px var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;-webkit-tap-highlight-color:transparent;transition:transform .18s var(--ease)}
 .mv-sm svg{color:var(--gold-ink,var(--gold));flex:none}
 .mv-sm:active{transform:scale(.97)}
-.mv-acts.compact{margin:12px 0 0}
+.mv-acts.compact{margin:-2px 0 14px}
 .mv-acts.compact .mv-btn{min-height:52px;padding:8px 10px;border-radius:16px;box-shadow:none;background:var(--tr)}
 .mv-acts.compact .mv-ic{width:36px;height:36px;border-radius:12px}
 .mv-acts.compact .mv-ic svg{width:19px;height:19px}
@@ -57,3 +57,7 @@ button.dt:active{transform:scale(.97)}
 .hero .dt-d{background:rgba(255,255,255,.14);color:rgba(255,255,255,.85)}
 .hero .dt-d.up{background:rgba(79,213,156,.22);color:#b6f7c8}.hero .dt-d.dn{background:rgba(242,132,123,.22);color:#ffc1bc}
 .hero .dt-bar{background:rgba(255,255,255,.14)}
+/* on Insights' money-out tile more spending is the bad direction */
+.tile2 .dt-d{margin-top:2px}
+.dt-swap .dt-d.up{background:color-mix(in srgb,var(--dn) 15%,transparent);color:var(--dn)}
+.dt-swap .dt-d.dn{background:color-mix(in srgb,var(--up) 15%,transparent);color:var(--up)}

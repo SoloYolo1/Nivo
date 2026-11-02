@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { Card } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { Bars } from '../components/Charts';
+import { DataTile } from '../components/DataTile';
 import { useColors } from '../components/theme';
 import { openSheet, push, replaceTop, setBudget, useStore } from '../state/store';
 import { CATS, monthFlow, monthName, monthOf, monthShort, monthsWithTxns, shiftMonth, spendingByCat, type Cat, type Txn } from '../lib/cashflow';
@@ -65,6 +66,19 @@ export function CashFlow({ month }: { month?: string }) {
         </div>
         <div className="net-l"><span>{flow.net >= 0 ? 'Kept' : 'Spent more than came in'}</span><b>{flow.net >= 0 ? '+' : '−'}Rs {n0(Math.abs(flow.net))}</b></div>
         {flow.transfers > 0 && <div className="net-l" style={{ marginTop: 4 }}><span>Moved between your accounts</span><b>Rs {n0(flow.transfers)}</b></div>}
+        {flow.count > 0 && (() => {
+          const current = ym === monthOf(today);
+          const days = current ? Number(today.slice(8, 10)) : new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
+          const perDay = flow.out / Math.max(1, days);
+          const vs = prev.out > 0 ? flow.out - prev.out : null;
+          return (
+            <div className="dt-grid three">
+              <DataTile label="A day" value={compact(perDay).replace('Rs ', '')} sub={'spent, ' + days + (days === 1 ? ' day' : ' days') + ' in'} />
+              <DataTile label={'vs ' + monthShort(shiftMonth(ym, -1))} value={vs == null ? '–' : (vs >= 0 ? '+' : '−') + compact(Math.abs(vs)).replace('Rs ', '')} tone={vs == null ? '' : vs > 0 ? 'dn' : 'up'} sub={vs == null ? 'nothing the month before' : 'money out'} />
+              <DataTile label="Target" value={budget > 0 ? Math.round(pct) + '%' : '–'} tone={budget > 0 ? (pct >= 100 ? 'dn' : pct >= 80 ? '' : 'up') : ''} sub={budget > 0 ? (left >= 0 ? compact(left).replace('Rs ', '') + ' left' : 'over by ' + compact(-left).replace('Rs ', '')) : 'set one below'} bar={budget > 0 ? { pct, tone: pct >= 100 ? 'dn' : pct >= 80 ? 'org' : 'up' } : undefined} />
+            </div>
+          );
+        })()}
       </div>
 
       <div className="mons" role="tablist" aria-label="Month">

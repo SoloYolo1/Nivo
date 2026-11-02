@@ -11,8 +11,10 @@ import { goTab, openSheet, push, setMasked, setState, useStore } from '../state/
 import { refreshAll } from '../state/refresh';
 import { dailyNetWorth, emergency, endOfPrevMonth, growth, staleAccounts, workingIdle, worth, zakat, type Group } from '../lib/accounts';
 import { UpdateCard } from '../components/Update';
+import { DataTile } from '../components/DataTile';
+import { MoveActions } from '../components/MoveActions';
 import { cl, compact, dd, iso, n0, pc } from '../lib/format';
-import { CATS, billsDue, dueWords, monthFlow, spendingByCat } from '../lib/cashflow';
+import { CATS, billsDue, dueWords, monthFlow, shiftMonth, spendingByCat } from '../lib/cashflow';
 import { markPaid } from './Bills';
 import { save, KEYS } from '../lib/storage';
 import { requestPermission, askPower, openNotificationSettings } from '../lib/notify';
@@ -77,15 +79,11 @@ export function Home() {
       <CashFlowCard />
       <DueSoon />
 
-      {/* 4. summary */}
+      {/* 4. summary: four tiles, then the fund's latest price */}
       <div className="cap"><span>At a glance</span></div>
-      <section className="cd glance">
-        <div className="gl3">
-          <button type="button" onClick={() => goTab('accounts')}><small>You own</small><b>{compact(t.assets)}</b></button>
-          <button type="button" onClick={() => goTab('accounts')}><small>You owe</small><b className={t.owed > 0 ? 'dn' : ''}>{t.owed > 0 ? compact(t.owed) : 'Nothing'}</b></button>
-          <button type="button" onClick={() => goTab('insights')}><small>{month.started && month.started > endOfPrevMonth(today) ? 'Since ' + dd(month.started) : 'This month'}</small><b className={Math.abs(month.change) >= 1 ? cl(month.change) : ''}>{Math.abs(month.change) < 1 ? 'No change' : (month.change >= 0 ? '+' : '−') + compact(Math.abs(month.change))}</b></button>
-        </div>
-        {L && (
+      <GlanceTiles t={t} month={month} today={today} />
+      {L && (
+        <section className="cd glance">
           <button type="button" className={'navstrip' + (busy ? ' checking' : '')} aria-busy={busy || undefined} onClick={() => push({ name: 'fund', tab: 'overview' })}>
             <span className={'pulse-dot' + (fresh ? ' new' : '')} aria-hidden="true" />
             <span className="ns-t">
@@ -94,8 +92,8 @@ export function Home() {
             </span>
             <Icon name="chevr" size={18} />
           </button>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* 5. the four actions, in one container */}
       <div className="cap"><span>Quick actions</span></div>
@@ -146,7 +144,9 @@ function CashFlowCard() {
   const C = useColors();
   const today = iso();
   const flow = useMemo(() => monthFlow(txns, today.slice(0, 7), accounts), [txns, today, accounts]);
-  if (!flow.count && !accounts.some((a) => a.kind === 'bank' || a.kind === 'cash')) return null;
+  const prev = useMemo(() => monthFlow(txns, shiftMonth(today.slice(0, 7), -1), accounts), [txns, today, accounts]);
+  const bank = accounts.find((a) => a.kind === 'bank' || a.kind === 'cash');
+  if (!flow.count && !bank) return null;
   const spend = spendingByCat(flow);
   const top = spend[0];
   const mx = Math.max(flow.in, flow.out, 1);
@@ -166,11 +166,38 @@ function CashFlowCard() {
           </div>
           {budget > 0 && <div className="trk" style={{ marginTop: 10, height: 6 }}><i style={{ width: Math.min(100, (flow.out / budget) * 100) + '%', background: flow.out >= budget ? 'var(--dn)' : flow.out >= budget * 0.8 ? 'var(--org)' : 'var(--gold)' }} /></div>}
           {budget > 0 && <div className="meter-l"><span>Target Rs {n0(budget)}</span><span>{flow.out <= budget ? 'Rs ' + n0(budget - flow.out) + ' left' : 'Over by Rs ' + n0(flow.out - budget)}</span></div>}
+          {prev.out > 0 && budget <= 0 && <div className="meter-l" style={{ marginTop: 8 }}><span>Last month Rs {n0(prev.out)} out</span><span className={flow.out > prev.out ? 'dn' : 'up'}>{flow.out > prev.out ? '+' : '−'}Rs {n0(Math.abs(flow.out - prev.out))}</span></div>}
         </> : (
-          <div className="ln" style={{ padding: '2px 0' }}><i><Icon name="sync" size={16} /></i><span>Log money in and out with <b>Add money</b> and <b>Take out</b> on any account, and {month} shows up here with what it went on.</span></div>
+          <div className="ln" style={{ padding: '2px 0' }}><i><Icon name="sync" size={16} /></i><span>Nothing logged in {month} yet. Add money or take it out below and the month shows up here with what it went on.</span></div>
         )}
       </section>
+      {bank && <MoveActions a={bank} compact />}
     </>
+  );
+}
+
+/** Four tiles: what you own, what you owe, this month's growth, and what the month kept in cash. */
+function GlanceTiles({ t, month, today }: { t: ReturnType<typeof useTotals>; month: ReturnType<typeof growth>; today: string }) {
+  const accounts = useStore((s) => s.accounts);
+  const txns = useStore((s) => s.txns);
+  const budget = useStore((s) => s.budget);
+  const spend = useStore((s) => s.spend);
+  const f = useFund();
+  const flow = useMemo(() => monthFlow(txns, today.slice(0, 7), accounts), [txns, today, accounts]);
+  const em = useMemo(() => emergency(accounts, spend), [accounts, spend]);
+  const count = accounts.length + (f.last ? 1 : 0);
+  const owePct = t.assets > 0 && t.owed > 0 ? Math.round((t.owed / t.assets) * 100) : 0;
+  const pct = month.owned >= 1000 ? (month.change / month.owned) * 100 : null;
+  const since = month.started && month.started > endOfPrevMonth(today) ? 'since ' + dd(month.started) : 'this month';
+  return (
+    <div className="dt-grid">
+      <DataTile icon="wallet" label="You own" value={compact(t.assets).replace('Rs ', '')} color="#8f9cff" sub={count + (count === 1 ? ' account' : ' accounts')} onClick={() => goTab('accounts')} ariaLabel="What you own. Open Accounts" />
+      <DataTile icon="card" label="You owe" value={t.owed > 0 ? compact(t.owed).replace('Rs ', '') : 'Nothing'} tone={t.owed > 0 ? 'dn' : ''} color="#f2847b" sub={t.owed > 0 ? owePct + '% of what you own' : 'No loans or cards'} bar={t.owed > 0 ? { pct: owePct, tone: 'dn' } : undefined} onClick={() => goTab('accounts')} ariaLabel="What you owe. Open Accounts" />
+      <DataTile icon="trend" label="Growth" value={Math.abs(month.change) < 1 ? 'Flat' : (month.change >= 0 ? '+' : '−') + compact(Math.abs(month.change)).replace('Rs ', '')} tone={Math.abs(month.change) >= 1 ? cl(month.change) : ''} color="#4fd59c" delta={pct != null && Math.abs(pct) >= 0.05 ? { text: (pct >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%', tone: cl(pct) } : undefined} sub={since + (month.deposits > 0 ? ', after money put in' : '')} onClick={() => goTab('insights')} ariaLabel="Growth this month. Open Insights" />
+      {flow.count
+        ? <DataTile icon="sync" label="Kept" value={(flow.net >= 0 ? '+' : '−') + compact(Math.abs(flow.net)).replace('Rs ', '')} tone={flow.net >= 0 ? 'up' : 'dn'} color="#56c8f0" sub={budget > 0 ? (flow.out <= budget ? compact(budget - flow.out).replace('Rs ', '') + ' of target left' : 'over target') : 'in minus out this month'} bar={budget > 0 ? { pct: (flow.out / budget) * 100, tone: flow.out >= budget ? 'dn' : flow.out >= budget * 0.8 ? 'org' : 'up' } : undefined} onClick={() => push({ name: 'cashflow' })} ariaLabel="Kept this month. Open Cash flow" />
+        : <DataTile icon="shield" label="Savings last" value={em.months != null ? em.months.toFixed(1) : '–'} unit={em.months != null ? 'months' : ''} tone={em.months != null && em.months >= 6 ? 'up' : ''} color="#d68bf5" sub={em.months != null ? 'aim for 6' : 'add spending in Insights'} bar={em.months != null ? { pct: (em.months / 6) * 100, tone: em.months >= 6 ? 'up' : 'org' } : undefined} onClick={() => goTab('insights')} ariaLabel="How long savings would last. Open Insights" />}
+    </div>
   );
 }
 

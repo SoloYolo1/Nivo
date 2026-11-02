@@ -10,6 +10,7 @@ import { openSheet, push, useStore } from '../state/store';
 import { GROUPS, KINDS, snapshotOn, staleAccounts, staleDays, type Account, type Group } from '../lib/accounts';
 import { ago, compact, iso, n0 } from '../lib/format';
 import { Wordmark } from '../components/Wordmark';
+import { DataTile } from '../components/DataTile';
 
 export function subtitle(a: Account, today: string): React.ReactNode {
   const s = snapshotOn(a);
@@ -69,6 +70,18 @@ export function Accounts() {
           <div className="alloc2" aria-hidden="true">{groups.map((g) => <i key={g} style={{ flex: t.groups[g], background: DOT[g] }} />)}</div>
           <div className="legend4">{groups.map((g) => <span key={g}><b>{share(g)}%</b>{SHORT[g]}</span>)}</div>
         </>}
+        {accounts.length > 0 && (() => {
+          const liquid = accounts.filter((a) => a.kind === 'bank' || a.kind === 'cash').reduce((v, a) => v + Math.max(0, snapshotOn(a)?.value || 0), 0);
+          const earning = t.groups.investments + t.groups.business;
+          const fresh = count - stale;
+          return (
+            <div className="dt-grid three">
+              <DataTile label="Cash on hand" value={compact(liquid).replace('Rs ', '')} sub={t.assets > 0 ? Math.round((liquid / t.assets) * 100) + '% of your assets' : 'banks and cash'} />
+              <DataTile label="Earning" value={compact(earning).replace('Rs ', '')} tone={earning > 0 ? 'up' : ''} sub="fund and business" />
+              <DataTile label="Up to date" value={fresh + ' of ' + count} tone={stale ? '' : 'up'} sub={stale ? stale + (stale === 1 ? ' needs a look' : ' need a look') : 'all updated'} bar={{ pct: count ? (fresh / count) * 100 : 0, tone: stale ? 'org' : 'up' }} />
+            </div>
+          );
+        })()}
       </div>
 
       {!accounts.length && (

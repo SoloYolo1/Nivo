@@ -47,3 +47,6 @@ export function fmtDelta(v: number): string {
   const s = a >= 1e7 ? (a / 1e7).toFixed(2) + ' Cr' : a >= 1e5 ? (a / 1e5).toFixed(a >= 1e6 ? 1 : 2) + ' L' : a >= 1000 ? (a / 1000).toFixed(a >= 10000 ? 0 : 1) + 'k' : Math.round(a).toString();
   return (v >= 0 ? '+' : '−') + s;
 }
+
+/** Short and unsigned, for a tile figure: 16k, 2.5 L, 1.2 Cr (dots when amounts are hidden). */
+export const shortAmt = (v: number): string => (amountsHidden() ? '••••' : fmtDelta(Math.abs(v)).slice(1));

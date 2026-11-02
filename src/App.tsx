@@ -232,7 +232,7 @@ function Fan() {
   const target = stale[0] || accounts[0];
   const bank = accounts.find((a) => a.kind === 'bank' || a.kind === 'cash') || target;
   const items: Array<{ icon: string; label: string; fn: () => void }> = [
-    ...(bank ? [{ icon: 'minus', label: 'Spend', fn: () => openSheet('update', updateArg(bank.id, 'out')) }, { icon: 'qin', label: 'Money in', fn: () => openSheet('update', updateArg(bank.id, 'in')) }] : []),
+    ...(bank ? [{ icon: 'cashout', label: 'Spend', fn: () => openSheet('update', updateArg(bank.id, 'out')) }, { icon: 'cashin', label: 'Money in', fn: () => openSheet('update', updateArg(bank.id, 'in')) }] : []),
     ...(bank ? [] : [{ icon: 'qadd', label: 'Account', fn: () => openSheet('add') }]),
     { icon: 'tag', label: 'Price', fn: () => openEntry('nav', { date: iso() }) },
     { icon: 'coinplus', label: 'Invest', fn: () => openEntry('inv', { date: iso() }) },
