@@ -6,6 +6,7 @@ Built with **TypeScript and React**, bundled with **esbuild**, packaged for Andr
 
 ## What is new in 4.9.1
 
+- Chip rows (months on Cash flow, categories and accounts in sheets, bills due on Home) no longer fade their left edge, so the first chip is never cut off; they fade only on the right where more chips wait.
 - The compact bar that slid in on scroll is gone; the header simply scrolls away with the page.
 - The coloured line on the left of account rows is gone; the icon tile still carries the kind's colour.
 
