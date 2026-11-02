@@ -5,7 +5,7 @@ import { Sheet } from './Sheet';
 import { Seg } from './ui';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, openSettings, openSheet, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore,
+  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, moveSnapshot, moveWords, newId, parseUpdateArg as parseArg, snapshotOn, worth, type Kind, type Move } from '../lib/accounts';
