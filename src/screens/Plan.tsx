@@ -6,7 +6,8 @@ import { HeroHead } from '../components/Wordmark';
 import { AreaChart } from '../components/AreaChart';
 import { useColors } from '../components/theme';
 import { useTotals } from '../state/derived';
-import { setGoal, toggleCheck, useStore } from '../state/store';
+import { push, setGoal, toggleCheck, useStore } from '../state/store';
+import { billsTotal } from '../lib/cashflow';
 import { CHECKLIST, duration, futureValue, monthsTo, sipNeeded } from '../lib/plan';
 import { MILESTONES } from '../lib/fund';
 import { big, n0, rawN0 } from '../lib/format';
@@ -15,6 +16,8 @@ export function Plan() {
   const t = useTotals();
   const goal = useStore((s) => s.goal);
   const done = useStore((s) => s.checklist);
+  const bills = useStore((s) => s.bills);
+  const fixed = billsTotal(bills);
   const [sip, setSip] = useState(20000);
   const [rate, setRate] = useState(12);
   const [gA, setGA] = useState(String(goal.amount));
@@ -45,6 +48,12 @@ export function Plan() {
         </div>
         <div className="hx"><div><small>Goal in</small><b>{eta === 0 ? 'Reached' : duration(eta)}</b></div><div><small>Monthly SIP</small><b>Rs {n0(sip)}</b></div><div><small>In {Y} {Y > 1 ? 'years' : 'year'}</small><b>{big(pts[Y]).replace('Rs ', '')}</b></div></div>
       </div>
+      {bills.length > 0 && <>
+        <div className="cap"><span>Every month</span><button type="button" className="cap-link" onClick={() => push({ name: 'bills' })}>Bills</button></div>
+        <Card icon="cal" title={'Rs ' + n0(fixed) + ' in fixed costs'} more={bills.length + (bills.length === 1 ? ' bill' : ' bills')} className="tap" onClick={() => push({ name: 'bills' })}>
+          <div className="hint">{sip > 0 ? 'With your Rs ' + n0(sip) + ' monthly SIP on top, that is Rs ' + n0(fixed + sip) + ' spoken for each month before anything else.' : 'Rent, utilities and subscriptions, before anything else.'}</div>
+        </Card>
+      </>}
       <div className="cap">Set up</div>
       <Card icon="target" title="Your goal" more="Measured on net worth">
         <div className="frm" style={{ margin: '4px 0 0' }}>

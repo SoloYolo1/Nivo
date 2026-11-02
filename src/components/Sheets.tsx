@@ -5,15 +5,16 @@ import { Sheet } from './Sheet';
 import { Seg } from './ui';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, celebrate, closeSheet, importLegacy, openEntry, push, removeSnapshot, savePrice, setState, toast, useStore,
+  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
-import { KINDS, businessValue, moveSnapshot, moveWords, parseUpdateArg as parseArg, snapshotOn, type Kind, type Move } from '../lib/accounts';
+import { KINDS, businessValue, moveSnapshot, moveWords, newId, parseUpdateArg as parseArg, snapshotOn, worth, type Kind, type Move } from '../lib/accounts';
+import { CATS, IN_CATS, OUT_CATS, guessCat, type Cat } from '../lib/cashflow';
 import { navOn } from '../lib/fund';
 import { amountsHidden, calcAmount, cl, dd, isSum, iso, longDate, n0, parseAmount, pc, rawN0, sg } from '../lib/format';
 import { haptic } from '../lib/native';
 import { KEYS, load, save } from '../lib/storage';
-import { permission, powerOk } from '../lib/notify';
+import { permission, powerOk, refreshBillReminders } from '../lib/notify';
 import { startAdd } from '../screens/Editors';
 import { bridgeReady, canBridge, fromBackup, startBridge, summarize } from '../lib/legacy';
 import { enableAlerts } from '../screens/Home';
@@ -30,6 +31,8 @@ export function Sheets() {
       <Sheet open={sheet === 'update'} onClose={close} title={<UpdateTitle />}><UpdateSheet /></Sheet>
       <Sheet open={sheet === 'notif'} onClose={close} title="Price alerts"><NotifSheet /></Sheet>
       <Sheet open={sheet === 'import'} onClose={close} title="Your Nivo 3 history"><ImportSheet /></Sheet>
+      <Sheet open={sheet === 'txn'} onClose={close} title="Transaction"><TxnSheet /></Sheet>
+      <Sheet open={sheet === 'bill'} onClose={close} title={<BillTitle />}><BillSheet /></Sheet>
     </>
   );
 }
@@ -200,14 +203,17 @@ function UpdateTitle() {
 function UpdateSheet() {
   const arg = useStore((s) => s.sheetArg);
   const { id, mode: mode0 } = parseArg(arg);
-  const a = useStore((s) => s.accounts.find((x) => x.id === id));
+  const accounts = useStore((s) => s.accounts);
+  const a = accounts.find((x) => x.id === id);
   const last = a ? snapshotOn(a) : null;
   const [mode, setModeS] = useState<Move>(mode0);
-  const setMode = (m: Move) => { setModeS(m); setCurMode(m); setVal(m === 'set' && last ? rawN0(last.value) : ''); setErr(''); };
+  const setMode = (m: Move) => { setModeS(m); setCurMode(m); setVal(m === 'set' && last ? rawN0(last.value) : ''); setErr(''); setCat(null); };
   useEffect(() => { setCurMode(mode0); return () => setCurMode('set'); }, [mode0]);
   const [val, setVal] = useState(mode0 === 'set' && last ? rawN0(last.value) : '');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(iso());
+  const [cat, setCat] = useState<Cat | null>(null);
+  const [to, setTo] = useState('');
   const [b, setB] = useState({ bank: last?.bank != null ? rawN0(last.bank) : '', cash: last?.cash != null ? rawN0(last.cash) : '', receivable: last?.receivable != null ? rawN0(last.receivable) : '', payable: last?.payable != null ? rawN0(last.payable) : '', sales: last?.sales != null ? rawN0(last.sales) : '', costs: last?.costs != null ? rawN0(last.costs) : '' });
   const [err, setErr] = useState('');
   const amountRef = useRef<HTMLInputElement>(null);
@@ -216,10 +222,15 @@ function UpdateSheet() {
   const isBiz = a.kind === 'business', isLoan = a.kind === 'loan';
   const n = (s: string) => (s.trim() ? parseAmount(s) : 0);
   const amount = calcAmount(val);
-  const preview = !isBiz && Number.isFinite(amount) ? moveSnapshot(a, mode, amount, date, note) : null;
+  const preview = !isBiz && mode !== 'move' && Number.isFinite(amount) ? moveSnapshot(a, mode, amount, date, note) : null;
   const newVal = isBiz ? businessValue({ bank: n(b.bank), cash: n(b.cash), receivable: n(b.receivable), payable: n(b.payable) }) : typeof preview === 'object' && preview ? preview.value : NaN;
   const diff = last && Number.isFinite(newVal) ? newVal - last.value : null;
   const words = moveWords(a.kind, mode);
+  const dir: 'in' | 'out' = mode === 'in' ? 'in' : 'out';
+  const guessed = guessCat(note, dir);
+  const chosen: Cat = cat || guessed;
+  const others = accounts.filter((x) => x.id !== a.id && x.kind !== 'business');
+  const dest = others.find((x) => x.id === to);
   const saveIt = () => {
     if (date > iso()) return setErr('That date is in the future.');
     if (isBiz) {
@@ -228,12 +239,22 @@ function UpdateSheet() {
       haptic('success'); closeSheet(); toast('Saved', 'check');
       return;
     }
+    if (mode === 'move') {
+      if (!dest) return setErr('Pick the account to move it to.');
+      if (!(amount > 0)) return setErr('Enter an amount.');
+      const r = moveMoney(a.id, dest.id, amount, date, note);
+      if ('error' in r) return setErr(r.error);
+      haptic('success'); closeSheet();
+      toast('Moved Rs ' + n0(amount) + ' to ' + dest.name, 'check', { label: 'Undo', fn: () => { deleteTxn(r.id, true); toast('Undone', 'check'); } });
+      return;
+    }
     const s = moveSnapshot(a, mode, amount, date, note);
     if (typeof s === 'string') return setErr(s);
     const before = a.history.find((h) => h.date === date);
     addSnapshot(a.id, s);
+    const txn = mode === 'set' ? null : addTxn({ acct: a.id, date, amount: mode === 'in' ? amount : -amount, cat: isLoan ? 'loan' : chosen, ...(note.trim() ? { note: note.trim() } : {}) });
     haptic('success'); closeSheet();
-    const undo = () => { if (before) addSnapshot(a.id, before); else removeSnapshot(a.id, date, true); toast('Undone', 'check'); };
+    const undo = () => { if (before) addSnapshot(a.id, before); else removeSnapshot(a.id, date, true); if (txn) forgetTxn(txn.id); toast('Undone', 'check'); };
     if (mode === 'set') toast('Saved', 'check', { label: 'Undo', fn: undo });
     else toast(words.done + ' Rs ' + n0(amount) + ' · now Rs ' + n0(s.value), 'check', { label: 'Undo', fn: undo });
   };
@@ -241,6 +262,7 @@ function UpdateSheet() {
   const field = (k: keyof typeof b, label: string) => (
     <label className="lab" htmlFor={'u-' + k}>{label}<input id={'u-' + k} className="in" inputMode="decimal" value={b[k]} onChange={(e) => setB({ ...b, [k]: e.target.value.replace(/[^\d.,]/g, '') })} onKeyDown={onKey} /></label>
   );
+  const segItems = (isLoan ? LOAN_MOVES : MOVES).concat(others.length ? [{ v: 'move', label: 'Move' }] : []);
   return (
     <div className="form">
       <div className="hint" style={{ marginTop: -8 }}>{a.name}{last ? ' · ' + (isLoan ? 'owe' : 'balance') + ' Rs ' + n0(last.value) + ' on ' + dd(last.date) : ''}</div>
@@ -249,25 +271,154 @@ function UpdateSheet() {
         <div className="two2">{field('receivable', 'Owed to you')}{field('payable', 'You owe')}</div>
         <div className="two2">{field('sales', 'Sales this month')}{field('costs', 'Costs this month')}</div>
       </> : <>
-        <Seg<Move> label="What happened" style={{ margin: '0 0 2px' }} value={mode} onChange={setMode} items={isLoan ? LOAN_MOVES : MOVES} />
-        <label className="lab" htmlFor="u-val">{words.field}
+        <Seg<Move> label="What happened" style={{ margin: '0 0 2px' }} value={mode} onChange={setMode} items={segItems} />
+        <label className="lab" htmlFor="u-val">{mode === 'move' ? 'Amount to move (Rs)' : words.field}
           <input id="u-val" ref={amountRef} className="in money" inputMode="decimal" placeholder={mode === 'set' ? '' : 'e.g. 5,000 or 12,500+800'} value={val} onChange={(e) => { setVal(e.target.value.replace(/[^\d.,+\-*/()×÷a-zA-Z\s]/g, '')); setErr(''); }} onFocus={(e) => e.target.select()} onKeyDown={onKey} />
         </label>
         {isSum(val) && Number.isFinite(amount) && <div className="hint" style={{ marginTop: -6 }}>= Rs {n0(amount)}</div>}
+        {mode === 'move' && (
+          <div className="lab">To
+            <div className="catrow" role="radiogroup" aria-label="Move to">
+              {others.map((x) => <button key={x.id} type="button" role="radio" aria-checked={to === x.id} className={'catc' + (to === x.id ? ' on' : '')} onClick={() => { setTo(x.id); setErr(''); }}><i className={'ai ' + KINDS[x.kind].group}><Icon name={KIND_ICON[x.kind]} size={15} /></i>{x.name}</button>)}
+            </div>
+          </div>
+        )}
       </>}
       <div className="two2">
         <label className="lab" htmlFor="u-date">Date<input id="u-date" className="in" type="date" max={iso()} value={date} onChange={(e) => setDate(e.target.value)} /></label>
-        <label className="lab" htmlFor="u-note">Note (optional)<input id="u-note" className="in" maxLength={40} placeholder={isBiz ? 'e.g. Eid rush' : words.note} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} /></label>
+        <label className="lab" htmlFor="u-note">Note (optional)<input id="u-note" className="in" maxLength={40} placeholder={isBiz ? 'e.g. Eid rush' : mode === 'move' ? 'e.g. Savings' : words.note} value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} /></label>
       </div>
-      {!isBiz && mode !== 'set' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : 'New balance'} Rs {n0(preview.value)}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
+      {!isBiz && !isLoan && (mode === 'in' || mode === 'out') && (
+        <div className="lab"><span>Category{!cat && note.trim() && guessed !== (dir === 'in' ? 'income' : 'spend') ? <span className="lab-k"> · from your note</span> : ''}</span>
+          <div className="catrow" role="radiogroup" aria-label="Category">
+            {(dir === 'in' ? IN_CATS : OUT_CATS).map((c) => <button key={c} type="button" role="radio" aria-checked={chosen === c} className={'catc' + (chosen === c ? ' on' : '')} style={{ ['--cc' as string]: CATS[c].color } as React.CSSProperties} onClick={() => setCat(c)}><i><Icon name={CATS[c].icon} size={14} /></i>{CATS[c].label}</button>)}
+          </div>
+        </div>
+      )}
+      {!isBiz && mode !== 'set' && mode !== 'move' && typeof preview === 'object' && preview && amount > 0 && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{isLoan ? 'You would owe' : 'New balance'} Rs {n0(preview.value)}{last && date < last.date ? ' (worked out from your latest ' + (isLoan ? 'figure' : 'balance') + ', of ' + dd(last.date) + ')' : ''}</div>}
+      {mode === 'move' && dest && amount > 0 && last && <div className="hint" style={{ fontWeight: 700, color: 'var(--tx)' }}>{a.name} {isLoan ? 'owes' : ''} Rs {n0(isLoan ? last.value + amount : last.value - amount)} · {dest.name} {dest.kind === 'loan' ? 'owes' : ''} Rs {n0(dest.kind === 'loan' ? Math.max(0, worth(dest) * -1 - amount) : worth(dest) + amount)}</div>}
       {!isBiz && typeof preview === 'string' && val.trim() && mode === 'out' && <div className="hint dn" style={{ fontWeight: 700 }}>{preview}</div>}
       {diff != null && diff !== 0 && (isBiz || mode === 'set') && <div className={'hint ' + cl(isLoan ? -diff : diff)} style={{ fontWeight: 700 }}>{sg(diff)} since your last update</div>}
       <div className="err" role="alert">{err}</div>
-      <button type="button" className="btn gold big full" onClick={saveIt}>{mode === 'set' || isBiz ? 'Save' : words.title}</button>
+      <button type="button" className="btn gold big full" onClick={saveIt}>{mode === 'set' || isBiz ? 'Save' : mode === 'move' ? 'Move money' : words.title}</button>
       <button type="button" className="btn ghost full" onClick={() => { closeSheet(); push({ name: 'account', id: a.id }); }}>Open {a.name}</button>
     </div>
   );
 }
+
+// ---------------- one transaction: change its category or note, or remove it ----------------
+function TxnSheet() {
+  const id = useStore((s) => s.sheetArg);
+  const t = useStore((s) => s.txns.find((x) => x.id === id));
+  const accounts = useStore((s) => s.accounts);
+  const [note, setNote] = useState(t?.note || '');
+  if (!t) return null;
+  const a = accounts.find((x) => x.id === t.acct);
+  const other = t.to ? accounts.find((x) => x.id === t.to) : null;
+  const isTransfer = t.cat === 'transfer';
+  const dir: 'in' | 'out' = t.amount >= 0 ? 'in' : 'out';
+  const c = CATS[t.cat];
+  return (
+    <div className="form">
+      <div className="sumbox" style={{ ['--cc' as string]: c.color } as React.CSSProperties}>
+        <span className="ci" style={{ width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb,' + c.color + ' 18%,transparent)', color: c.color }}><Icon name={c.icon} size={19} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}><b style={{ display: 'block', fontSize: 20, fontWeight: 800 }}>{t.amount >= 0 ? '+' : '−'}Rs {n0(Math.abs(t.amount))}</b><small className="hint">{dd(t.date)}{a ? ' · ' + a.name : ''}{other ? (t.amount < 0 ? ' → ' : ' ← ') + other.name : ''}</small></div>
+      </div>
+      {!isTransfer && a?.kind !== 'loan' && (
+        <div className="lab">Category
+          <div className="catrow" role="radiogroup" aria-label="Category">
+            {(dir === 'in' ? IN_CATS : OUT_CATS).map((k) => <button key={k} type="button" role="radio" aria-checked={t.cat === k} className={'catc' + (t.cat === k ? ' on' : '')} style={{ ['--cc' as string]: CATS[k].color } as React.CSSProperties} onClick={() => { updateTxn(t.id, { cat: k }); haptic('select'); }}><i><Icon name={CATS[k].icon} size={14} /></i>{CATS[k].label}</button>)}
+          </div>
+        </div>
+      )}
+      <label className="lab" htmlFor="t-note">Note<input id="t-note" className="in" maxLength={40} value={note} placeholder={isTransfer ? 'e.g. Savings' : 'e.g. ' + (dir === 'in' ? 'Salary' : 'Groceries')} onChange={(e) => setNote(e.target.value)} onBlur={() => updateTxn(t.id, { note: note.trim() || undefined })} /></label>
+      <div className="hint">Changing the category or note does not touch the balance. Removing it puts the money back {t.amount >= 0 ? 'out of' : 'into'} {a ? a.name : 'the account'}{other ? ' and reverses the other side' : ''}.</div>
+      <button type="button" className="btn sec big full" onClick={() => { closeSheet(); toast('Saved', 'check'); }}>Done</button>
+      <button type="button" className="btn ghost full" style={{ color: 'var(--dn)' }} onClick={() => { closeSheet(); deleteTxn(t.id); }}>Remove this transaction</button>
+    </div>
+  );
+}
+
+// ---------------- a bill: add, edit, or mark paid from an account ----------------
+function BillTitle() {
+  const arg = useStore((s) => s.sheetArg);
+  const b = useStore((s) => s.bills.find((x) => x.id === arg.slice(arg.indexOf(':') + 1)));
+  if (arg.startsWith('pay:')) return <>{b ? 'Pay ' + b.name : 'Pay'}</>;
+  return <>{b ? 'Edit bill' : 'Add a bill'}</>;
+}
+function BillSheet() {
+  const arg = useStore((s) => s.sheetArg);
+  const paying = arg.startsWith('pay:');
+  const bid = arg.includes(':') ? arg.slice(arg.indexOf(':') + 1) : '';
+  const b = useStore((s) => s.bills.find((x) => x.id === bid));
+  const accounts = useStore((s) => s.accounts);
+  const [name, setName] = useState(b?.name || '');
+  const [amt, setAmt] = useState(b ? rawN0(b.amount) : '');
+  const [day, setDay] = useState(b ? String(b.day) : '1');
+  const [cat, setCat] = useState<Cat>(b?.cat || 'bills');
+  const [acct, setAcct] = useState(b?.acct || '');
+  const [date, setDate] = useState(iso());
+  const [err, setErr] = useState('');
+  const [touched, setTouched] = useState(!!b);
+  const payable = accounts.filter((x) => x.kind !== 'business');
+  const amount = calcAmount(amt);
+  const save = () => {
+    const d = Math.round(Number(day));
+    if (!name.trim()) return setErr('Give the bill a name.');
+    if (!(amount > 0)) return setErr('Enter the amount.');
+    if (!(d >= 1 && d <= 31)) return setErr('The day should be between 1 and 31.');
+    upsertBill({ id: b?.id || newId(), name: name.trim().slice(0, 30), amount, day: d, cat, ...(acct ? { acct } : {}), ...(b?.lastPaid ? { lastPaid: b.lastPaid } : {}), created: b?.created || iso() });
+    void refreshBillReminders();
+    haptic('success'); closeSheet(); toast(b ? 'Saved' : name.trim() + ' added', 'check');
+  };
+  const pay = () => {
+    if (!b) return;
+    if (!acct) return setErr('Pick the account it was paid from.');
+    const r = payBill(b.id, acct, date, amount > 0 ? amount : undefined);
+    if ('error' in r) return setErr(r.error);
+    void refreshBillReminders();
+    haptic('success'); closeSheet();
+  };
+  if (paying && !b) return null;
+  return (
+    <div className="form">
+      {paying && b ? <>
+        <div className="hint" style={{ marginTop: -8 }}>{CATS[b.cat].label} · usually Rs {n0(b.amount)} on the {ordinal(b.day)}</div>
+        <label className="lab" htmlFor="b-amt">Amount paid (Rs)<input id="b-amt" className="in money" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,+\-*/()×÷a-zA-Z\s]/g, ''))} onFocus={(e) => e.target.select()} /></label>
+        <div className="lab">Paid from
+          <div className="catrow" role="radiogroup" aria-label="Paid from">
+            {payable.map((x) => <button key={x.id} type="button" role="radio" aria-checked={acct === x.id} className={'catc' + (acct === x.id ? ' on' : '')} onClick={() => { setAcct(x.id); setErr(''); }}><i className={'ai ' + KINDS[x.kind].group}><Icon name={KIND_ICON[x.kind]} size={15} /></i>{x.name}</button>)}
+          </div>
+        </div>
+        <label className="lab" htmlFor="b-date">Date<input id="b-date" className="in" type="date" max={iso()} value={date} onChange={(e) => setDate(e.target.value)} /></label>
+        <div className="err" role="alert">{err}</div>
+        <button type="button" className="btn gold big full" onClick={pay}>Mark as paid</button>
+      </> : <>
+        <label className="lab" htmlFor="b-name">What is it<input id="b-name" className="in" maxLength={30} placeholder="e.g. Rent, K-Electric, Netflix" value={name} onChange={(e) => { setName(e.target.value); if (!touched) setCat(guessCat(e.target.value, 'out') === 'spend' ? 'bills' : guessCat(e.target.value, 'out')); }} /></label>
+        <div className="two2">
+          <label className="lab" htmlFor="b-amt">Amount (Rs)<input id="b-amt" className="in" inputMode="decimal" placeholder="e.g. 25,000" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,+\-*/()×÷a-zA-Z\s]/g, ''))} /></label>
+          <label className="lab" htmlFor="b-day">Day of the month<input id="b-day" className="in" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
+        </div>
+        <div className="lab">Category
+          <div className="catrow" role="radiogroup" aria-label="Category">
+            {OUT_CATS.map((k) => <button key={k} type="button" role="radio" aria-checked={cat === k} className={'catc' + (cat === k ? ' on' : '')} style={{ ['--cc' as string]: CATS[k].color } as React.CSSProperties} onClick={() => { setCat(k); setTouched(true); }}><i><Icon name={CATS[k].icon} size={14} /></i>{CATS[k].label}</button>)}
+          </div>
+        </div>
+        {payable.length > 0 && (
+          <div className="lab"><span>Usually paid from<span className="lab-k"> (optional, so Paid is one tap)</span></span>
+            <div className="catrow" role="radiogroup" aria-label="Usually paid from">
+              {payable.map((x) => <button key={x.id} type="button" role="radio" aria-checked={acct === x.id} className={'catc' + (acct === x.id ? ' on' : '')} onClick={() => setAcct(acct === x.id ? '' : x.id)}><i className={'ai ' + KINDS[x.kind].group}><Icon name={KIND_ICON[x.kind]} size={15} /></i>{x.name}</button>)}
+            </div>
+          </div>
+        )}
+        <div className="err" role="alert">{err}</div>
+        <button type="button" className="btn gold big full" onClick={save}>{b ? 'Save' : 'Add bill'}</button>
+        {b && <button type="button" className="btn ghost full" style={{ color: 'var(--dn)' }} onClick={() => { closeSheet(); deleteBill(b.id); void refreshBillReminders(); }}>Remove this bill</button>}
+      </>}
+    </div>
+  );
+}
+const ordinal = (n: number): string => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 
 /** Re-read notification permission and battery status into the store. */
 export async function refreshAlerts(): Promise<void> {

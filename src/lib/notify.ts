@@ -1,5 +1,8 @@
 // Phone notifications: the installed app uses LocalNotifications; a browser uses the Notification API.
 import { call, plugin } from './native';
+import { getState } from '../state/store';
+import { KEYS, load } from './storage';
+import { nextDue } from './cashflow';
 
 export type Permission = 'granted' | 'denied' | 'prompt' | 'unsupported';
 
@@ -90,4 +93,24 @@ export async function setSummaryReminder(on: boolean): Promise<void> {
   await call('LocalNotifications', 'schedule', {
     notifications: [{ id: 7002, title: 'Your month in review', body: 'See how your net worth moved last month and what moved it.', channelId: 'nav', smallIcon: 'ic_stat_nivo', iconColor: '#8F9CFF', schedule: { on: { day: 1, hour: 19, minute: 30 }, allowWhileIdle: true } }],
   });
+}
+
+/** A reminder two days before each bill is due (9 am), monthly. Reads the store, so it is called after any
+ *  change to the bills. Installed app only; ids 7100 upwards, cleared and set again each time. */
+export async function refreshBillReminders(): Promise<void> {
+  if (!plugin('LocalNotifications')) return;
+  const bills = getState().bills;
+  const ids = Array.from({ length: 40 }, (_, i) => ({ id: 7100 + i }));
+  await call('LocalNotifications', 'cancel', { notifications: ids });
+  if (!bills.length || !load<boolean>(KEYS.notif, true) || (await permission()) !== 'granted') return;
+  await ensureChannel();
+  const today = new Date().toISOString().slice(0, 10);
+  const notifications = bills.slice(0, 40).map((b, i) => {
+    const due = nextDue(b, today);
+    const at = new Date(due + 'T09:00:00');
+    at.setDate(at.getDate() - 2);
+    if (at.getTime() < Date.now()) at.setTime(Date.now() + 60e3);
+    return { id: 7100 + i, title: b.name + ' is due ' + (due === today ? 'today' : 'on ' + new Date(due + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })), body: 'Rs ' + Math.round(b.amount).toLocaleString('en-PK') + '. Tap Paid in Nivo once it is done and the balance follows.', channelId: 'nav', smallIcon: 'ic_stat_nivo', iconColor: '#8F9CFF', schedule: { at, allowWhileIdle: true }, extra: { go: 'bills' } };
+  });
+  await call('LocalNotifications', 'schedule', { notifications });
 }

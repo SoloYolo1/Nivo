@@ -4,6 +4,17 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.7
+
+Nivo now follows the money, not just the balances.
+
+- **Every rupee in and out is a transaction.** Add money, Take out and the new **Move** (between two of your accounts, including paying a loan from a bank) each record a transaction with a **category**: Salary, Business, Profit, Gift; Rent, Groceries, Bills, Transport, Eating out, Shopping, Health, Education, Family, Loan payment, Charity. The category is guessed from your note ("K-Electric" → Bills, "Careem" → Transport, "Imtiaz" → Groceries) and can be changed with a tap. Tap any transaction to recategorise it or remove it: removing one puts the money back into the balance history from that day on, and reverses the other side of a transfer.
+- **Cash flow screen** (Home › Quick actions › Cash flow, or from any account): money in, money out and what you kept, month by month; where it went, by category, with a comparison to last month; a **monthly spending target** with how much is left; "kept each month" over six months; and every transaction by day.
+- **Bills** (Cash flow › Bills and fixed costs): rent, utilities and subscriptions with the day they are due. Nivo reminds you two days before (notification and inbox), Home shows what is due this week, and **Paid** takes the amount off the account with its category in one tap, with Undo. Plan shows your fixed costs a month.
+- **Home** has a cash flow card for the month (in, out, kept, biggest category, target) and a **Due soon** strip. The + button fans out to **Spend** and **Money in** first. **Insights** gets a spending card by category against the target. An account's screen lists its money in and out above the balance history.
+- Backups carry transactions, bills and the target.
+- A refresh throughout: horizontal category chips, pressable cards, counts on section titles, rows that pop into place, and the same gold and theme colours on every new piece.
+
 ## What is new in 4.6
 
 - **Add money, take money out.** An account's screen now has **Add money** and **Take out** (a loan has **Paid off** and **Borrowed more**); Nivo works out the new balance from the latest one and shows it before you save. The amount box does sums: `12,500+800`, `2.5 lakh`, `4 × 25k`. Every change can be undone from the toast, and two moves on the same day keep both notes. **Set the balance** is still there for typing a statement figure.

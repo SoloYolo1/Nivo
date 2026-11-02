@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 import { load, save } from './storage';
 
 export type InboxKind = 'nav' | 'stale' | 'update' | 'milestone' | 'alert' | 'info' | 'summary';
-export type InboxGo = 'fund' | 'accounts' | 'updates' | 'insights' | 'notifications' | '';
+export type InboxGo = 'fund' | 'accounts' | 'updates' | 'insights' | 'notifications' | 'bills' | 'cashflow' | '';
 export interface InboxItem { key: string; t: number; kind: InboxKind; title: string; body: string; go: InboxGo; read?: boolean }
 
 const KEY = 'nv_inbox';

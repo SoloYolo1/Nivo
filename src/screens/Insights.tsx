@@ -8,6 +8,7 @@ import { useFund, useTotals } from '../state/derived';
 import { openSheet, push, setFundZakat, setNisab, setSpend, useStore } from '../state/store';
 import { emergency, endOfPrevMonth, growth, netWorthSeries, workingIdle, zakat, type Group } from '../lib/accounts';
 import { amountsHidden, compact, dd, iso, n0, parseAmount, rawN0, sg } from '../lib/format';
+import { CATS, monthFlow, shiftMonth, spendingByCat } from '../lib/cashflow';
 import { GROUP_COLOR } from './Home';
 
 const LABEL: Record<Group, string> = { banks: 'Banks and cash', business: 'Business', investments: 'Investments', assets: 'Other assets', loans: 'Loans' };
@@ -21,6 +22,45 @@ function InlineAmount({ id, label, value, onSave, placeholder }: { id: string; l
         <input id={id} className="in" inputMode="decimal" placeholder={placeholder} value={t} onChange={(e) => setT(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
       </label>
     </div>
+  );
+}
+
+/** This month's spending by category against the target, from the transactions. */
+function SpendingCard() {
+  const txns = useStore((s) => s.txns);
+  const accounts = useStore((s) => s.accounts);
+  const budget = useStore((s) => s.budget);
+  const today = iso();
+  const ym = today.slice(0, 7);
+  const flow = useMemo(() => monthFlow(txns, ym, accounts), [txns, ym, accounts]);
+  const prev = useMemo(() => monthFlow(txns, shiftMonth(ym, -1), accounts), [txns, ym, accounts]);
+  const spend = spendingByCat(flow);
+  const bank = accounts.find((a) => a.kind === 'bank' || a.kind === 'cash');
+  if (!flow.out && !prev.out) {
+    return (
+      <Card icon="sync" title="Nothing logged yet" more="This month">
+        <div className="hint">Use <b>Take out</b> on an account when you spend, and this card shows where the month's money went, by category, against a target.</div>
+        {bank && <button type="button" className="btn sec" style={{ marginTop: 12 }} onClick={() => openSheet('update', bank.id + ':out')}>Log spending</button>}
+      </Card>
+    );
+  }
+  const total = flow.out || 1;
+  const slices = spend.slice(0, 5).map((c) => ({ label: CATS[c.cat].label, value: c.amount, color: CATS[c.cat].color }));
+  const rest = spend.slice(5).reduce((s, c) => s + c.amount, 0);
+  if (rest > 0) slices.push({ label: 'Other', value: rest, color: '#a8b0cc' });
+  return (
+    <Card icon="sync" title={'Rs ' + n0(flow.out) + ' out'} more={prev.out ? (flow.out > prev.out ? '+' : '−') + compact(Math.abs(flow.out - prev.out)).replace('Rs ', '') + ' vs last month' : 'This month'} className="tap" onClick={() => push({ name: 'cashflow' })}>
+      <div className="donut">
+        <Donut slices={slices} center={compact(flow.out).replace('Rs ', '')} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {slices.map((x) => <div className="rw" key={x.label}><span><span className="dot9" style={{ background: x.color }} />{x.label}</span><b>{Math.round((x.value / total) * 100)}%</b></div>)}
+        </div>
+      </div>
+      {budget > 0
+        ? <><div className="trk" style={{ margin: '12px 0 0' }}><i style={{ width: Math.min(100, (flow.out / budget) * 100) + '%', background: flow.out >= budget ? 'var(--dn)' : flow.out >= budget * 0.8 ? 'var(--org)' : 'var(--up)' }} /></div>
+          <div className="meter-l"><span>Target Rs {n0(budget)}</span><span>{flow.out <= budget ? 'Rs ' + n0(budget - flow.out) + ' left' : 'Over by Rs ' + n0(flow.out - budget)}</span></div></>
+        : <div className="hint" style={{ marginTop: 10 }}>Set a monthly target on the Cash flow screen to see how much room is left.</div>}
+    </Card>
   );
 }
 
@@ -134,6 +174,9 @@ export function Insights() {
         </> : <div className="hint">Tell Nivo roughly what your household spends in a month to see how long your savings would last.</div>}
         <InlineAmount id="spend" label="Monthly spending (Rs)" placeholder="e.g. 165,000" value={spend || null} onSave={(v) => setSpend(v || 0)} />
       </Card>
+
+      <div className="cap"><span>Spending</span><button type="button" className="cap-link" onClick={() => push({ name: 'cashflow' })}>Cash flow</button></div>
+      <SpendingCard />
 
       <div className="cap">Zakat</div>
       <Card icon="scale" title="Zakat estimate" more="2.5% of zakatable wealth" id="zakat-card">

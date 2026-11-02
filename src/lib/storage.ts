@@ -34,6 +34,10 @@ export const KEYS = {
   palette: 'nv_palette',
   // new in 4.6
   fundZakat: 'nv_fund_zakat',
+  // new in 4.7
+  txns: 'nv_txns',
+  bills: 'nv_bills',
+  budget: 'nv_budget',
 } as const;
 
 /** Read a JSON value, falling back when it is missing or unreadable. */

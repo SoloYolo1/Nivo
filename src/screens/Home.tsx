@@ -12,6 +12,8 @@ import { refreshAll } from '../state/refresh';
 import { dailyNetWorth, emergency, endOfPrevMonth, growth, staleAccounts, workingIdle, worth, zakat, type Group } from '../lib/accounts';
 import { UpdateCard } from '../components/Update';
 import { cl, compact, dd, iso, n0, pc } from '../lib/format';
+import { CATS, billsDue, dueWords, monthFlow, spendingByCat } from '../lib/cashflow';
+import { markPaid } from './Bills';
 import { save, KEYS } from '../lib/storage';
 import { requestPermission, askPower, openNotificationSettings } from '../lib/notify';
 import { isNative } from '../lib/native';
@@ -71,7 +73,11 @@ export function Home() {
         )}
       </section>
 
-      {/* 3. summary */}
+      {/* 3. money in and out this month, and what is due */}
+      <CashFlowCard />
+      <DueSoon />
+
+      {/* 4. summary */}
       <div className="cap"><span>At a glance</span></div>
       <section className="cd glance">
         <div className="gl3">
@@ -91,13 +97,13 @@ export function Home() {
         )}
       </section>
 
-      {/* 4. the four actions, in one container */}
+      {/* 5. the four actions, in one container */}
       <div className="cap"><span>Quick actions</span></div>
       <div className="qa qa-box" role="group" aria-label="Quick actions">
         <button type="button" onClick={() => openSheet('add')}><i><Icon name="qadd" size={22} /></i>Add</button>
         <button type="button" onClick={() => (stale[0] ? openSheet('update', stale[0].id) : goTab('accounts'))}><i><Icon name="qedit" size={21} /></i>Update{stale.length > 0 && <em className="qa-badge" aria-label={stale.length + ' need updating'}>{stale.length}</em>}</button>
         <button type="button" onClick={() => void refreshAll(false)}><i className={busy ? 'spin' : ''}><Icon name="qsync" size={21} /></i>Prices</button>
-        <button type="button" onClick={() => goTab('insights')}><i><Icon name="qchart" size={21} /></i>Insights</button>
+        <button type="button" onClick={() => push({ name: 'cashflow' })}><i><Icon name="qchart" size={21} /></i>Cash flow</button>
       </div>
 
       {/* things that need you, then tips */}
@@ -129,6 +135,65 @@ export function Home() {
         </Card>
       </>}
     </section>
+  );
+}
+
+/** This month's money in and out, from the transactions, and the biggest spending category. */
+function CashFlowCard() {
+  const txns = useStore((s) => s.txns);
+  const accounts = useStore((s) => s.accounts);
+  const budget = useStore((s) => s.budget);
+  const C = useColors();
+  const today = iso();
+  const flow = useMemo(() => monthFlow(txns, today.slice(0, 7), accounts), [txns, today, accounts]);
+  if (!flow.count && !accounts.some((a) => a.kind === 'bank' || a.kind === 'cash')) return null;
+  const spend = spendingByCat(flow);
+  const top = spend[0];
+  const mx = Math.max(flow.in, flow.out, 1);
+  const month = new Date().toLocaleDateString('en-GB', { month: 'long' });
+  return (
+    <>
+      <div className="cap"><span>Cash flow</span><button type="button" className="cap-link" onClick={() => push({ name: 'cashflow' })}>{month}</button></div>
+      <section className="cd tap" onClick={() => push({ name: 'cashflow' })} role="button" tabIndex={0} aria-label={'Cash flow for ' + month}>
+        {flow.count ? <>
+          <div className="flow">
+            <div><small>In</small><b className="up">{compact(flow.in)}</b><div className="trk"><i style={{ width: (flow.in / mx) * 100 + '%', background: C.up }} /></div></div>
+            <div><small>Out</small><b>{compact(flow.out)}</b><div className="trk"><i style={{ width: (flow.out / mx) * 100 + '%', background: C.dn }} /></div></div>
+          </div>
+          <div className="net-l">
+            <span>{top ? 'Most on ' + CATS[top.cat].label.toLowerCase() + ' (' + Math.round((top.amount / flow.out) * 100) + '%)' : flow.out ? 'Nothing categorised yet' : 'Nothing spent yet'}</span>
+            <b className={flow.net >= 0 ? 'up' : 'dn'}>{flow.net >= 0 ? '+' : '−'}{compact(Math.abs(flow.net)).replace('Rs ', '')} kept</b>
+          </div>
+          {budget > 0 && <div className="trk" style={{ marginTop: 10, height: 6 }}><i style={{ width: Math.min(100, (flow.out / budget) * 100) + '%', background: flow.out >= budget ? 'var(--dn)' : flow.out >= budget * 0.8 ? 'var(--org)' : 'var(--gold)' }} /></div>}
+          {budget > 0 && <div className="meter-l"><span>Target Rs {n0(budget)}</span><span>{flow.out <= budget ? 'Rs ' + n0(budget - flow.out) + ' left' : 'Over by Rs ' + n0(flow.out - budget)}</span></div>}
+        </> : (
+          <div className="ln" style={{ padding: '2px 0' }}><i><Icon name="sync" size={16} /></i><span>Log money in and out with <b>Add money</b> and <b>Take out</b> on any account, and {month} shows up here with what it went on.</span></div>
+        )}
+      </section>
+    </>
+  );
+}
+
+/** Bills due in the next week, with Paid one tap away. */
+function DueSoon() {
+  const bills = useStore((s) => s.bills);
+  const today = iso();
+  const due = useMemo(() => billsDue(bills, today, 7), [bills, today]);
+  if (!due.length) return null;
+  return (
+    <>
+      <div className="cap"><span>Due soon<em>{due.length}</em></span><button type="button" className="cap-link" onClick={() => push({ name: 'bills' })}>All bills</button></div>
+      <div className="due-strip">
+        {due.map((d) => (
+          <button type="button" className="due-c" key={d.bill.id} style={{ ['--cc' as string]: CATS[d.bill.cat].color } as React.CSSProperties} onClick={() => markPaid(d.bill)}>
+            <span className="ci"><Icon name={CATS[d.bill.cat].icon} size={15} /></span>
+            <span><b>{d.bill.name}</b><small className={d.overdue ? 'over' : d.days <= 2 ? 'soon' : ''}>{dueWords(d)}</small></span>
+            <span className="amt">Rs {n0(d.bill.amount)}</span>
+            <span className="stat-pill">Tap when paid</span>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 

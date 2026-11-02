@@ -25,6 +25,8 @@ function open(it: InboxItem): void {
   else if (it.go === 'accounts') goTab('accounts');
   else if (it.go === 'insights') goTab('insights');
   else if (it.go === 'updates') openSettings('updates');
+  else if (it.go === 'bills') push({ name: 'bills' });
+  else if (it.go === 'cashflow') push({ name: 'cashflow' });
 }
 
 export function Notifications() {

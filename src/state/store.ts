@@ -6,7 +6,8 @@ import { SEED_BUYS, SEED_NAVS, SEED_PEERS, mergeNavs, type Buy, type Nav, type P
 import { DEFAULT_GOAL, type Goal } from '../lib/plan';
 import type { Legacy } from '../lib/legacy';
 import { setAmountsHidden } from '../lib/format';
-import { cleanAccounts, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
+import { cleanAccounts, newId, snapshotOn, type Account, type Snapshot, withSnapshot } from '../lib/accounts';
+import { cleanBills, cleanTxns, reverseTxn, type Bill, type Cat, type Txn } from '../lib/cashflow';
 
 export type Theme = 'system' | 'light' | 'dark';
 export type Tab = 'home' | 'accounts' | 'insights' | 'plan';
@@ -19,9 +20,11 @@ export type Route =
   | { name: 'editAsset'; kind: Account['kind']; id?: string }
   | { name: 'activity' }
   | { name: 'settings'; page?: SettingsPage }
-  | { name: 'notifications' };
+  | { name: 'notifications' }
+  | { name: 'cashflow'; month?: string }
+  | { name: 'bills' };
 export type SettingsPage = 'profile' | 'appearance' | 'notifications' | 'security' | 'prices' | 'data' | 'updates' | 'phone' | 'about';
-export type SheetName = '' | 'add' | 'entry' | 'day' | 'notif' | 'update' | 'import';
+export type SheetName = '' | 'add' | 'entry' | 'day' | 'notif' | 'update' | 'import' | 'txn' | 'bill';
 
 export interface Toast { id: number; text: string; icon?: string; action?: { label: string; fn: () => void } }
 export interface LastCheck { t: number; src: string; latest: string }
@@ -34,6 +37,12 @@ export interface State {
   name: string; theme: Theme; spend: number; nisab: number | null;
   /** Count the Meezan fund in the zakat estimate (off when the person pays zakat on it separately or does not consider it zakatable). */
   fundZakat: boolean;
+  /** Money in and out, as it was added, taken out or moved (lib/cashflow). */
+  txns: Txn[];
+  /** Bills that come round every month. */
+  bills: Bill[];
+  /** Monthly spending target, 0 for none. */
+  budget: number;
   lastCheck: LastCheck; refreshing: boolean; refreshUi: '' | 'busy' | 'ok' | 'done';
   // navigation and UI
   tab: Tab; stack: Route[]; dir: 'l' | 'r' | '';
@@ -79,6 +88,9 @@ function boot(): Omit<State, 'tab' | 'stack' | 'dir' | 'sheet' | 'sheetArg' | 'e
     spend: Number(load<number>(KEYS.spend, 0)) || 0,
     nisab: Number(load<number | null>(KEYS.nisab, null)) || null,
     fundZakat: load<boolean>(KEYS.fundZakat, true) !== false,
+    txns: cleanTxns(load<unknown>(KEYS.txns, [])),
+    bills: cleanBills(load<unknown>(KEYS.bills, [])),
+    budget: Number(load<number>(KEYS.budget, 0)) || 0,
     lastCheck: { t: 0, src: '', latest: '' },
   };
 }
@@ -227,14 +239,88 @@ export function removeSnapshot(id: string, date: string, quiet = false): void {
   saveAccounts(state.accounts.map((x) => (x.id === id ? { ...x, history: x.history.filter((h) => h.date !== date) } : x)));
   if (s && !quiet) toast('Update removed', 'trash', { label: 'Undo', fn: () => { addSnapshot(id, s); toast('Restored', 'check'); } });
 }
+// ---------------- cash flow ----------------
+function saveTxns(txns: Txn[]): void { save(KEYS.txns, txns); setState({ txns }); }
+function saveBills(bills: Bill[]): void { save(KEYS.bills, bills); setState({ bills }); }
+export function setBudget(budget: number): void { if (budget > 0) save(KEYS.budget, budget); else remove(KEYS.budget); setState({ budget: budget > 0 ? budget : 0 }); }
+
+/** Record a movement of money (the balance snapshot is saved separately by the caller). */
+export function addTxn(t: Omit<Txn, 'id'> & { id?: string }): Txn {
+  const txn: Txn = { ...t, id: t.id || newId() };
+  saveTxns([...state.txns, txn].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)));
+  return txn;
+}
+export function updateTxn(id: string, patch: Partial<Pick<Txn, 'cat' | 'note'>>): void {
+  saveTxns(state.txns.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+}
+/** Remove a transaction and take its amount back out of the account's balances from that day on (and the
+ *  other side of a transfer). Undo from the toast puts everything back. */
+export function deleteTxn(id: string, quiet = false): void {
+  const t = state.txns.find((x) => x.id === id);
+  if (!t) return;
+  const pair = t.to ? state.txns.find((x) => x.id !== t.id && x.to === t.acct && x.acct === t.to && x.date === t.date && Math.abs(x.amount) === Math.abs(t.amount)) : undefined;
+  const gone = pair ? [t, pair] : [t];
+  const before = state.accounts;
+  saveAccounts(state.accounts.map((a) => gone.reduce((acc, g) => (g.acct === acc.id ? reverseTxn(acc, g) : acc), a)));
+  const left = state.txns.filter((x) => !gone.some((g) => g.id === x.id));
+  saveTxns(left);
+  if (!quiet) toast('Removed and balance put back', 'trash', { label: 'Undo', fn: () => { saveAccounts(before); saveTxns([...state.txns, ...gone].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))); toast('Restored', 'check'); } });
+}
+/** Drop the record of a transaction without touching balances (the caller has already put them back). */
+export function forgetTxn(id: string): void { saveTxns(state.txns.filter((x) => x.id !== id)); }
+/** Move money between two of your accounts: out of one, into the other, as a transfer on both. */
+export function moveMoney(from: string, to: string, amount: number, date: string, note = ''): { id: string } | { error: string } {
+  const a = state.accounts.find((x) => x.id === from), b = state.accounts.find((x) => x.id === to);
+  if (!a || !b || !(amount > 0)) return { error: 'Pick both accounts and an amount.' };
+  const la = snapshotOn(a), lb = snapshotOn(b);
+  const base = la ? la.value : 0;
+  if (a.kind !== 'loan' && amount > base + 0.005) return { error: 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' in ' + a.name + '.' };
+  // on a loan, moving money in pays it off; moving money out of a loan borrows more
+  const outVal = a.kind === 'loan' ? base + amount : base - amount;
+  const inVal = b.kind === 'loan' ? Math.max(0, (lb ? lb.value : 0) - amount) : (lb ? lb.value : 0) + amount;
+  const n = note.trim();
+  saveAccounts(state.accounts.map((x) => (x.id === from ? withSnapshot(x, { date, value: Math.round(outVal * 100) / 100, note: n || 'To ' + b.name }) : x.id === to ? withSnapshot(x, { date, value: Math.round(inVal * 100) / 100, note: n || 'From ' + a.name }) : x)));
+  const t1 = addTxn({ acct: from, to, date, amount: a.kind === 'loan' ? amount : -amount, cat: 'transfer', ...(n ? { note: n } : {}) });
+  addTxn({ acct: to, to: from, date, amount: b.kind === 'loan' ? -amount : amount, cat: 'transfer', ...(n ? { note: n } : {}) });
+  return { id: t1.id };
+}
+export function upsertBill(b: Bill): void {
+  const exists = state.bills.some((x) => x.id === b.id);
+  saveBills(exists ? state.bills.map((x) => (x.id === b.id ? b : x)) : [...state.bills, b]);
+}
+export function deleteBill(id: string): void {
+  const i = state.bills.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const gone = state.bills[i];
+  saveBills(state.bills.filter((x) => x.id !== id));
+  toast('Removed ' + gone.name, 'trash', { label: 'Undo', fn: () => { const l = [...state.bills]; l.splice(Math.min(i, l.length), 0, gone); saveBills(l); toast('Restored', 'check'); } });
+}
+/** Pay a bill from an account: a spending transaction, the balance down, and the bill marked paid this month. */
+export function payBill(id: string, acct: string, date: string, amount?: number): { id: string } | { error: string } {
+  const b = state.bills.find((x) => x.id === id), a = state.accounts.find((x) => x.id === acct);
+  if (!b || !a) return { error: 'Pick the account it was paid from.' };
+  const amt = amount && amount > 0 ? amount : b.amount;
+  const last = snapshotOn(a), base = last ? last.value : 0;
+  if (a.kind !== 'loan' && amt > base + 0.005) return { error: 'That is more than the Rs ' + Math.round(base).toLocaleString('en-PK') + ' in ' + a.name + '.' };
+  const value = a.kind === 'loan' ? base + amt : base - amt;
+  const before = state.accounts, beforeBills = state.bills;
+  saveAccounts(state.accounts.map((x) => (x.id === acct ? withSnapshot(x, { date, value: Math.round(value * 100) / 100, note: b.name }) : x)));
+  const t = addTxn({ acct, date, amount: a.kind === 'loan' ? amt : -amt, cat: b.cat as Cat, note: b.name });
+  saveBills(state.bills.map((x) => (x.id === id ? { ...x, lastPaid: date, acct } : x)));
+  toast(b.name + ' paid · Rs ' + Math.round(amt).toLocaleString('en-PK') + ' from ' + a.name, 'check', { label: 'Undo', fn: () => { saveAccounts(before); saveBills(beforeBills); forgetTxn(t.id); toast('Undone', 'check'); } });
+  return { id: t.id };
+}
+
 export function deleteAccount(id: string): void {
   const i = state.accounts.findIndex((x) => x.id === id);
   if (i < 0) return;
   const gone = state.accounts[i];
+  const goneTxns = state.txns.filter((t) => t.acct === id);
   saveAccounts(state.accounts.filter((x) => x.id !== id));
+  if (goneTxns.length) saveTxns(state.txns.filter((t) => t.acct !== id));
   toast('Removed ' + gone.name, 'trash', {
     label: 'Undo',
-    fn: () => { const list = [...state.accounts]; list.splice(Math.min(i, list.length), 0, gone); saveAccounts(list); toast('Restored', 'check'); },
+    fn: () => { const list = [...state.accounts]; list.splice(Math.min(i, list.length), 0, gone); saveAccounts(list); if (goneTxns.length) saveTxns([...state.txns, ...goneTxns].sort((a, b) => (a.date < b.date ? -1 : 1))); toast('Restored', 'check'); },
   });
 }
 
@@ -256,9 +342,9 @@ export function setNisab(nisab: number | null): void { if (nisab) save(KEYS.nisa
 export function setFundZakat(fundZakat: boolean): void { save(KEYS.fundZakat, fundZakat); setState({ fundZakat }); }
 
 // ---------------- backup ----------------
-export interface Backup { navs?: Nav[]; buys?: Buy[]; goal?: Goal; accounts?: Account[]; v?: number; fundZakat?: boolean }
+export interface Backup { navs?: Nav[]; buys?: Buy[]; goal?: Goal; accounts?: Account[]; v?: number; fundZakat?: boolean; txns?: Txn[]; bills?: Bill[]; budget?: number }
 export function backupJson(): string {
-  return JSON.stringify({ v: 4, navs: state.navs, buys: state.buys, goal: state.goal, accounts: state.accounts, fundZakat: state.fundZakat });
+  return JSON.stringify({ v: 4, navs: state.navs, buys: state.buys, goal: state.goal, accounts: state.accounts, fundZakat: state.fundZakat, txns: state.txns, bills: state.bills, budget: state.budget });
 }
 /** Restore a backup from Nivo 3 or 4. Returns false when the text is not a backup. */
 export function restore(text: string): boolean {
@@ -274,6 +360,9 @@ export function restore(text: string): boolean {
   if (j.goal && j.goal.amount > 0 && j.goal.years > 0) { setGoal({ amount: +j.goal.amount, years: Math.round(+j.goal.years) }); any = true; }
   if (Array.isArray(j.accounts)) { const acc = cleanAccounts(j.accounts); saveAccounts(acc); any = true; }
   if (typeof j.fundZakat === 'boolean') setFundZakat(j.fundZakat);
+  if (Array.isArray(j.txns)) saveTxns(cleanTxns(j.txns));
+  if (Array.isArray(j.bills)) saveBills(cleanBills(j.bills));
+  if (typeof j.budget === 'number') setBudget(j.budget);
   return any;
 }
 

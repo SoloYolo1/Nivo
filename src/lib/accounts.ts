@@ -83,11 +83,12 @@ export function withSnapshot(a: Account, s: Snapshot): Account {
 
 // ---------- adding or taking out money ----------
 
-/** How a balance changes: money in, money out, or a new total typed in. */
-export type Move = 'in' | 'out' | 'set';
+/** How a balance changes: money in, money out, a new total typed in, or money moved to another account. */
+export type Move = 'in' | 'out' | 'set' | 'move';
 
 /** The words for each kind of move. Loans run the other way: money in is borrowing more, out is paying off. */
 export function moveWords(kind: Kind, m: Move): { title: string; field: string; note: string; done: string } {
+  if (m === 'move') return { title: 'Move money', field: 'Amount to move (Rs)', note: 'e.g. Savings', done: 'Moved' };
   if (kind === 'loan') {
     if (m === 'in') return { title: 'Borrowed more', field: 'Amount borrowed (Rs)', note: 'e.g. Car repair', done: 'Added to what you owe' };
     if (m === 'out') return { title: 'Paid off', field: 'Amount paid (Rs)', note: 'e.g. Monthly instalment', done: 'Taken off what you owe' };
@@ -100,7 +101,7 @@ export function moveWords(kind: Kind, m: Move): { title: string; field: string; 
 
 /** The update sheet's argument: the account id, optionally followed by :in or :out to start on that move. */
 export const updateArg = (id: string, m?: Move): string => (m && m !== 'set' ? id + ':' + m : id);
-export const parseUpdateArg = (arg: string): { id: string; mode: Move } => { const [id, m] = arg.split(':'); return { id, mode: m === 'in' || m === 'out' ? m : 'set' }; };
+export const parseUpdateArg = (arg: string): { id: string; mode: Move } => { const [id, m] = arg.split(':'); return { id, mode: m === 'in' || m === 'out' || m === 'move' ? m : 'set' }; };
 
 /**
  * The snapshot that records a move, worked out from the latest balance: in adds, out takes off, set replaces.
@@ -108,6 +109,7 @@ export const parseUpdateArg = (arg: string): { id: string; mode: Move } => { con
  * A second move on the same day keeps the notes of both, so nothing typed that day is lost.
  */
 export function moveSnapshot(a: Account, m: Move, amount: number, date: string, note = ''): Snapshot | string {
+  if (m === 'move') return 'Use moveMoney for transfers.';
   if (!Number.isFinite(amount) || amount < 0) return m === 'set' ? (a.kind === 'loan' ? 'Enter how much you owe now.' : 'Enter the new balance.') : 'Enter an amount.';
   if (m !== 'set' && amount === 0) return 'Enter an amount.';
   const last = snapshotOn(a);

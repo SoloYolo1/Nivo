@@ -11,6 +11,7 @@ import { KINDS, businessStats, monthLabel, snapshotOn, updateArg, worth, worthOf
 import { cl, compact, dd, iso, n0, sg } from '../lib/format';
 import { setMonthlyReminder } from '../lib/notify';
 import { subtitle } from './Accounts';
+import { TxnRow } from './CashFlow';
 
 export function editRoute(a: Account) {
   if (a.kind === 'bank') return { name: 'editBank' as const, id: a.id };
@@ -20,6 +21,7 @@ export function editRoute(a: Account) {
 
 export function AccountDetail({ id }: { id: string }) {
   const a = useStore((s) => s.accounts.find((x) => x.id === id));
+  const allTxns = useStore((s) => s.txns);
   const t = useTotals();
   const C = useColors();
   const othersRemind = useStore((st) => st.accounts.some((x) => x.id !== id && x.remind));
@@ -33,6 +35,7 @@ export function AccountDetail({ id }: { id: string }) {
   const isLoan = a.kind === 'loan';
   const biz = a.kind === 'business' ? businessStats(a) : null;
   const pts = a.history.map((h) => ({ date: h.date, label: dd(h.date), value: Math.abs(worthOf(a, h)) }));
+  const txns = allTxns.filter((t) => t.acct === a.id);
   return (
     <section className="pg">
       <div className="cd hero mini" style={{ viewTransitionName: 'm-card' } as React.CSSProperties}>
@@ -109,7 +112,14 @@ export function AccountDetail({ id }: { id: string }) {
         </Card>
       )}
 
-      <Card icon="list" title="Updates" more={a.history.length > 1 ? 'Newest first' : undefined}>
+      {txns.length > 0 && (
+        <Card icon="sync" title="Money in and out" more={txns.length > 8 ? 'Latest 8 of ' + txns.length : 'Newest first'}>
+          {txns.slice(-8).reverse().map((t) => <TxnRow key={t.id} t={t} showAcct={false} />)}
+          <button type="button" className="btn ghost full" style={{ marginTop: 6, minHeight: 36 }} onClick={() => push({ name: 'cashflow' })}>See the whole month</button>
+        </Card>
+      )}
+
+      <Card icon="list" title="Balances" more={a.history.length > 1 ? 'Newest first' : undefined}>
         {[...a.history].reverse().slice(0, 24).map((h, i, arr) => {
           const older = arr[i + 1];
           const d = older ? worthOf(a, h) - worthOf(a, older) : null;

@@ -17,22 +17,25 @@ import { Plan } from './screens/Plan';
 import { Activity } from './screens/Activity';
 import { Settings, SETTINGS_TITLE } from './screens/Settings';
 import { Notifications } from './screens/Notifications';
+import { CashFlow } from './screens/CashFlow';
+import { Bills } from './screens/Bills';
 import { addInbox, unread, useInbox } from './lib/inbox';
 import { useFund, useTotals } from './state/derived';
 import {
   celebrate, closeSheet, getState, goTab, openEntry, openSettings, openSheet, pop, push, resetHome, setState, subscribe, swipeTab, toast, useStore, type Route, type Tab,
 } from './state/store';
 import { lastAutoAt, refreshAll, syncBackground } from './state/refresh';
-import { KINDS, monthChange, staleAccounts } from './lib/accounts';
+import { KINDS, monthChange, staleAccounts, updateArg } from './lib/accounts';
+import { billsDue } from './lib/cashflow';
 import { pickQuip } from './lib/quips';
 import { MILESTONES } from './lib/fund';
-import { big, dd, greeting, iso, unmasked } from './lib/format';
+import { big, dd, greeting, iso, n0, unmasked } from './lib/format';
 import { KEYS, load, save } from './lib/storage';
 import { haptic, isNative } from './lib/native';
 import { goBack, installNativeBack, installWebBack } from './lib/back';
 import { dragCancel, dragStart, dragTo } from './lib/backdrag';
 import { checkForUpdate, loadBuild } from './lib/update';
-import { ensureChannel, permission, setSummaryReminder } from './lib/notify';
+import { ensureChannel, permission, refreshBillReminders, setSummaryReminder } from './lib/notify';
 import { monthSummary } from './lib/summary';
 import { computeFund } from './state/derived';
 import { getLock, lockDelay } from './lib/lock';
@@ -55,6 +58,8 @@ function routeTitle(r: Route): string {
     case 'activity': return 'Activity';
     case 'settings': return r.page ? SETTINGS_TITLE[r.page] : 'Settings';
     case 'notifications': return 'Notifications';
+    case 'cashflow': return 'Cash flow';
+    case 'bills': return 'Bills';
   }
 }
 
@@ -101,6 +106,8 @@ function Header({ stack: over }: { stack?: Route[] }) {
     if (top.name === 'fund' && f.last) sub = <>NAV {f.last.nav.toFixed(4)} · {dd(f.last.date)} · <span className="up">live</span></>;
     if (top.name === 'account') { const a = accounts.find((x) => x.id === top.id); if (a) sub = subtitle(a, iso()); }
     if (top.name === 'activity') sub = 'Everything you have logged';
+    if (top.name === 'cashflow') sub = 'In, out and what it went on';
+    if (top.name === 'bills') sub = 'What comes round every month';
     if (top.name === 'settings' && !top.page) sub = 'Nivo ' + (getState().name ? 'for ' + getState().name : 'on this phone');
     return (
       <header className="phdr phdr-sm" key="screen" ref={hdrRef}>
@@ -156,6 +163,8 @@ function Screen({ stack: over }: { stack?: Route[] }) {
     else if (top.name === 'editAsset') el = <EditAsset kind={top.kind} id={top.id} />;
     else if (top.name === 'settings') { el = <Settings page={top.page} />; key = 'settings-' + (top.page || ''); }
     else if (top.name === 'notifications') el = <Notifications />;
+    else if (top.name === 'cashflow') { el = <CashFlow month={top.month} />; key = 'cashflow'; }
+    else if (top.name === 'bills') el = <Bills />;
     else el = <Activity />;
   } else {
     el = tab === 'home' ? <Home /> : tab === 'accounts' ? <Accounts /> : tab === 'insights' ? <Insights /> : <Plan />;
@@ -218,9 +227,11 @@ function Fan() {
   const pick = (fn: () => void) => () => { close(); haptic('select'); window.setTimeout(fn, 120); };
   const stale = staleAccounts(accounts, iso());
   const target = stale[0] || accounts[0];
+  const bank = accounts.find((a) => a.kind === 'bank' || a.kind === 'cash') || target;
   const items: Array<{ icon: string; label: string; fn: () => void }> = [
+    ...(bank ? [{ icon: 'minus', label: 'Spend', fn: () => openSheet('update', updateArg(bank.id, 'out')) }, { icon: 'qin', label: 'Money in', fn: () => openSheet('update', updateArg(bank.id, 'in')) }] : []),
     { icon: 'qadd', label: 'Account', fn: () => openSheet('add') },
-    ...(target ? [{ icon: 'qedit', label: 'Balance', fn: () => openSheet('update', target.id) }] : []),
+    ...(target && !bank ? [{ icon: 'qedit', label: 'Balance', fn: () => openSheet('update', target.id) }] : []),
     { icon: 'tag', label: 'Price', fn: () => openEntry('nav', { date: iso() }) },
     { icon: 'coinplus', label: 'Invest', fn: () => openEntry('inv', { date: iso() }) },
   ];
@@ -278,6 +289,7 @@ export function App() {
       setTimeout(() => setSplashGone(true), 750);
       syncBackground();
       remindStale();
+      remindBills();
       postSummary();
       // installed app: what build this is, and whether a newer APK is out (at most twice a day)
       setTimeout(() => void loadBuild().then(() => checkForUpdate(true)), 1500);
@@ -537,6 +549,15 @@ function remindStale(): void {
     title: stale.length === 1 ? stale[0].name + ' needs updating' : stale.length + ' balances need updating',
     body: 'Not updated for over a month: ' + stale.slice(0, 3).map((a) => a.name).join(', ') + (stale.length > 3 ? ' and ' + (stale.length - 3) + ' more' : '') + '.',
   });
+}
+
+/** Bills due in the next two days, or overdue, go into the notification list (once per due date). */
+function remindBills(): void {
+  const due = billsDue(getState().bills, iso(), 2);
+  for (const d of due) {
+    addInbox({ key: 'bill-' + d.bill.id + '-' + d.due, kind: 'alert', go: 'bills', title: d.bill.name + (d.overdue ? ' is overdue' : d.days === 0 ? ' is due today' : ' is due ' + dd(d.due)), body: 'Rs ' + n0(d.bill.amount) + '. Tap Paid once it is done and the balance follows.' });
+  }
+  void refreshBillReminders();
 }
 
 /** Early in a new month, last month's summary goes into the notification list (once). */
