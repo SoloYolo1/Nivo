@@ -4,6 +4,11 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.9.1
+
+- The compact bar that slid in on scroll is gone; the header simply scrolls away with the page.
+- The coloured line on the left of account rows is gone; the icon tile still carries the kind's colour.
+
 ## What is new in 4.9
 
 The look and feel, top to bottom.

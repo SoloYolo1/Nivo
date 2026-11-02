@@ -177,7 +177,6 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 /* 2. account rows: a coloured accent per kind, the balance a touch larger */
 .acc{position:relative;--gc:var(--a)}
 .acc[data-g="banks"]{--gc:#8f9cff}.acc[data-g="business"]{--gc:#56c8f0}.acc[data-g="investments"]{--gc:#4fd59c}.acc[data-g="assets"]{--gc:#d68bf5}.acc[data-g="loans"]{--gc:#f2847b}
-.acc::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px;background:var(--gc);opacity:.85}
 .acc .r b{font-size:16px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .acc .l>.ai{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gc) 35%,transparent)}
 
@@ -237,15 +236,3 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .cd.hero{box-shadow:var(--hero-sh),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.25)!important}
 .hero .cw{filter:drop-shadow(0 1px 0 rgba(255,255,255,.16)) drop-shadow(0 -1px 0 rgba(0,0,0,.28))}
 
-/* ---- the collapsing header: a large title at rest, a compact glass bar once scrolled ---- */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:12;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(var(--sat,env(safe-area-inset-top,0px)) + 8px) 16px 8px;background:color-mix(in srgb,var(--bg) 78%,transparent);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);box-shadow:0 1px 0 color-mix(in srgb,var(--gold) 16%,transparent);transform:translateY(-110%);opacity:0;transition:transform .32s var(--ease),opacity .25s;pointer-events:none}
-.topbar .tb-t{display:flex;flex-direction:column;min-width:0}
-.topbar .tb-t b{font-family:var(--fd);font-size:17px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
-.topbar .tb-t small{font-family:var(--fd);font-size:12px;font-weight:700;color:var(--gold-ink,var(--gold));letter-spacing:-.1px}
-.topbar .tb-a{display:flex;gap:8px}
-.topbar .hdr-ib{width:38px;height:38px;border-radius:12px}
-:root[data-scrolled="1"] .topbar{transform:none;opacity:1;pointer-events:auto}
-:root[data-overlay="1"] .topbar{opacity:0;pointer-events:none}
-.bk-drag .topbar{display:none}
-/* on the under-page during a back gesture there is no bar */
-.under .topbar{display:none}
