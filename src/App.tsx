@@ -231,7 +231,6 @@ function Fan() {
   const items: Array<{ icon: string; label: string; fn: () => void }> = [
     ...(bank ? [{ icon: 'minus', label: 'Spend', fn: () => openSheet('update', updateArg(bank.id, 'out')) }, { icon: 'qin', label: 'Money in', fn: () => openSheet('update', updateArg(bank.id, 'in')) }] : []),
     { icon: 'qadd', label: 'Account', fn: () => openSheet('add') },
-    ...(target && !bank ? [{ icon: 'qedit', label: 'Balance', fn: () => openSheet('update', target.id) }] : []),
     { icon: 'tag', label: 'Price', fn: () => openEntry('nav', { date: iso() }) },
     { icon: 'coinplus', label: 'Invest', fn: () => openEntry('inv', { date: iso() }) },
   ];
