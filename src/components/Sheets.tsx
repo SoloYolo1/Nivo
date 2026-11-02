@@ -1,16 +1,15 @@
 // Every bottom sheet in the app, driven by state.sheet.
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon, KIND_ICON } from './Icon';
 import { Sheet } from './Sheet';
 import { Seg } from './ui';
 import { useFund } from '../state/derived';
 import {
-  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, goTab, importLegacy, moveMoney, openEntry, openSettings, openSheet, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore, type SettingsPage,
+  addBuy, addSnapshot, addTxn, celebrate, closeSheet, deleteBill, deleteTxn, forgetTxn, importLegacy, moveMoney, openEntry, openSettings, openSheet, payBill, push, removeSnapshot, savePrice, setState, toast, updateTxn, upsertBill, useStore,
 } from '../state/store';
 import { refreshAll, syncBackground } from '../state/refresh';
 import { KINDS, businessValue, moveSnapshot, moveWords, newId, parseUpdateArg as parseArg, snapshotOn, worth, type Kind, type Move } from '../lib/accounts';
 import { CATS, IN_CATS, OUT_CATS, guessCat, type Cat } from '../lib/cashflow';
-import { search, type Hit } from '../lib/search';
 import { navOn } from '../lib/fund';
 import { amountsHidden, calcAmount, cl, dd, isSum, iso, longDate, n0, parseAmount, pc, rawN0, sg } from '../lib/format';
 import { haptic } from '../lib/native';
@@ -33,7 +32,6 @@ export function Sheets() {
       <Sheet open={sheet === 'notif'} onClose={close} title="Price alerts"><NotifSheet /></Sheet>
       <Sheet open={sheet === 'import'} onClose={close} title="Your Nivo 3 history"><ImportSheet /></Sheet>
       <Sheet open={sheet === 'txn'} onClose={close} title="Transaction"><TxnSheet /></Sheet>
-      <Sheet open={sheet === 'search'} onClose={close} title="Search"><SearchSheet /></Sheet>
       <Sheet open={sheet === 'bill'} onClose={close} title={<BillTitle />}><BillSheet /></Sheet>
     </>
   );
@@ -304,80 +302,6 @@ function UpdateSheet() {
       <div className="err" role="alert">{err}</div>
       <button type="button" className="btn gold big full" onClick={saveIt}>{mode === 'set' || isBiz ? 'Save' : mode === 'move' ? 'Move money' : words.title}</button>
       <button type="button" className="btn ghost full" onClick={() => { closeSheet(); push({ name: 'account', id: a.id }); }}>Open {a.name}</button>
-    </div>
-  );
-}
-
-// ---------------- search: find anything, do the quick things ----------------
-const TRY = ['careem', 'rent', '5000', 'zakat', '23 oct', 'backup'];
-function SearchSheet() {
-  const [q, setQ] = useState('');
-  const accounts = useStore((s) => s.accounts);
-  const txns = useStore((s) => s.txns);
-  const bills = useStore((s) => s.bills);
-  const f = useFund();
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { const t = window.setTimeout(() => ref.current?.focus(), 380); return () => clearTimeout(t); }, []);
-  const prices = useMemo(() => f.rows.map((r) => ({ date: r.date, nav: r.nav, chg: r.chg })), [f.rows]);
-  const hits = useMemo(() => search(q, { accounts, txns, bills, prices }), [q, accounts, txns, bills, prices]);
-  const go = (h: Hit) => {
-    haptic('select'); closeSheet();
-    window.setTimeout(() => {
-      if (h.kind === 'action') {
-        if (h.go.sheet === 'update') openSheet('update', h.go.arg);
-        else if (h.go.sheet === 'add') openSheet('add');
-        else if (h.go.sheet === 'entry') openEntry(h.go.tab, { date: iso() });
-        else openSheet('bill', h.go.arg);
-      } else if (h.kind === 'account') push({ name: 'account', id: h.accountId });
-      else if (h.kind === 'txn') openSheet('txn', h.txnId);
-      else if (h.kind === 'bill') openSheet('bill', 'edit:' + h.billId);
-      else if (h.kind === 'price') openSheet('day', h.date);
-      else if (h.kind === 'page') {
-        const [p, sub] = h.page.split(':');
-        if (p === 'settings') openSettings(sub as SettingsPage);
-        else if (p === 'fund') push({ name: 'fund', tab: 'overview' });
-        else if (p === 'insights') { goTab('insights'); if (sub === 'zakat') window.setTimeout(() => document.getElementById('zakat-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 450); }
-        else if (p === 'plan') goTab('plan');
-        else if (p === 'cashflow') push({ name: 'cashflow' });
-        else if (p === 'bills') push({ name: 'bills' });
-        else if (p === 'activity') push({ name: 'activity' });
-        else if (p === 'notifications') push({ name: 'notifications' });
-      }
-    }, 240);
-  };
-  const first = [hits.actions, hits.accounts, hits.txns, hits.bills, hits.prices, hits.pages].flat()[0];
-  const row = (h: Hit) => (
-    <button type="button" className="srch-r" key={h.kind + h.id} onClick={() => go(h)} style={'color' in h ? ({ ['--cc' as string]: h.color } as React.CSSProperties) : undefined}>
-      <span className={'ci' + ('color' in h ? '' : ' plain')}><Icon name={h.icon} size={16} /></span>
-      <span className="tt"><b>{h.title}</b><small>{h.sub}</small></span>
-      {h.kind === 'txn' ? <span className={'ta ' + (h.amount >= 0 ? 'up' : '')}>{h.amount >= 0 ? '+' : '−'}{n0(Math.abs(h.amount))}</span> : <Icon name="chevr" size={16} />}
-    </button>
-  );
-  const group = (label: string, list: Hit[]) => list.length > 0 && <><div className="srch-cap">{label}</div>{list.map(row)}</>;
-  return (
-    <div className="form" style={{ gap: 10 }}>
-      <div className="srch-box">
-        <Icon name="search" size={18} />
-        <input ref={ref} className="in" type="search" placeholder="Accounts, transactions, bills, prices, pages…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && first) go(first); }} autoCapitalize="none" autoCorrect="off" />
-        {q && <button type="button" className="x" aria-label="Clear" onClick={() => { setQ(''); ref.current?.focus(); }}><Icon name="close" size={16} /></button>}
-      </div>
-      {!q.trim() ? (
-        <>
-          <div className="hint">Type a name, a note, a category, an amount or a date. An amount can be logged straight away.</div>
-          <div className="catrow">{TRY.map((t) => <button key={t} type="button" className="catc" onClick={() => setQ(t)}><i><Icon name="search" size={13} /></i>{t}</button>)}</div>
-        </>
-      ) : hits.total === 0 ? (
-        <div className="empty" style={{ padding: '18px 0' }}><span className="tic inv"><Icon name="search" size={20} /></span><b>Nothing for “{q}”</b><p>Try a note, a category like groceries, an account, an amount, or a page like backup or zakat.</p></div>
-      ) : (
-        <div className="srch-list">
-          {group('Do', hits.actions)}
-          {group('Accounts', hits.accounts)}
-          {group('Transactions', hits.txns)}
-          {group('Bills', hits.bills)}
-          {group('Prices', hits.prices)}
-          {group('Pages', hits.pages)}
-        </div>
-      )}
     </div>
   );
 }

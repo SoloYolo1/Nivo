@@ -130,7 +130,6 @@ function Header({ stack: over }: { stack?: Route[] }) {
         <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
       </div>
       <div className="hdr-acts">
-        <button type="button" className="hdr-ib" aria-label="Search" onClick={() => openSheet('search')}><Icon name="search" size={21} /></button>
         {tab === 'accounts' && <button type="button" className="hdr-ib" aria-label="Add an account" onClick={() => openSheet('add')}><Icon name="qadd" size={22} /></button>}
         <BellButton />
         <button type="button" className="hdr-ib" aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={21} /></button>
