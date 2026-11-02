@@ -3,7 +3,7 @@
 .cap b{color:var(--tx);letter-spacing:0;font-size:12px;text-transform:none}
 .hero.mini{padding:16px 16px 14px}.hero.mini .hh{margin-bottom:10px}
 .mh-v{font-size:34px;font-weight:800;letter-spacing:-1.3px;line-height:1.1;margin:2px 0 9px;font-variant-numeric:tabular-nums}
-.mh-v span{font-size:15px;color:#f3d99b;font-weight:600;letter-spacing:0;margin-right:6px;vertical-align:6px}
+.mh-v span{font-size:15px;color:#e7c069;font-weight:600;letter-spacing:0;margin-right:6px;vertical-align:6px}
 .hero.mini .hx{margin-top:12px}.hero .dl:not(.up):not(.dn){color:#fff}
 
 /* allocation bar + legend inside the hero */

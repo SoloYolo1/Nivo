@@ -38,7 +38,7 @@ export function Plan() {
       <div className="cd hero mini plan-hero">
         <HeroHead icon="target" label="Your goal" chip={'in ' + Y + (Y > 1 ? ' years' : ' year')} />
         <div className="ph-row">
-          <Ring pct={gp} size={112} stroke={10} color="#f3d99b" track="rgba(255,255,255,.14)" label={gp.toFixed(0) + '% of your goal'}>
+          <Ring pct={gp} size={112} stroke={10} color="#e7c069" track="rgba(255,255,255,.14)" label={gp.toFixed(0) + '% of your goal'}>
             <b>{gp >= 100 ? <Icon name="check" size={30} stroke={3} /> : gp < 10 ? gp.toFixed(1) + '%' : Math.floor(gp) + '%'}</b><small>{gp >= 100 ? 'Reached' : 'of goal'}</small>
           </Ring>
           <div className="ph-t">

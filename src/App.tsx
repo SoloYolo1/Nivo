@@ -100,6 +100,8 @@ function Header({ stack: over }: { stack?: Route[] }) {
   useLayoutEffect(() => {
     if (over) return;
     hdrRef.current?.style.setProperty('--sy', String(Math.min(window.scrollY, 140)));
+    const r = document.documentElement;
+    if (window.scrollY > 64) r.dataset.scrolled = '1'; else delete r.dataset.scrolled;
   }, [onTab, tab, over]);
   if (top) {
     let sub: React.ReactNode = '';
@@ -125,6 +127,10 @@ function Header({ stack: over }: { stack?: Route[] }) {
     : tab === 'insights' ? new Date().toLocaleDateString('en-GB', { month: 'long' }) + ' so far' : 'Where your money is headed';
   return (
     <header className="hdr phdr" key="tab" ref={hdrRef}>
+      <div className="topbar" aria-hidden="true">
+        <span className="tb-t"><b>{TITLE[tab]}</b><small>{tab === 'home' ? 'Rs ' + n0(t.netWorth) : tab === 'accounts' ? 'Rs ' + n0(t.assets) : tab === 'insights' ? new Date().toLocaleDateString('en-GB', { month: 'long' }) : goalAmt > 0 ? Math.min(100, Math.round((Math.max(0, t.netWorth) / goalAmt) * 100)) + '% of goal' : ''}</small></span>
+        <span className="tb-a"><BellButton /><button type="button" className="hdr-ib" tabIndex={-1} aria-label="Settings" onClick={() => openSettings()}><Icon name="gear" size={19} /></button></span>
+      </div>
       <div className="hdr-l">
         {name && <button type="button" className="mono" aria-label={'Your profile, ' + name} onClick={() => openSettings('profile')}>{name.trim().charAt(0).toUpperCase()}</button>}
         <div><small>{sub}</small><b key={tab} className="tsw">{TITLE[tab]}</b></div>
@@ -393,6 +399,9 @@ export function App() {
         // the summary card drifts a little slower than the page (parallax), only while it is on screen
         const hero = document.querySelector('.w.main .pgw > .pg > .hero:first-child') as HTMLElement | null;
         hero?.style.setProperty('--py', String(Math.min(y, 420) * 0.16));
+        // past the large title, the compact bar takes over
+        const r = document.documentElement;
+        if (y > 64) { if (!r.dataset.scrolled) r.dataset.scrolled = '1'; } else if (r.dataset.scrolled) delete r.dataset.scrolled;
         const dy = y - lastY;
         if (dy > 6 && y > 160) dock?.classList.add('min'); else if (dy < -6 || y < 120) dock?.classList.remove('min');
         lastY = y; tick = false;

@@ -74,7 +74,7 @@ const snap = () => {
 };
 // The dark summary cards stay dark in both themes, so their charts always use the bright pair.
 const HERO = { upHero: '#4cc38a', dnHero: '#ff6961' };
-const DARK = { up: '#4cc38a', dn: '#ff6961', a: '#8f9cff', gold: '#e2bd72', org: '#ff9f0a', ...HERO }, LIGHT = { up: '#138a52', dn: '#e0342a', a: '#4a58d0', gold: '#b98a2e', org: '#e8780a', ...HERO };
+const DARK = { up: '#4cc38a', dn: '#ff6961', a: '#8f9cff', gold: '#cfa14a', org: '#ff9f0a', ...HERO }, LIGHT = { up: '#138a52', dn: '#e0342a', a: '#4a58d0', gold: '#9c7222', org: '#e8780a', ...HERO };
 export function useColors(): typeof DARK {
   const d = useSyncExternalStore(sub, snap, () => true);
   const pid = useSyncExternalStore(sub, () => current.id, () => current.id);

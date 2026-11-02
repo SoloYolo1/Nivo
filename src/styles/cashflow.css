@@ -133,7 +133,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 
 /* hero cards: a warm sheen on the top-right corner, over the leather or the gradient */
 .cd.hero{position:relative;overflow:hidden}
-.cd.hero::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 50% at 100% 0%,rgba(243,217,155,.16),transparent 70%)}
+.cd.hero::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 50% at 100% 0%,rgba(231,192,105,.16),transparent 70%)}
 .cd.hero>*{position:relative}
 
 /* the page header's subtitle and the active tab pick up the same gold they already had; make the title breathe */
@@ -200,3 +200,52 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
    and fading under the card, and the dock stays exactly where it is ---- */
 .hdr{transform:none!important;opacity:1!important}
 .dock.min{transform:translateX(-50%)!important;opacity:1!important}
+
+/* ======================================================================
+   4.9: a display voice for titles and figures, glass for everything that
+   floats, a card you would hold, and a header that collapses into a bar.
+   ====================================================================== */
+
+/* ---- typography: Manrope carries titles and figures, Inter keeps the text ---- */
+:root{--fd:"Manrope",var(--f)}
+.hdr b,.phdr-sm .t b,.sh-h>span,h2 .h2t{font-family:var(--fd);font-weight:800;letter-spacing:-.6px}
+.hdr b{font-size:30px}
+.big,.mh-v,.lpv,.in.money,.flow b,.tile2 .zk,.tile2 .gauge text,.acc .r b,.rw b,.bignum b,.ph-t b,.hx b,.gl3 b,.dy b,.dl,.cv,.ta,.ba b,.due-c .amt,.net-l b,.mh-n,.cu,.roll,.entry-amt,.kp-amt{font-family:var(--fd);font-variant-numeric:tabular-nums lining-nums}
+.big{letter-spacing:-2.2px;font-weight:800}
+.mh-v{letter-spacing:-1.5px}
+.acc .l b,.txr .tt b,.bill .bt b,.catl .ct b,.tile b,.set-grp .rw b,.rw>span>b{font-family:var(--fd);font-weight:700;letter-spacing:-.2px}
+.cap{font-family:var(--fd);font-weight:800;letter-spacing:1px}
+.btn{font-family:var(--fd);font-weight:800;letter-spacing:-.1px}
+.dock button span{font-family:var(--fd);font-weight:700}
+.seg button,.mons button,.catc,.rp button{font-family:var(--fd);font-weight:700}
+
+/* ---- depth: the page is flat, cards are solid, floating things are glass ---- */
+.sheet{background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--gold) 22%,transparent),0 -24px 70px rgba(0,0,0,.4)}
+.sheet.on{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--gold) 22%,transparent),0 -24px 70px rgba(0,0,0,.4)}
+.toast{background:color-mix(in srgb,var(--tx) 90%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 12px 32px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.18)}
+.ov{-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+/* the page steps back a little while a sheet is open */
+.w.main{transition:scale .35s var(--ease),filter .35s;transform-origin:50% 0}
+:root[data-overlay="1"] .w.main{scale:.975;filter:brightness(.92)}
+@media (prefers-reduced-motion:reduce){:root[data-overlay="1"] .w.main{scale:none;filter:none}}
+
+/* ---- the hero as a card you would hold: a sheen that moves as the page scrolls, an embossed mark ---- */
+.cd.hero::after{background:
+  linear-gradient(115deg,transparent 30%,rgba(255,255,255,.09) 44%,rgba(255,255,255,.02) 50%,transparent 62%),
+  radial-gradient(60% 50% at 100% 0%,rgba(236,197,110,.14),transparent 70%);
+  background-size:220% 100%,100% 100%;background-position:calc(50% + var(--py,0) * 1.4%) 0,0 0;transition:background-position .1s linear}
+.cd.hero{box-shadow:var(--hero-sh),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.25)!important}
+.hero .cw{filter:drop-shadow(0 1px 0 rgba(255,255,255,.16)) drop-shadow(0 -1px 0 rgba(0,0,0,.28))}
+
+/* ---- the collapsing header: a large title at rest, a compact glass bar once scrolled ---- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:12;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(var(--sat,env(safe-area-inset-top,0px)) + 8px) 16px 8px;background:color-mix(in srgb,var(--bg) 78%,transparent);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);box-shadow:0 1px 0 color-mix(in srgb,var(--gold) 16%,transparent);transform:translateY(-110%);opacity:0;transition:transform .32s var(--ease),opacity .25s;pointer-events:none}
+.topbar .tb-t{display:flex;flex-direction:column;min-width:0}
+.topbar .tb-t b{font-family:var(--fd);font-size:17px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
+.topbar .tb-t small{font-family:var(--fd);font-size:12px;font-weight:700;color:var(--gold-ink,var(--gold));letter-spacing:-.1px}
+.topbar .tb-a{display:flex;gap:8px}
+.topbar .hdr-ib{width:38px;height:38px;border-radius:12px}
+:root[data-scrolled="1"] .topbar{transform:none;opacity:1;pointer-events:auto}
+:root[data-overlay="1"] .topbar{opacity:0;pointer-events:none}
+.bk-drag .topbar{display:none}
+/* on the under-page during a back gesture there is no bar */
+.under .topbar{display:none}

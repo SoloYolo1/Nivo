@@ -4,6 +4,16 @@ Your Meezan fund, bank accounts, business and anything else you own or owe, in o
 
 Built with **TypeScript and React**, bundled with **esbuild**, packaged for Android with **Capacitor 7**. The same code runs as the website on GitHub Pages and inside the Android app.
 
+## What is new in 4.9
+
+The look and feel, top to bottom.
+
+- **Real gold.** The accent was a pale, yellowish cream; it is now a deeper metallic gold (highlight #e7c069, body #cfa14a in the dark themes, a bronze #9c7222 in light) everywhere: titles, buttons, the dot on the wordmark, the dock pill, chips, rings, the splash.
+- **A display voice.** Page titles, every balance and figure, section captions and buttons are set in Manrope, with Inter kept for reading text. Figures are tabular, so columns line up.
+- **Depth.** The page is flat, cards are solid, and everything that floats is frosted glass: sheets, the toast, the dock, the new top bar. The page steps back a little while a sheet is open.
+- **A card you would hold.** Every hero card has a sheen that moves as the page scrolls, a fine inner edge, and the wordmark softly embossed.
+- **A header that collapses.** The large title scrolls away and a compact glass bar takes over with the page's key number (net worth on Home, what you own on Accounts, the month on Insights, progress on Plan) and the bell and gear, always within reach.
+
 ## What is new in 4.8.1
 
 - **Nothing hides as you scroll.** The page title, bell and gear used to shrink and fade as the card scrolled over them, and the dock shrank too; both now stay as they are and the header simply scrolls away with the page. The 4.8 parallax let the summary card drift over the section beneath it; it now settles back (a touch smaller and quieter) as it leaves the top instead.

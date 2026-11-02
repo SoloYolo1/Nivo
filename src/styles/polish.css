@@ -378,7 +378,7 @@ span.msp{display:inline-block}
 
 /* insights */
 .story-line{margin:16px 0 0;font-size:21px;font-weight:700;line-height:1.32;letter-spacing:-.4px;color:#fff}
-.story-line .pos{color:#b6f7c8}.story-line .neg{color:#ffc1bc}.story-line .who{color:#f3d99b}
+.story-line .pos{color:#b6f7c8}.story-line .neg{color:#ffc1bc}.story-line .who{color:#e7c069}
 .story-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .story-chips span{font-size:12px;font-weight:600;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.85)}
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
@@ -475,7 +475,7 @@ span.msp{display:inline-block}
 .dock .sel{background:color-mix(in srgb,var(--a) 18%,transparent)}
 /* while scrolling down the dock tucks in a little but never fades */
 .dock.min{transform:translateX(-50%) translateY(10px) scale(.92);opacity:1}
-.dock .fab{box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 22px rgba(217,168,78,.4),0 0 0 4px color-mix(in srgb,var(--cd) 94%,transparent)}
+.dock .fab{box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 22px rgba(200,149,58,.4),0 0 0 4px color-mix(in srgb,var(--cd) 94%,transparent)}
 /* toast and the add menu sit above the raised dock */
 .toast,.fm{bottom:calc(var(--sab,env(safe-area-inset-bottom,0px)) + 100px)}
 
@@ -492,12 +492,12 @@ html[data-overlay]{overflow:hidden;overscroll-behavior:none}
 /* ==========================================================================
    4.2, second pass: one gold language, modern fields, a solid dock, and the new Home.
    Gold is the accent for everything you can tap or read as a label; indigo stays for the summary
-   cards and the charts. In light mode gold text uses a deeper "ink" (#8a6416, 5.4:1 on white):
-   the old #b98a2e was 3.1:1 and too faint for small labels.
+   cards and the charts. In light mode gold text uses a deeper "ink" (#7e5a14, 5.4:1 on white):
+   the old #9c7222 was 3.1:1 and too faint for small labels.
    ========================================================================== */
-:root{--gold-ink:#8a6416;--gold-mute:#857356;--gold-fill:#f6edd9;--field:#ffffff;--field-bd:rgba(40,50,110,.13);--field-focus:#ffffff;--dock-bg:#ffffff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gold-ink:#e2bd72;--gold-mute:#a99470;--gold-fill:rgba(226,189,114,.16);--field:rgba(255,255,255,.045);--field-bd:rgba(255,255,255,.09);--field-focus:rgba(255,255,255,.07);--dock-bg:#1a1e3d}}
-:root[data-theme="dark"]{--gold-ink:#e2bd72;--gold-mute:#a99470;--gold-fill:rgba(226,189,114,.16);--field:rgba(255,255,255,.045);--field-bd:rgba(255,255,255,.09);--field-focus:rgba(255,255,255,.07);--dock-bg:#1a1e3d}
+:root{--gold-ink:#7e5a14;--gold-mute:#857356;--gold-fill:#f3e7cf;--field:#ffffff;--field-bd:rgba(40,50,110,.13);--field-focus:#ffffff;--dock-bg:#ffffff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gold-ink:#cfa14a;--gold-mute:#a99470;--gold-fill:rgba(207,161,74,.16);--field:rgba(255,255,255,.045);--field-bd:rgba(255,255,255,.09);--field-focus:rgba(255,255,255,.07);--dock-bg:#1a1e3d}}
+:root[data-theme="dark"]{--gold-ink:#cfa14a;--gold-mute:#a99470;--gold-fill:rgba(207,161,74,.16);--field:rgba(255,255,255,.045);--field-bd:rgba(255,255,255,.09);--field-focus:rgba(255,255,255,.07);--dock-bg:#1a1e3d}
 
 /* ---------- dock: solid, never see-through, gold tabs; slide, bounce and tuck-in animations unchanged ---------- */
 .dock{background:var(--dock-bg);-webkit-backdrop-filter:none;backdrop-filter:none;bottom:calc(var(--sab,env(safe-area-inset-bottom,0px)) + 12px)}
@@ -506,7 +506,7 @@ html[data-overlay]{overflow:hidden;overscroll-behavior:none}
 .dock button.on{color:var(--gold-ink);font-weight:700}
 .dock .sel{background:var(--gold-fill)}
 .dock.min{transform:translateX(-50%) translateY(6px) scale(.92);opacity:1}
-.dock .fab{box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 22px rgba(217,168,78,.4),0 0 0 4px var(--dock-bg)}
+.dock .fab{box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 22px rgba(200,149,58,.4),0 0 0 4px var(--dock-bg)}
 
 /* ---------- section titles, captions and links ---------- */
 h2{color:var(--gold-ink)}
@@ -522,7 +522,7 @@ h2 .hi{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#171a35
 .tabs button.on:after{background:var(--gold)}
 .seg button.on{color:var(--gold-ink)}
 .pz button.on{background:var(--gold-fill);color:var(--gold-ink)}
-.rp button.on{background:#f3d99b;color:#1b1d3a}
+.rp button.on{background:#e7c069;color:#1b1d3a}
 
 /* ---------- buttons, switches, chips, checks ---------- */
 .btn{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#171a35;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 18px color-mix(in srgb,var(--gold) 30%,transparent)}
@@ -738,7 +738,7 @@ h2 .hi{box-shadow:none}
 .hero .nw-hl>span:first-child{color:#fff;font-weight:700}
 .nw-eye{display:grid;place-items:center;width:32px;height:32px;margin:-6px 0 -6px -2px;border:0;border-radius:50%;background:none;color:rgba(255,255,255,.62);transition:color .2s,background .2s,transform .2s}
 .nw-eye:active{transform:scale(.9);background:rgba(255,255,255,.12)}
-.nw-eye.on{color:#f3d99b}
+.nw-eye.on{color:#e7c069}
 :root[data-masked] .big .cu,:root[data-masked] .big{letter-spacing:.02em}
 
 /* pull to refresh: a ring that fills as you pull, gold once far enough */
@@ -798,11 +798,11 @@ h2 .hi{box-shadow:none}
 .plan-hero .ring{color:#fff}
 .plan-hero .ring-in b{font-size:24px;letter-spacing:-.6px;color:#fff}
 .plan-hero .ring-in small{color:rgba(255,255,255,.7);font-size:11px}
-.plan-hero .ring.full .ring-in{color:#f3d99b}
+.plan-hero .ring.full .ring-in{color:#e7c069}
 .ph-t{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:6px 12px;min-width:0}
 .ph-t small{font-size:12px;font-weight:600;color:rgba(255,255,255,.62)}
 .ph-t b{font-size:clamp(17px,5vw,21px);font-weight:800;letter-spacing:-.4px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.ph-t b.gold{color:#f3d99b}
+.ph-t b.gold{color:#e7c069}
 .ms-rings{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:12px 0 2px}
 .ms{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
 .ms .ring{color:var(--tx)}
@@ -872,8 +872,8 @@ h2 .hi{box-shadow:none}
 .pal:active{transform:scale(.98)}
 .pal.on{box-shadow:0 0 0 2px var(--gold)}
 .pal-sw{position:relative;display:grid;place-items:center;width:100%;height:58px;border-radius:12px;margin-bottom:8px;color:#1b1d3a;overflow:hidden}
-.pal-sw>i{position:absolute;right:10px;bottom:10px;width:22px;height:6px;border-radius:3px;background:linear-gradient(90deg,#f3d99b,#d9a84e)}
-.pal-sw>svg{position:relative;width:26px;height:26px;padding:5px;border-radius:50%;background:#f3d99b;box-sizing:border-box}
+.pal-sw>i{position:absolute;right:10px;bottom:10px;width:22px;height:6px;border-radius:3px;background:linear-gradient(90deg,#e7c069,#c8953a)}
+.pal-sw>svg{position:relative;width:26px;height:26px;padding:5px;border-radius:50%;background:#e7c069;box-sizing:border-box}
 .pal b{font-size:14px;font-weight:700}
 .pal small{font-size:11.5px;color:var(--mu)}
 
@@ -923,7 +923,7 @@ h2 .hi{box-shadow:none}
 .fan{position:fixed;left:50%;bottom:calc(var(--sab,env(safe-area-inset-bottom,0px)) + 104px);width:0;height:0;z-index:14;pointer-events:none}
 .fan button{--a0:calc(-160deg + (140deg / (var(--n) - 1)) * var(--i));position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:6px;width:78px;margin:-30px 0 0 -39px;border:0;background:none;color:#fff;font:inherit;opacity:0;transform:rotate(var(--a0)) translateX(0) rotate(calc(-1 * var(--a0))) scale(.4);transition:transform .32s cubic-bezier(.3,1.5,.5,1),opacity .2s;transition-delay:calc(var(--i) * 30ms)}
 .fan.on button{opacity:1;pointer-events:auto;transform:rotate(var(--a0)) translateX(104px) rotate(calc(-1 * var(--a0))) scale(1)}
-.fan button>span{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#f3d99b,#d9a84e);color:#1b1d3a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.fan button>span{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#e7c069,#c8953a);color:#1b1d3a;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .fan button>b{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5)}
 .fan button:active>span{transform:scale(.92)}
 .dock .fab{transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
