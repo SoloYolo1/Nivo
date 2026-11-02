@@ -1,7 +1,7 @@
 // One account in detail: bank, business, or any other asset or loan.
 import { Icon, KIND_ICON } from '../components/Icon';
 import { MoveActions } from '../components/MoveActions';
-import { DataTile } from '../components/DataTile';
+import { DataTile, shortAmt } from '../components/DataTile';
 import { Card, Switch } from '../components/ui';
 import { HeroHead } from '../components/Wordmark';
 import { Bars } from '../components/Charts';
@@ -181,9 +181,9 @@ function AccountTiles({ a, txns, today }: { a: Account; txns: Txn[]; today: stri
     const paidMonth = txns.filter((t) => t.date.slice(0, 7) === ym && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
     return (
       <div className="dt-grid three">
-        <DataTile label="Paid off" value={Math.round(pct) + '%'} tone="up" sub={'Rs ' + n0(paid) + ' of Rs ' + n0(start)} bar={{ pct, tone: 'up' }} />
+        <DataTile label="Paid off" value={Math.round(pct) + '%'} tone="up" sub={shortAmt(paid) + ' of ' + shortAmt(start)} bar={{ pct, tone: 'up' }} />
         <DataTile label={month} value={paidMonth ? 'Rs ' + n0(paidMonth) : '–'} tone={paidMonth ? 'up' : ''} sub={paidMonth ? 'paid this month' : 'nothing paid yet'} />
-        <DataTile label="Change" value={move30 != null ? (move30 >= 0 ? '−' : '+') + compact(Math.abs(move30)).replace('Rs ', '') : '–'} tone={move30 != null ? (move30 >= 0 ? 'up' : 'dn') : ''} sub={move30 != null ? (move30 >= 0 ? 'less owed since ' : 'more owed since ') + dd(old!.date) : 'needs a second update'} />
+        <DataTile label="Change" value={move30 != null ? (move30 >= 0 ? '−' : '+') + compact(Math.abs(move30)).replace('Rs ', '') : '–'} tone={move30 != null ? (move30 >= 0 ? 'up' : 'dn') : ''} sub={move30 != null ? 'since ' + dd(old!.date) : 'needs a second update'} />
       </div>
     );
   }
